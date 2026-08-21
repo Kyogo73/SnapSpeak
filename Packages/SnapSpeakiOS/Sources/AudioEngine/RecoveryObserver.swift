@@ -62,7 +62,7 @@ public actor RecoveryObserver {
         )
         tokens.append(
             center.addObserver(
-                forName: AVAudioEngine.configurationChangeNotification,
+                forName: .AVAudioEngineConfigurationChange,
                 object: nil,
                 queue: nil
             ) { _ in

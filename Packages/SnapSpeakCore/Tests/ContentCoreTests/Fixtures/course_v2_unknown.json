@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 2,
+  "id": "course_future",
+  "languagePair": { "sourceLanguage": "ja", "targetLanguage": "en" },
+  "title": { "en": "Future schema" },
+  "units": []
+}

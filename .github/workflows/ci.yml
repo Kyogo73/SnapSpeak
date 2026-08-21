@@ -1,0 +1,47 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/realm/swiftlint:0.57.0
+    steps:
+      - uses: actions/checkout@v4
+      - run: swiftlint lint --strict
+
+  core-linux:
+    runs-on: ubuntu-24.04
+    container: swift:6.1-noble
+    defaults: { run: { working-directory: Packages/SnapSpeakCore } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: Packages/SnapSpeakCore/.build
+          key: spm-linux-${{ hashFiles('Packages/SnapSpeakCore/Package.resolved', '.swift-version') }}
+      - run: swift build --build-tests
+      - run: swift test
+      - run: swift run contentlint ../../Resources/Seed/course_daily_ja_en/index.json --audio-root ../../Resources/Seed/course_daily_ja_en
+
+  ios-macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - uses: actions/cache@v4
+        with:
+          path: |
+            Packages/SnapSpeakCore/.build
+            ~/Library/Developer/Xcode/DerivedData
+          key: spm-macos-${{ hashFiles('**/Package.resolved', '.swift-version') }}
+      - run: swift test --package-path Packages/SnapSpeakCore
+      - run: HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - run: xcodegen generate --spec App/project.yml
+      - run: xcodebuild build -project App/SnapSpeak.xcodeproj -scheme SnapSpeak -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
+      - run: xcodebuild test -project App/SnapSpeak.xcodeproj -scheme SnapSpeakiOSTests -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO

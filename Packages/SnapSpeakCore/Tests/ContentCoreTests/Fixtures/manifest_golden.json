@@ -1,0 +1,23 @@
+{
+  "manifestSchemaVersion": 1,
+  "generatedAt": "2026-08-21T00:00:00Z",
+  "courses": [
+    {
+      "id": "course_travel_ja_en",
+      "languagePair": { "sourceLanguage": "ja", "targetLanguage": "en" },
+      "releases": [
+        {
+          "releaseId": "course_travel_ja_en__r1",
+          "revision": 1,
+          "schemaVersion": 1,
+          "minAppVersion": "1.0.0",
+          "maxAppVersion": null,
+          "contentUrl": "https://cdn.example.com/courses/course_travel_ja_en/r1/index.json",
+          "bytes": 184320,
+          "checksumSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "inheritSRS": true
+        }
+      ]
+    }
+  ]
+}

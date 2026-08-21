@@ -1,0 +1,114 @@
+import Analytics
+import AudioEngine
+import Combine
+import CompositionFeature
+import ContentKit
+import Foundation
+import Persistence
+import ShadowingFeature
+import SpeechKit
+
+@MainActor
+public final class AppDependencies: ObservableObject {
+    public let persistence: PersistenceActor
+    public let audio: AudioEngineActor
+    public let speech: SpeechClient
+    public let courseStore: CourseStore
+    public let downloads: DownloadManager
+    public let manifest: ManifestService
+    public let analytics: LocalAnalytics
+    public let entitlement: EntitlementResolver
+    public let seed: SeedInstaller
+    public let settings: UserSettingsDTO
+    public let shadowingUseCase: LiveShadowingUseCase
+    public let compositionUseCase: LiveCompositionUseCase
+
+    public init(
+        persistence: PersistenceActor,
+        audio: AudioEngineActor,
+        speech: SpeechClient,
+        courseStore: CourseStore,
+        downloads: DownloadManager,
+        manifest: ManifestService,
+        analytics: LocalAnalytics,
+        entitlement: EntitlementResolver,
+        seed: SeedInstaller,
+        settings: UserSettingsDTO,
+        shadowingUseCase: LiveShadowingUseCase,
+        compositionUseCase: LiveCompositionUseCase
+    ) {
+        self.persistence = persistence
+        self.audio = audio
+        self.speech = speech
+        self.courseStore = courseStore
+        self.downloads = downloads
+        self.manifest = manifest
+        self.analytics = analytics
+        self.entitlement = entitlement
+        self.seed = seed
+        self.settings = settings
+        self.shadowingUseCase = shadowingUseCase
+        self.compositionUseCase = compositionUseCase
+    }
+
+    public static func live(resourceBundle: Bundle) throws -> AppDependencies {
+        let support = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let contentRoot = support.appendingPathComponent("Content", isDirectory: true)
+        let recordings = support.appendingPathComponent("Recordings", isDirectory: true)
+        try FileManager.default.createDirectory(at: contentRoot, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: recordings, withIntermediateDirectories: true)
+
+        let container = try PersistenceActor.makeContainer(inMemory: false)
+        let persistence = PersistenceActor(modelContainer: container)
+        let analytics = LocalAnalytics()
+        _ = InstallID.current()
+        let audio = AudioEngineActor(analytics: analytics)
+        let speech = SpeechClient()
+        let seed = SeedInstaller(bundle: resourceBundle)
+        let downloader = URLSessionDownloader()
+        let courseStore = CourseStore(seed: seed, downloadsRoot: contentRoot)
+        let downloads = DownloadManager(downloader: downloader, contentRoot: contentRoot)
+        let manifest = ManifestService(downloader: downloader)
+        let entitlement = EntitlementResolver()
+
+        let shadowing = LiveShadowingUseCase(
+            audio: audio,
+            speech: speech,
+            persistence: persistence,
+            analytics: analytics,
+            recordingsDirectory: recordings
+        )
+        let composition = LiveCompositionUseCase(
+            audio: audio,
+            speech: speech,
+            persistence: persistence,
+            analytics: analytics,
+            recordingsDirectory: recordings
+        )
+
+        let settings: UserSettingsDTO = UserSettingsDTO.phase1Default
+        return AppDependencies(
+            persistence: persistence,
+            audio: audio,
+            speech: speech,
+            courseStore: courseStore,
+            downloads: downloads,
+            manifest: manifest,
+            analytics: analytics,
+            entitlement: entitlement,
+            seed: seed,
+            settings: settings,
+            shadowingUseCase: shadowing,
+            compositionUseCase: composition
+        )
+    }
+
+    public func loadSettings() async -> UserSettingsDTO {
+        (try? await persistence.loadOrCreateSettings()) ?? settings
+    }
+}

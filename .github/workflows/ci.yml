@@ -41,6 +41,7 @@ jobs:
             ~/Library/Developer/Xcode/DerivedData
           key: spm-macos-${{ hashFiles('**/Package.resolved', '.swift-version') }}
       - run: swift test --package-path Packages/SnapSpeakCore
-      - run: brew install xcodegen && xcodegen generate --spec App/project.yml
+      - run: HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - run: xcodegen generate --spec App/project.yml
       - run: xcodebuild build -project App/SnapSpeak.xcodeproj -scheme SnapSpeak -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
       - run: xcodebuild test -project App/SnapSpeak.xcodeproj -scheme SnapSpeakiOSTests -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO

@@ -15,6 +15,17 @@ public final class RecoveryObserver: @unchecked Sendable {
 
     public init() {}
 
+    public func events() -> AsyncStream<RecoveryEvent> {
+        AsyncStream { continuation in
+            self.start { event in
+                continuation.yield(event)
+            }
+            continuation.onTermination = { _ in
+                self.stop()
+            }
+        }
+    }
+
     public func start(handler: @escaping @Sendable (RecoveryEvent) -> Void) {
         stop()
         let center = NotificationCenter.default

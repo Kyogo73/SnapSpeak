@@ -97,6 +97,8 @@ flowchart TB
 | **DesignSystem** | UI | 色、タイポ、ボタン、カード。機能知識を持たない |
 | **Analytics** | インフラ | イベント送信のプロトコルと実装。個人データ・音声を受け取らない |
 
+実装上のパッケージ分割（Phase 1）: Linux では Apple フレームワークをビルドできないため、上表のモジュールは 2 つの Swift パッケージにグルーピングする。Foundation のみの `Packages/SnapSpeakCore`（LanguageKit / ScoringKit / CompositionKit / SRSKit / ContentCore / AnalyticsCore）と、Apple 専用の `Packages/SnapSpeakiOS`（AppFeature / ShadowingFeature / CompositionFeature / AudioEngine / SpeechKit / ContentKit / Persistence / DesignSystem / Analytics）。各モジュールはパッケージ内の target として実現し、本節の依存方向は維持する。`ScoringKit` は採点コア（UI / Audio 非依存）。`SpeechKit` は `SFSpeechRecognizer` のオンデバイス専用ラッパである。
+
 依存方向は一方向にする。
 
 ```mermaid
@@ -1342,5 +1344,7 @@ Resources/
   Seed/                       # ja-en index.json + audio
   PrivacyInfo.xcprivacy
 ```
+
+実装上の置き場（Phase 1）: 上のディレクトリイメージは論理モジュール名をフラットに示している。Linux 制約により Foundation-only 集合は `Packages/SnapSpeakCore/`、Apple 専用集合は `Packages/SnapSpeakiOS/` にグルーピングし、各モジュール（`ScoringKit` と `SpeechKit` を含む）はその中の SwiftPM target として実現する。App ターゲットは `App/project.yml`（XcodeGen）から生成する。
 
 本リポジトリの `docs/` は上記実装の設計正本である。コード追加時はスキーマとモジュール境界を本書に合わせ、逸脱する場合は先に本書を更新する。フェーズの定義が食い違うときは **roadmap.md を正**とする。

@@ -48,6 +48,7 @@ public actor AudioEngineActor {
     private let recovery = RecoveryObserver()
     private var recordingURL: URL?
     private var currentRate: Float = 1.0
+    private var recoveryTask: Task<Void, Never>?
 
     public init(
         session: AudioSessionConfigurator = AudioSessionConfigurator(),
@@ -187,6 +188,8 @@ public actor AudioEngineActor {
         )
         graph.teardown()
         try? session.deactivate()
+        recoveryTask?.cancel()
+        recoveryTask = nil
         recovery.stop()
         let result = ShadowingSessionResult(
             recordingURL: recordingURL,
@@ -223,9 +226,12 @@ public actor AudioEngineActor {
     }
 
     private func startRecoveryMonitoring() {
+        recoveryTask?.cancel()
         recovery.stop()
-        recovery.start { event in
-            Task { await self.handleRecovery(event) }
+        recoveryTask = Task {
+            for await event in recovery.events() {
+                await handleRecovery(event)
+            }
         }
     }
 }

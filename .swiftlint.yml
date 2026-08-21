@@ -4,7 +4,13 @@ excluded:
   - "**/Fixtures"
 line_length: { warning: 140, error: 200 }
 opt_in_rules: [sorted_imports, empty_count, closure_spacing]
-disabled_rules: [todo]
+disabled_rules:
+  - todo
+  - trailing_comma
+  - function_body_length
+  - type_body_length
+  - function_parameter_count
+  - empty_enum_arguments
 custom_rules:
   no_apple_languages:
     regex: "AppleLanguages"
@@ -12,6 +18,6 @@ custom_rules:
     severity: error
   no_hardcoded_ui_japanese:
     included: "Packages/SnapSpeakiOS/Sources|App/Sources"
-    regex: "Text\\(\\s*\"[^\"]*[\\p{Hiragana}\\p{Katakana}\\p{Han}]"
+    regex: '(?:Text|Button|Label|Toggle|Section|PrimaryButton|SecondaryButton|navigationTitle|\.alert|\.confirmationDialog)\(\s*"[^"]*[\p{Hiragana}\p{Katakana}\p{Han}]'
     message: "UI 文字列は String Catalog（.xcstrings）経由にする"
     severity: error

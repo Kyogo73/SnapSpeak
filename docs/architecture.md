@@ -12,7 +12,7 @@
 - 瞬間英作文の MVP 判定は許容パターンとの正規化マッチ。LLM は Phase 3。
 - SRS は SM-2 ベースを SRSKit に独立。同期の正本は immutable な `ReviewEvent`。
 - 言語ペア `(sourceLanguage, targetLanguage)` が第一級。値は正規化済み BCP-47。
-- バックエンドは Phase 1 静的 CDN 配信（アカウントなし）→ **Phase 3 で Supabase Auth / 同期 / Edge Functions** → Phase 4 リージョン対応。Phase 2 はクライアント側の定着と StoreKit 2。
+- バックエンドは Phase 1 静的 CDN 配信（**Cloudflare R2** 採用。アカウントなし）→ **Phase 3 で Supabase Auth / 同期 / Edge Functions** → Phase 4 リージョン対応。Phase 2 はクライアント側の定着と StoreKit 2。
 
 ---
 
@@ -37,7 +37,7 @@ flowchart TB
     Kits --> Seed
   end
 
-  subgraph cdn ["CDN Phase 1 から必須"]
+  subgraph cdn ["CDN: Cloudflare R2 Phase 1 から必須"]
     Man["マニフェスト JSON"]
     Assets["JSON + 音声ファイル"]
   end
@@ -68,7 +68,7 @@ flowchart TB
 | 領域 | 責務 | 置かないもの |
 |------|------|----------------|
 | クライアント | 学習 UX、録音、オンデバイス ASR、採点、SRS 計算、オフライン学習、CDN 取得 | LLM API キー、コンテンツの正本（配信後はキャッシュ）、サーバー ASR への暗黙依存 |
-| CDN | 公開コンテンツの静的配信、コースごとの **複数 immutable release** を含むマニフェスト | 個人学習データ |
+| CDN（Cloudflare R2） | 公開コンテンツの静的配信、コースごとの **複数 immutable release** を含むマニフェスト | 個人学習データ |
 | Supabase（Phase 3） | アカウント、進捗の正本（`ReviewEvent` 等）、Edge の秘匿プロキシ、サーバー側 entitlement、アカウント削除 | クライアントから直接叩く LLM |
 | LLM（Phase 3） | 意味評価と短いフィードバック文 | 音声バイナリ、無関係な個人プロファイル |
 
@@ -614,6 +614,7 @@ SRS には `tEnd - t0` を使う。極端な値（アプリを裏に出した）
 - キーは Edge 側。JWT 必須。レート制限。同一 `idempotencyKey` はキャッシュ。
 - 失敗時は MVP 判定のまま。
 - 回数制限は Edge が App Store Server Notifications / API 由来の entitlement を見て強制する。クライアントの `EntitlementCache` だけに頼らない。
+- **プロバイダ方針**: 本タスクは定型の添削処理であり、軽量モデル（Gemini Flash 級）を前提にコスト・レイテンシを優先する。Edge Function 内にプロバイダ抽象を 1 枚挟んで差し替え可能にし、正式選定は Phase 3 着手時に最新の価格・品質で行う。
 
 ---
 
@@ -1080,7 +1081,10 @@ flowchart LR
 ```
 
 - アカウントなし。匿名。学習データは端末。
-- **CDN 配信は必須**（CloudFront/S3 相当）。シードは障害時・初回オフラインの保証。
+- **CDN 配信は必須**。採用は **Cloudflare R2**（S3 互換オブジェクトストレージ + Cloudflare CDN）。選定理由: (1) egress 無料で、同じ音声を多数ユーザーが反復ダウンロードするワークロードに強い、(2) 無料枠（ストレージ 10GB・読み取り月 1,000 万回）で Phase 1〜2 のコンテンツ量が収まる、(3) S3 互換 API のため本書の設計（immutable release / checksum / キャッシュ戦略）が無変更で載る。シードは障害時・初回オフラインの保証。
+  - バケットは公開読み取り + 独自ドメイン（例 `cdn.snapspeak.app`）。パスは `manifest/index.json` と `courses/<courseId>/<releaseId>/...`（§7.3 のマニフェスト構造に対応）。release 配下は immutable として上書きしない。
+  - キャッシュヘッダ: release 配下（JSON・音声）は `Cache-Control: public, max-age=31536000, immutable`。マニフェストのみ短命（例 `max-age=300`）にして更新を伝播する。
+  - アップロードは S3 互換 API（aws cli / rclone）またはダッシュボード。払い出し・運用手順の確立は Phase 1 後半（phase1 計画 §6.2）。個人データ・認証情報は置かない（それらは Phase 3 でも Supabase 側）。
 - DoD としてマニフェストから 1 コースを取得、チェックサム、オフライン再生、更新、削除。
 - 分析を送る場合もリセット可能なインストール ID に留める。
 

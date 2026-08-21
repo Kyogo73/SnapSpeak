@@ -67,6 +67,24 @@ struct FileStagingTests {
             #expect(FileManager.default.fileExists(atPath: staging.path))
         }
     }
+
+    @Test("stale tmp staging directories are removed")
+    func cleanupStaleStagingRemovesTmp() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("staging-cleanup-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let stale = root.appendingPathComponent("tmp-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: stale, withIntermediateDirectories: true)
+        try Data("leftover".utf8).write(to: stale.appendingPathComponent("index.json"))
+        let keep = root.appendingPathComponent("course", isDirectory: true)
+        try FileManager.default.createDirectory(at: keep, withIntermediateDirectories: true)
+
+        FileStaging.cleanupStaleStaging(in: root)
+
+        #expect(!FileManager.default.fileExists(atPath: stale.path))
+        #expect(FileManager.default.fileExists(atPath: keep.path))
+    }
 }
 
 private struct MockDownloader: HTTPDownloading {
@@ -105,7 +123,7 @@ struct DownloadManagerTests {
             contentUrl: "https://cdn.example.com/c/r1/index.json",
             bytes: payload.count,
             checksumSha256: digest,
-            inheritSRS: true
+            inheritSRS: false
         )
         let destination = try await manager.download(
             courseId: "c",
@@ -114,5 +132,10 @@ struct DownloadManagerTests {
         )
         let stored = try Data(contentsOf: destination.appendingPathComponent("index.json"))
         #expect(stored == payload)
+        let metaData = try Data(contentsOf: destination.appendingPathComponent(ReleaseMeta.fileName))
+        let meta = try JSONDecoder().decode(ReleaseMeta.self, from: metaData)
+        #expect(meta.inheritSRS == false)
+        #expect(meta.releaseId == "c__r1")
+        #expect(meta.revision == 1)
     }
 }

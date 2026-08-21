@@ -183,7 +183,7 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
                     itemId: item.id,
                     skill: Skill.shadowing.rawValue,
                     contentRevision: stored.revision,
-                    inheritSRS: true,
+                    inheritSRS: stored.inheritSRS,
                     now: Date(),
                     timeZoneIdentifier: TimeZone.autoupdatingCurrent.identifier
                 )

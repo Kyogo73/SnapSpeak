@@ -41,6 +41,15 @@ public actor DownloadManager {
             let data = try await downloader.data(from: remote)
             let index = staging.appendingPathComponent("index.json")
             try data.write(to: index, options: .atomic)
+            let meta = ReleaseMeta(
+                inheritSRS: release.inheritSRS,
+                releaseId: release.releaseId,
+                revision: release.revision
+            )
+            try JSONEncoder().encode(meta).write(
+                to: staging.appendingPathComponent(ReleaseMeta.fileName),
+                options: .atomic
+            )
             let destination = localDirectory(courseId: courseId, revision: release.revision)
             do {
                 try FileStaging.commitDirectory(

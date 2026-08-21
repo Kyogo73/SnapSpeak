@@ -95,7 +95,12 @@ public actor PersistenceActor {
 
     /// Rebuilds the derived `SRSCard` from the append-only event stream. Never LWW-merges.
     public func foldSRSCard(_ request: SRSCardFoldRequest) throws -> SRSCardDTO {
-        let events = try reviewEvents(forCardKey: request.cardKey)
+        let rawEvents = try reviewEvents(forCardKey: request.cardKey)
+        let events = Self.eventsForFold(
+            rawEvents,
+            inheritSRS: request.inheritSRS,
+            contentRevision: request.contentRevision
+        )
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: request.timeZoneIdentifier)
             ?? TimeZone(secondsFromGMT: 0)
@@ -152,6 +157,17 @@ public actor PersistenceActor {
         model.foldedThroughRevision = highestRevision
         try modelContext.save()
         return PersistenceMapping.cardDTO(model)
+    }
+
+    /// Compatible releases (`inheritSRS == true`) fold the full cardKey stream.
+    /// Incompatible revisions keep old events on disk but start a fresh SM-2 fold.
+    static func eventsForFold(
+        _ events: [ReviewEventDTO],
+        inheritSRS: Bool,
+        contentRevision: Int
+    ) -> [ReviewEventDTO] {
+        if inheritSRS { return events }
+        return events.filter { $0.contentRevision == contentRevision }
     }
 
     public func fetchSRSCard(cardKey: String) throws -> SRSCardDTO? {

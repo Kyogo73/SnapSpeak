@@ -190,7 +190,7 @@ public actor AudioEngineActor {
         try? session.deactivate()
         recoveryTask?.cancel()
         recoveryTask = nil
-        recovery.stop()
+        await recovery.stop()
         let result = ShadowingSessionResult(
             recordingURL: recordingURL,
             timeline: timeline.snapshot(),
@@ -227,9 +227,9 @@ public actor AudioEngineActor {
 
     private func startRecoveryMonitoring() {
         recoveryTask?.cancel()
-        recovery.stop()
         recoveryTask = Task {
-            for await event in recovery.events() {
+            await recovery.stop()
+            for await event in await recovery.events() {
                 await handleRecovery(event)
             }
         }

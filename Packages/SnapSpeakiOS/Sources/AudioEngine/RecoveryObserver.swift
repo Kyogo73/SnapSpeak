@@ -10,18 +10,22 @@ public enum RecoveryEvent: Sendable, Equatable {
 }
 
 /// Exclusive subscriber for audio recovery notifications (architecture §3.9).
-public final class RecoveryObserver: @unchecked Sendable {
+/// Observer tokens live only on this actor so start/stop and stream cancellation cannot race.
+public actor RecoveryObserver {
     private var tokens: [NSObjectProtocol] = []
 
     public init() {}
 
     public func events() -> AsyncStream<RecoveryEvent> {
         AsyncStream { continuation in
-            self.start { event in
-                continuation.yield(event)
+            let task = Task {
+                await self.start { event in
+                    continuation.yield(event)
+                }
             }
             continuation.onTermination = { _ in
-                self.stop()
+                task.cancel()
+                Task { await self.stop() }
             }
         }
     }
@@ -75,7 +79,12 @@ public final class RecoveryObserver: @unchecked Sendable {
         tokens.removeAll()
     }
 
-    deinit { stop() }
+    deinit {
+        let center = NotificationCenter.default
+        for token in tokens {
+            center.removeObserver(token)
+        }
+    }
 
     private static func parseInterruption(_ notification: Notification) -> RecoveryEvent {
         let info = notification.userInfo

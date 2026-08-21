@@ -91,4 +91,54 @@ struct PersistenceActorTests {
         #expect(fetched?.lastQuality == card.lastQuality)
         #expect(fetched?.repetitions == 1)
     }
+
+    @Test("inheritSRS false folds only matching contentRevision events")
+    func incompatibleRevisionDoesNotFoldOldEvents() async throws {
+        let actor = try makeActor()
+        let cardKey = CardKey(
+            pairKey: "ja>en",
+            courseId: "course_daily_ja_en",
+            itemId: "crs_daily_ja_en_item_p_001",
+            skill: .shadowing
+        ).raw
+        let reviewedAt = Date(timeIntervalSince1970: 1_700_000_400)
+        let oldEvent = ReviewEventDTO(
+            id: UUID(),
+            cardKey: cardKey,
+            quality: ReviewQuality.easy.rawValue,
+            reviewedAt: reviewedAt,
+            clientSeq: 1,
+            serverRevision: nil,
+            contentRevision: 1
+        )
+        _ = try await actor.appendReviewEvent(
+            ReviewEventWrite(
+                event: oldEvent,
+                courseId: "course_daily_ja_en",
+                itemId: "crs_daily_ja_en_item_p_001",
+                skill: Skill.shadowing.rawValue
+            )
+        )
+        let card = try await actor.foldSRSCard(
+            SRSCardFoldRequest(
+                cardKey: cardKey,
+                sourceLanguage: "ja",
+                targetLanguage: "en",
+                courseId: "course_daily_ja_en",
+                itemId: "crs_daily_ja_en_item_p_001",
+                skill: Skill.shadowing.rawValue,
+                contentRevision: 2,
+                inheritSRS: false,
+                now: reviewedAt,
+                timeZoneIdentifier: "UTC",
+                dayBoundaryHour: 4
+            )
+        )
+        #expect(card.repetitions == 0)
+        #expect(card.lastQuality == nil)
+        #expect(card.inheritSRS == false)
+        let storedEvents = try await actor.reviewEvents(forCardKey: cardKey)
+        #expect(storedEvents.count == 1)
+        #expect(storedEvents[0].contentRevision == 1)
+    }
 }

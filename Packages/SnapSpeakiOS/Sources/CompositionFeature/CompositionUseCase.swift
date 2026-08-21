@@ -212,7 +212,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                     itemId: item.id,
                     skill: Skill.composition.rawValue,
                     contentRevision: stored.revision,
-                    inheritSRS: true,
+                    inheritSRS: stored.inheritSRS,
                     now: Date(),
                     timeZoneIdentifier: TimeZone.autoupdatingCurrent.identifier
                 )

@@ -29,7 +29,7 @@ public enum FileStagingError: Error, Sendable, Equatable {
     case missingChecksumFile
 }
 
-/// Atomic temp → checksum → rename. Failure leaves the previous directory in place.
+/// Checksum staging, then `replaceItemAt` (atomic on Apple platforms). Failure leaves the previous directory in place.
 public enum FileStaging: Sendable {
     public static func availableBytes(at url: URL) throws -> Int64 {
         let values = try url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
@@ -73,25 +73,27 @@ public enum FileStaging: Sendable {
         try excludeFromBackup(staging)
         let parent = finalDirectory.deletingLastPathComponent()
         try fileManager.createDirectory(at: parent, withIntermediateDirectories: true)
-        let backup = parent.appendingPathComponent("\(finalDirectory.lastPathComponent).bak")
-        if fileManager.fileExists(atPath: backup.path) {
-            try fileManager.removeItem(at: backup)
-        }
-        let hadFinal = fileManager.fileExists(atPath: finalDirectory.path)
-        if hadFinal {
-            try fileManager.moveItem(at: finalDirectory, to: backup)
-        }
-        do {
+        if fileManager.fileExists(atPath: finalDirectory.path) {
+            _ = try fileManager.replaceItemAt(finalDirectory, withItemAt: staging)
+        } else {
             try fileManager.moveItem(at: staging, to: finalDirectory)
-            if hadFinal {
-                try fileManager.removeItem(at: backup)
-            }
-        } catch {
-            if hadFinal, fileManager.fileExists(atPath: backup.path) {
-                try? fileManager.moveItem(at: backup, to: finalDirectory)
-            }
-            throw error
         }
         try excludeFromBackup(finalDirectory)
+    }
+
+    /// Removes leftover `tmp-*` staging directories left by an interrupted download.
+    public static func cleanupStaleStaging(
+        in directory: URL,
+        prefix: String = "tmp-",
+        fileManager: FileManager = .default
+    ) {
+        let items = (try? fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        for url in items where url.lastPathComponent.hasPrefix(prefix) {
+            try? fileManager.removeItem(at: url)
+        }
     }
 }

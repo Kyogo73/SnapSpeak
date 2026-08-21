@@ -18,7 +18,9 @@ public struct AudioSessionConfigurator: Sendable {
             options.insert(.defaultToSpeaker)
         }
         if allowBluetoothHFP {
-            options.insert(.allowBluetoothHFP)
+            // `.allowBluetoothHFP` is not in the Xcode 16.4 SDK used by CI.
+            // `.allowBluetooth` is the HFP-capable option on that SDK; revisit when CI moves past 16.4.
+            options.insert(.allowBluetooth)
         }
         try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
         try session.setActive(true)

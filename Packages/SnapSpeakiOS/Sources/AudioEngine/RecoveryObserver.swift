@@ -9,10 +9,29 @@ public enum RecoveryEvent: Sendable, Equatable {
     case configurationChange
 }
 
+/// Holds NotificationCenter observer tokens outside actor isolation so that cleanup can run
+/// from its own (nonisolated) deinit. Mutation is always funneled through `RecoveryObserver`,
+/// whose actor isolation serializes access.
+private final class ObserverTokenBox: @unchecked Sendable {
+    private let center = NotificationCenter.default
+    var tokens: [NSObjectProtocol] = []
+
+    func removeAll() {
+        for token in tokens {
+            center.removeObserver(token)
+        }
+        tokens.removeAll()
+    }
+
+    deinit {
+        removeAll()
+    }
+}
+
 /// Exclusive subscriber for audio recovery notifications (architecture §3.9).
 /// Observer tokens live only on this actor so start/stop and stream cancellation cannot race.
 public actor RecoveryObserver {
-    private var tokens: [NSObjectProtocol] = []
+    private let box = ObserverTokenBox()
 
     public init() {}
 
@@ -33,7 +52,7 @@ public actor RecoveryObserver {
     public func start(handler: @escaping @Sendable (RecoveryEvent) -> Void) {
         stop()
         let center = NotificationCenter.default
-        tokens.append(
+        box.tokens.append(
             center.addObserver(
                 forName: AVAudioSession.interruptionNotification,
                 object: nil,
@@ -42,7 +61,7 @@ public actor RecoveryObserver {
                 handler(Self.parseInterruption(notification))
             }
         )
-        tokens.append(
+        box.tokens.append(
             center.addObserver(
                 forName: AVAudioSession.routeChangeNotification,
                 object: nil,
@@ -51,7 +70,7 @@ public actor RecoveryObserver {
                 handler(.routeChange)
             }
         )
-        tokens.append(
+        box.tokens.append(
             center.addObserver(
                 forName: AVAudioSession.mediaServicesWereResetNotification,
                 object: nil,
@@ -60,7 +79,7 @@ public actor RecoveryObserver {
                 handler(.mediaServicesReset)
             }
         )
-        tokens.append(
+        box.tokens.append(
             center.addObserver(
                 forName: .AVAudioEngineConfigurationChange,
                 object: nil,
@@ -72,18 +91,7 @@ public actor RecoveryObserver {
     }
 
     public func stop() {
-        let center = NotificationCenter.default
-        for token in tokens {
-            center.removeObserver(token)
-        }
-        tokens.removeAll()
-    }
-
-    deinit {
-        let center = NotificationCenter.default
-        for token in tokens {
-            center.removeObserver(token)
-        }
+        box.removeAll()
     }
 
     private static func parseInterruption(_ notification: Notification) -> RecoveryEvent {

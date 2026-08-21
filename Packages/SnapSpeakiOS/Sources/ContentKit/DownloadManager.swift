@@ -29,8 +29,9 @@ public actor DownloadManager {
         release: CourseRelease
     ) async throws -> URL {
         _ = languagePair
-        try FileStaging.requireSpace(bytes: Int64(release.bytes), at: contentRoot)
+        // contentRoot must exist before querying its volume capacity.
         try fileManager.createDirectory(at: contentRoot, withIntermediateDirectories: true)
+        try FileStaging.requireSpace(bytes: Int64(release.bytes), at: contentRoot)
 
         let staging = contentRoot.appendingPathComponent("tmp-\(UUID().uuidString)", isDirectory: true)
         try fileManager.createDirectory(at: staging, withIntermediateDirectories: true)

@@ -45,5 +45,26 @@ jobs:
       - run: swift test --package-path Packages/SnapSpeakCore
       - run: HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
       - run: xcodegen generate --spec App/project.yml
-      - run: xcodebuild build -project App/SnapSpeak.xcodeproj -scheme SnapSpeak -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
-      - run: xcodebuild test -project App/SnapSpeak.xcodeproj -scheme SnapSpeakiOSTests -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
+      # デバイス名固定（例 iPhone 16）だと、xcode-select 直後に CoreSimulator が
+      # デバイス列挙に失敗する既知の不安定事象で "Unable to find a device" になる。
+      # 利用可能な iPhone シミュレータをリトライ付きで動的に選択する。
+      - name: Select iPhone simulator
+        id: sim
+        run: |
+          UDID=""
+          for attempt in 1 2 3 4 5; do
+            UDID=$(xcrun simctl list devices available --json \
+              | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.isAvailable and (.name | startswith("iPhone")))][0].udid // empty')
+            if [ -n "$UDID" ]; then break; fi
+            echo "No available iPhone simulator yet (attempt $attempt); retrying..."
+            sleep 15
+          done
+          if [ -z "$UDID" ]; then
+            echo "::error::No available iPhone simulator found"
+            xcrun simctl list devices
+            exit 1
+          fi
+          echo "Using simulator $UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+      - run: xcodebuild build -project App/SnapSpeak.xcodeproj -scheme SnapSpeak -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" CODE_SIGNING_ALLOWED=NO
+      - run: xcodebuild test -project App/SnapSpeak.xcodeproj -scheme SnapSpeakiOSTests -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" CODE_SIGNING_ALLOWED=NO

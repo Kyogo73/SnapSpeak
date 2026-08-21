@@ -13,6 +13,7 @@ iPhone 向け語学学習アプリ。中核は **シャドーイング** と **�
 | [プロダクト概要](docs/product-overview.md) | ターゲット、課題と価値、コア学習ループ、差別化、KPI |
 | [アーキテクチャ](docs/architecture.md) | システム構成、モジュール、音声パイプライン、採点、SRS、データモデル、国際化、非機能要件 |
 | [ロードマップ](docs/roadmap.md) | Phase 1〜4 の目的・機能・技術タスク・完了基準・リスクと依存関係 |
+| [開発ワークフロー](docs/development-workflow.md) | ブランチ運用（main=本番 / develop=テスト）、PR・コミット規約、リリース・hotfix 手順、CI/CD ゲート |
 
 ## 技術スタック（確定）
 

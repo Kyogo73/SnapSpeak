@@ -15,6 +15,14 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の�
 - Swift ツールチェーンは **swiftly** で導入済み（`~/.local/share/swiftly`、`~/.profile` に env 登録済み）。新規シェルでは通常 `swift` がそのまま使えるが、使えない場合は `. "$HOME/.local/share/swiftly/env.sh"`。
 - リポジトリ直下の `.swift-version` は **`6.1`**。swiftly はこれを読んで **Swift 6.1.2** を自動選択する（CI の `swift:6.1-noble` と一致）。別バージョンを明示したい場合は `swiftly run swift +<ver> ...` かツールチェーン直パス。
 - **Xcode / Apple SDK はこの Linux VM に存在しない。** iOS パッケージ・App のコンパイル/テストはローカルで再現できない。iOS 側を変更したら **必ず `ios-macos` CI を回して確認する**（このリポジトリでは実際に CI をコンパイラとして使って反復する運用）。
+- フェーズ分割の正本は `docs/roadmap.md`。Phase 3 で Supabase（Auth / 同期 / Edge Functions）が入る想定。将来 Deno/TypeScript の Edge Functions など Linux 上で動くコンポーネントが追加された時点で、その部分のみこの VM 上でセットアップ・実行可能になる。
+
+### ブランチ運用（正本は `docs/development-workflow.md`）
+
+- `main` = **本番**（App Store 配布相当）、`develop` = **テスト環境**（TestFlight / 内部配布相当・常時検証）。どちらも直 push 禁止・PR 必須・CI 必須。
+- **feature（および Cloud Agent の `cursor/*`）ブランチは実質 feature 扱い。最終的に `develop` へ集約**する（PR ベースを develop 相当に向ける）。
+- **リリースは semver タグ（例 `v1.0.0`）を切って `develop` → `main` へマージ**。hotfix は `main` から分岐し `main` と `develop` の両方へ反映する。
+- CI（`.github/workflows/ci.yml`）は **全 PR** と `develop` / `main` への push で `lint` / `core-linux` / `ios-macos` を実行。`v*` タグ push で `release.yml` が GitHub Release（ドラフト）を作成する。署名・TestFlight 自動化は未着手（手動）。
 
 ### ビルド / テスト / Lint（コマンド）
 

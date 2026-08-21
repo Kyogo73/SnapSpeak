@@ -45,4 +45,3 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の�
 - 学習履歴・`ReviewEvent` は追記型。SRS カードを LWW しない。
 - UI 文字列は String Catalog 経由（日本語ハードコード禁止）。`AppleLanguages` を書き換えない。
 - コンテンツは言語ペア（BCP-47）必須。未知の高い `schemaVersion` は拒否しローカルを維持する。
->>>>>>> origin/cursor/shadowing-app-architecture-e174

@@ -55,6 +55,8 @@ targets:
     dependencies:
       - package: SnapSpeakiOS
         product: AppFeature
+  # ホストアプリを使わないロジックテスト。SwiftPM の静的ライブラリ製品を直接リンクする
+  # （bundle_loader 経由だと SPM 製品のシンボルがホストアプリから解決できずリンク失敗する）。
   PersistenceTests:
     type: bundle.unit-test
     platform: iOS
@@ -62,17 +64,16 @@ targets:
     sources:
       - path: ../Packages/SnapSpeakiOS/Tests/PersistenceTests
     dependencies:
-      - target: SnapSpeak
       - package: SnapSpeakiOS
         product: Persistence
       - package: SnapSpeakCore
         product: SRSKit
+      - package: SnapSpeakCore
+        product: ContentCore
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.PersistenceTests
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SnapSpeak.app/SnapSpeak"
-        BUNDLE_LOADER: "$(TEST_HOST)"
   ContentKitTests:
     type: bundle.unit-test
     platform: iOS
@@ -80,7 +81,6 @@ targets:
     sources:
       - path: ../Packages/SnapSpeakiOS/Tests/ContentKitTests
     dependencies:
-      - target: SnapSpeak
       - package: SnapSpeakiOS
         product: ContentKit
       - package: SnapSpeakCore
@@ -91,8 +91,6 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.ContentKitTests
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SnapSpeak.app/SnapSpeak"
-        BUNDLE_LOADER: "$(TEST_HOST)"
 schemes:
   SnapSpeak:
     build:

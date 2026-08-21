@@ -4,6 +4,8 @@ iPhone 向け語学学習アプリ。中核は **シャドーイング** と **�
 
 まず日本人向け英語学習（UI は日本語）から開始し、学習言語（L2）の拡張、さらに海外展開（UI 多言語化・母語 L1 の追加）まで見据えた設計です。多言語化・国際化は後付けではなく、最初から第一級の要件として組み込みます。
 
+フェーズ分割の正本は [docs/roadmap.md](docs/roadmap.md) です。
+
 ## ドキュメント
 
 | 文書 | 内容 |
@@ -15,8 +17,8 @@ iPhone 向け語学学習アプリ。中核は **シャドーイング** と **�
 ## 技術スタック（確定）
 
 - **クライアント**: SwiftUI / iOS 17+ / MVVM + Swift Concurrency
-- **永続化**: SwiftData（オフラインファースト）
-- **音声**: AVFoundation + Speech framework（オンデバイス優先）
+- **永続化**: SwiftData（オフラインファースト。v1 から VersionedSchema）
+- **音声**: AVFoundation + Speech framework（**オンデバイス必須**。シャドーイングはサーバー認識へ暗黙フォールバックしない）
 - **モジュール**: Swift Package によるマルチモジュール
-- **配信 (MVP)**: 静的 JSON + 音声ファイル（CDN）＋アプリ内シードコンテンツ
-- **バックエンド**: Phase 1 はサーバーレス最小構成。Phase 2 以降で Supabase を導入
+- **配信 (MVP / Phase 1)**: 静的 JSON + 音声ファイルを **CDN から配信**（マニフェストで差分更新）。アプリ内シードは CDN 障害時・初回オフライン保証
+- **バックエンド**: Phase 1 はコンテンツ静的配信のみ（アカウントなし）。**Phase 3** で Supabase（Auth / 進捗同期 / Edge Functions）を導入。Phase 2 はクライアント側の定着機能と StoreKit 2。Phase 4 でリージョン・プライバシー対応

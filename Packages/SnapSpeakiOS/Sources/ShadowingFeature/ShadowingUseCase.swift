@@ -149,7 +149,7 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
         )
         _ = attempt
 
-        if let score, let quality = SRSEngine().qualityForShadowing(ScoreMapping.snapshot(score)) {
+        if let score, let quality = SRSEngine().qualityForShadowing(score: ScoreMapping.snapshot(score)) {
             let seq = try await persistence.nextClientSeq()
             let cardKey = CardKey(
                 pair: stored.course.languagePair,

@@ -106,10 +106,6 @@ public enum DelayCalculator: Sendable {
         var delays: [Int] = []
         for caption in captionSegments {
             let captionStartSec = Double(caption.startMs) / 1000.0
-            guard let presentedHost = timeline.hostTime(
-                forSourcePosition: captionStartSec,
-                atOrBefore: .greatestFiniteMagnitude
-            ) else { continue }
             let matching = asrSegments.filter { segment in
                 let host = timeline.recordingStartHostTime + segment.timestamp
                 guard let pos = timeline.presentedSourcePosition(atHostTime: host) else { return false }
@@ -118,6 +114,11 @@ public enum DelayCalculator: Sendable {
             }
             guard let first = matching.min(by: { $0.timestamp < $1.timestamp }) else { continue }
             let asrHost = timeline.recordingStartHostTime + first.timestamp
+            // Repeat/loop: pick the presentation at or before this ASR instant, not the last one overall.
+            guard let presentedHost = timeline.hostTime(
+                forSourcePosition: captionStartSec,
+                atOrBefore: asrHost
+            ) else { continue }
             delays.append(Int(((asrHost - presentedHost) * 1000.0).rounded()))
         }
         return delays

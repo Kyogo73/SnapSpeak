@@ -1,6 +1,7 @@
 import Foundation
 
 public let KnownContentSchemaVersions: [Int] = [1]
+public let KnownManifestSchemaVersions: [Int] = [1]
 
 public enum ContentDecodingError: Error, Equatable, Sendable {
     case unknownSchemaVersion(found: Int, known: [Int])

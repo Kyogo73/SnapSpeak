@@ -48,6 +48,58 @@ private func tokyoCalendar() -> Calendar {
     #expect(abs(state.easiness - 1.8) < 0.000_001)
 }
 
+@Test func failureBlocksReviewForTenMinutesThenAllowsSameDayRelearn() {
+    let calendar = tokyoCalendar()
+    var components = DateComponents()
+    components.year = 2026
+    components.month = 8
+    components.day = 21
+    components.hour = 10
+    components.minute = 0
+    let reviewedAt = calendar.date(from: components)!
+    var state = SRSState.initial(now: reviewedAt)
+    state = SM2.apply(state: state, quality: .fail, reviewedAt: reviewedAt, calendar: calendar)
+
+    let schedule = StudyDay.failureSchedule(after: reviewedAt, calendar: calendar)
+    #expect(state.relearnGateAt == schedule.retryNotBefore)
+    #expect(state.dueAt == schedule.nextStudyDayDueAt)
+    #expect(calendar.component(.day, from: state.dueAt) == 22)
+    #expect(calendar.component(.hour, from: state.dueAt) == 4)
+
+    let oneMinuteLater = reviewedAt.addingTimeInterval(60)
+    #expect(!state.isPastRelearnGate(at: oneMinuteLater))
+    #expect(!state.isDue(at: oneMinuteLater))
+    #expect(!state.canRelearnSameDay(at: oneMinuteLater))
+
+    let tenMinutesLater = reviewedAt.addingTimeInterval(10 * 60)
+    #expect(state.isPastRelearnGate(at: tenMinutesLater))
+    #expect(state.canRelearnSameDay(at: tenMinutesLater))
+    #expect(!state.isDue(at: tenMinutesLater))
+
+    #expect(state.isDue(at: schedule.nextStudyDayDueAt))
+}
+
+@Test func successDueAtIsNextStudyDay0400AndClearsGate() {
+    let calendar = tokyoCalendar()
+    var components = DateComponents()
+    components.year = 2026
+    components.month = 8
+    components.day = 21
+    components.hour = 10
+    components.minute = 0
+    let reviewedAt = calendar.date(from: components)!
+    var state = SRSState.initial(now: reviewedAt)
+    state = SM2.apply(state: state, quality: .good, reviewedAt: reviewedAt, calendar: calendar)
+
+    #expect(state.relearnGateAt == nil)
+    #expect(state.isPastRelearnGate(at: reviewedAt))
+    #expect(calendar.component(.day, from: state.dueAt) == 22)
+    #expect(calendar.component(.hour, from: state.dueAt) == 4)
+    #expect(calendar.component(.minute, from: state.dueAt) == 0)
+    #expect(!state.isDue(at: reviewedAt))
+    #expect(state.isDue(at: state.dueAt))
+}
+
 @Test func easinessFloorIs1_3() {
     var easiness = 1.4
     for _ in 0..<20 {

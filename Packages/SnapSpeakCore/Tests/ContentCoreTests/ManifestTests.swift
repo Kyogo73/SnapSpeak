@@ -116,3 +116,29 @@ import Testing
     #expect(ReleaseSelector.select(course: course, appVersion: try AppVersion("1.3.9"))?.releaseId == "capped")
     #expect(ReleaseSelector.select(course: course, appVersion: try AppVersion("1.4.0")) == nil)
 }
+
+@Test func unknownManifestSchemaVersionIsRejected() throws {
+    let json = """
+    {"manifestSchemaVersion":99,"generatedAt":"2026-08-21T00:00:00Z","courses":[]}
+    """
+    do {
+        _ = try Manifest.decode(from: Data(json.utf8))
+        Issue.record("expected throw")
+    } catch let error as ContentDecodingError {
+        guard case .unknownSchemaVersion(let found, let known) = error else {
+            Issue.record("wrong error \(error)")
+            return
+        }
+        #expect(found == 99)
+        #expect(known == KnownManifestSchemaVersions)
+    }
+}
+
+@Test func knownManifestSchemaVersionOneDecodes() throws {
+    let json = """
+    {"manifestSchemaVersion":1,"generatedAt":"2026-08-21T00:00:00Z","courses":[]}
+    """
+    let manifest = try Manifest.decode(from: Data(json.utf8))
+    #expect(manifest.manifestSchemaVersion == 1)
+    #expect(manifest.courses.isEmpty)
+}

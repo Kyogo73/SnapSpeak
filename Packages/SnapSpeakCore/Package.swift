@@ -8,6 +8,10 @@ let swift6: [SwiftSetting] = [
 
 let package = Package(
     name: "SnapSpeakCore",
+    platforms: [
+        .macOS(.v13),
+        .iOS(.v17),
+    ],
     products: [
         .library(name: "LanguageKit", targets: ["LanguageKit"]),
         .library(name: "ScoringKit", targets: ["ScoringKit"]),

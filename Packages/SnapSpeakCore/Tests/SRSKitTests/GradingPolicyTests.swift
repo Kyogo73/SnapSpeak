@@ -11,6 +11,8 @@ import Testing
     #expect(engine.qualityForComposition(pass: true, latencyMs: 3_000, usedHint: false, confidence: 0.9) == .easy)
     #expect(engine.qualityForComposition(pass: true, latencyMs: 3_000, usedHint: true, confidence: 0.9) == .pass)
     #expect(engine.qualityForComposition(pass: true, latencyMs: 3_000, usedHint: false, confidence: 0.1) == nil)
+    // Typed input has no ASR confidence; nil must not suppress a grade.
+    #expect(engine.qualityForComposition(pass: true, latencyMs: 3_000, usedHint: false, confidence: nil) == .easy)
 }
 
 @Test func shadowingQualityTable() {
@@ -20,7 +22,8 @@ import Testing
         rate: Double,
         delay: Int?,
         granularity: ShadowingDelayGranularity = .word,
-        minConfidence: Double = 0.9,
+        minConfidence: Double? = 0.9,
+        meanConfidence: Double? = 0.9,
         simultaneous: Bool = true
     ) -> ShadowingScoreSnapshot {
         ShadowingScoreSnapshot(
@@ -28,7 +31,7 @@ import Testing
             delayMsMedian: delay,
             delayGranularity: granularity,
             minConfidence: minConfidence,
-            meanConfidence: minConfidence,
+            meanConfidence: meanConfidence,
             simultaneousPlayAndRecord: simultaneous
         )
     }
@@ -42,4 +45,16 @@ import Testing
     #expect(engine.qualityForShadowing(score: snapshot(rate: 0.9, delay: 900, granularity: .sentenceApproximate)) == .easy)
     #expect(engine.qualityForShadowing(score: snapshot(rate: 0.9, delay: 100, simultaneous: false)) == nil)
     #expect(engine.qualityForShadowing(score: snapshot(rate: 0.9, delay: 100, minConfidence: 0.1)) == nil)
+    #expect(engine.qualityForShadowing(score: snapshot(
+        rate: 0.9,
+        delay: 100,
+        minConfidence: nil,
+        meanConfidence: nil
+    )) == nil)
+    #expect(engine.qualityForShadowing(score: snapshot(
+        rate: 0.9,
+        delay: 100,
+        minConfidence: 0.9,
+        meanConfidence: nil
+    )) == nil)
 }

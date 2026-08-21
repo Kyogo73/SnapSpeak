@@ -84,3 +84,30 @@ private func tokyoCalendar() -> Calendar {
     #expect(once == twice)
     #expect(once.repetitions == 1)
 }
+
+@Test func foldFailureKeepsGateAndNextStudyDayDue() {
+    let engine = SRSEngine()
+    let calendar = tokyoCalendar()
+    var components = DateComponents()
+    components.year = 2026
+    components.month = 8
+    components.day = 21
+    components.hour = 10
+    components.minute = 0
+    let reviewedAt = calendar.date(from: components)!
+    let event = ReviewEventDTO(
+        id: UUID(),
+        cardKey: "ja>en:c:i:shadowing",
+        quality: ReviewQuality.fail.rawValue,
+        reviewedAt: reviewedAt,
+        clientSeq: 1,
+        serverRevision: nil,
+        contentRevision: 1
+    )
+    let state = engine.fold(events: [event], now: reviewedAt, calendar: calendar, dayBoundaryHour: 4)
+    let schedule = StudyDay.failureSchedule(after: reviewedAt, calendar: calendar)
+    #expect(state.relearnGateAt == schedule.retryNotBefore)
+    #expect(state.dueAt == schedule.nextStudyDayDueAt)
+    #expect(!state.isDue(at: reviewedAt.addingTimeInterval(10 * 60)))
+    #expect(state.canRelearnSameDay(at: reviewedAt.addingTimeInterval(10 * 60)))
+}

@@ -27,9 +27,9 @@ public enum SM2: Sendable {
                 calendar: calendar,
                 dayBoundaryHour: dayBoundaryHour
             )
-            // Queue takes items that are both 10 minutes later and due; store the earlier 10-minute gate
-            // while next-study-day 04:00 remains available via StudyDay.failureSchedule.
-            next.dueAt = schedule.retryNotBefore
+            // Keep both: 10-minute same-day gate and next-study-day 04:00 due (architecture §6.4).
+            next.relearnGateAt = schedule.retryNotBefore
+            next.dueAt = schedule.nextStudyDayDueAt
         } else {
             let interval: Int
             if state.repetitions == 0 {
@@ -41,6 +41,7 @@ public enum SM2: Sendable {
             }
             next.repetitions = state.repetitions + 1
             next.intervalDays = interval
+            next.relearnGateAt = nil
             next.dueAt = StudyDay.nextDueAt(
                 intervalDays: interval,
                 after: reviewedAt,

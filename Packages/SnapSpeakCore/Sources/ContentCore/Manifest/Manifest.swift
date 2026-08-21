@@ -19,7 +19,14 @@ public struct Manifest: Codable, Sendable, Equatable {
     }
 
     public static func decode(from data: Data) throws -> Manifest {
-        try decoder().decode(Manifest.self, from: data)
+        let manifest = try decoder().decode(Manifest.self, from: data)
+        guard KnownManifestSchemaVersions.contains(manifest.manifestSchemaVersion) else {
+            throw ContentDecodingError.unknownSchemaVersion(
+                found: manifest.manifestSchemaVersion,
+                known: KnownManifestSchemaVersions
+            )
+        }
+        return manifest
     }
 }
 

@@ -86,3 +86,47 @@ import Testing
     #expect(result.granularity == .unavailable)
     #expect(result.delayMsMedian == nil)
 }
+
+@Test func sentenceApproximateUsesNearestPresentationBeforeASROnRepeat() throws {
+    let language = try BCP47Language("en")
+    let tokenizer = WhitespaceTokenizer()
+    let reference = tokenizer.tokenize("Hello there", language: language)
+    // First pass 0...4s, then loop back to the start at host 10s.
+    let timeline = PlaybackTimeline(events: [
+        TimelineEvent(kind: .start, hostTime: 0, sourcePositionSeconds: 0, presentedRate: 1.0),
+        TimelineEvent(kind: .loop, hostTime: 10, sourcePositionSeconds: 0, presentedRate: 1.0),
+    ])
+    let captions = [
+        CaptionSegmentDTO(startMs: 0, endMs: 2000, text: "Hello there"),
+    ]
+    let asr = [ASRSegment(text: "Hello there", timestamp: 0.3, duration: 0.8, confidence: 0.9)]
+    let ops = Aligner.align(
+        reference: reference.map(\.normalized),
+        hypothesis: tokenizer.tokenize("Hello there", language: language).map(\.normalized)
+    )
+    let result = DelayCalculator.calculate(
+        ops: ops,
+        reference: reference,
+        hypothesis: tokenizer.tokenize("Hello there", language: language),
+        asrSegments: asr,
+        timeline: timeline,
+        wordTimings: nil,
+        captionSegments: captions,
+        language: language
+    )
+    #expect(result.granularity == .sentenceApproximate)
+    #expect(result.delayMsMedian == 300)
+
+    let secondPass = DelayCalculator.calculate(
+        ops: ops,
+        reference: reference,
+        hypothesis: tokenizer.tokenize("Hello there", language: language),
+        asrSegments: [ASRSegment(text: "Hello there", timestamp: 10.3, duration: 0.8, confidence: 0.9)],
+        timeline: timeline,
+        wordTimings: nil,
+        captionSegments: captions,
+        language: language
+    )
+    #expect(secondPass.granularity == .sentenceApproximate)
+    #expect(secondPass.delayMsMedian == 300)
+}

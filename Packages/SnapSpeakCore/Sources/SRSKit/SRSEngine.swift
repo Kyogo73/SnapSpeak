@@ -44,8 +44,11 @@ public struct SRSEngine: Sendable {
     public func qualityForShadowing(score: ShadowingScoreSnapshot) -> ReviewQuality? {
         let thresholds = policy.shadowing
         if !score.simultaneousPlayAndRecord { return nil }
-        if let min = score.minConfidence, min < thresholds.minConfidence { return nil }
-        if let mean = score.meanConfidence, mean < thresholds.minConfidence { return nil }
+        // Nil confidence means no ASR result (empty/missing). Do not treat it as high quality.
+        // Typed composition uses `qualityForComposition` and has no confidence concept.
+        guard let min = score.minConfidence, let mean = score.meanConfidence else { return nil }
+        if min < thresholds.minConfidence { return nil }
+        if mean < thresholds.minConfidence { return nil }
 
         let rate = score.scriptMatchRate
         if rate < thresholds.matchRateVeryLow { return .fail }

@@ -1,7 +1,8 @@
 name: CI
 on:
+  # PR はベースブランチを問わず常に CI を回す（develop 未作成の移行期間中、
+  # cursor/* 宛 PR もゲートするため。develop/main 宛 PR は当然含まれる）。
   pull_request:
-    branches: [develop, main]
   push:
     branches: [develop, main]
 concurrency:

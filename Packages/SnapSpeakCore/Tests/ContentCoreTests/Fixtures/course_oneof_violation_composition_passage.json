@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "course_oneof_composition_passage",
+  "languagePair": { "sourceLanguage": "ja", "targetLanguage": "en" },
+  "title": { "en": "Violation" },
+  "units": [
+    {
+      "id": "u1",
+      "title": { "en": "U" },
+      "lessons": [
+        {
+          "id": "l1",
+          "mode": "composition",
+          "items": [
+            {
+              "id": "item_bad",
+              "kind": "composition",
+              "passage": {
+                "text": "Hello",
+                "captionSegments": [{ "startMs": 0, "endMs": 500, "text": "Hello" }]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

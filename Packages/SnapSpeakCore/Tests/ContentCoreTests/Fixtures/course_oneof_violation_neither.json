@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "course_oneof_neither",
+  "languagePair": { "sourceLanguage": "ja", "targetLanguage": "en" },
+  "title": { "en": "Violation" },
+  "units": [
+    {
+      "id": "u1",
+      "title": { "en": "U" },
+      "lessons": [
+        {
+          "id": "l1",
+          "mode": "shadowing",
+          "items": [
+            {
+              "id": "item_bad",
+              "kind": "shadowing",
+              "audio": { "relativePath": "audio/x.m4a", "durationMs": 1000, "checksumSha256": "00" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

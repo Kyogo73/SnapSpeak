@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "course_oneof_shadowing_sentence_pair",
+  "languagePair": { "sourceLanguage": "ja", "targetLanguage": "en" },
+  "title": { "en": "Violation" },
+  "units": [
+    {
+      "id": "u1",
+      "title": { "en": "U" },
+      "lessons": [
+        {
+          "id": "l1",
+          "mode": "shadowing",
+          "items": [
+            {
+              "id": "item_bad",
+              "kind": "shadowing",
+              "sentencePair": { "l1": "x", "acceptable": ["y"] },
+              "audio": { "relativePath": "audio/x.m4a", "durationMs": 1000, "checksumSha256": "00" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

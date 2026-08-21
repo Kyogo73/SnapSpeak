@@ -34,7 +34,7 @@ enum FixtureLoader {
 
 @Test func unknownOptionalFieldsAreIgnored() throws {
     var json = try FixtureLoader.data("course_v1_golden")
-    var object = try JSONSerialization.jsonObject(with: json) as! [String: Any]
+    var object = try #require(JSONSerialization.jsonObject(with: json) as? [String: Any])
     object["futureOptional"] = "ignored"
     json = try JSONSerialization.data(withJSONObject: object)
     let course = try ContentDecoder.decodeCourse(from: json)

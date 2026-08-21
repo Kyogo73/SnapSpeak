@@ -32,6 +32,7 @@ targets:
         type: folder
         buildPhase: resources
     info:
+      path: SnapSpeak-Info.plist
       properties:
         CFBundleDisplayName: SnapSpeak
         CFBundleShortVersionString: "1.0.0"
@@ -47,7 +48,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.SnapSpeak
         PRODUCT_NAME: SnapSpeak
-        GENERATE_INFOPLIST_FILE: YES
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: 1
         SUPPORTS_MACCATALYST: NO

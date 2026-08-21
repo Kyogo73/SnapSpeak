@@ -3,7 +3,6 @@ excluded:
   - "**/.build"
   - "**/Fixtures"
 line_length: { warning: 140, error: 200 }
-opt_in_rules: [sorted_imports, empty_count, closure_spacing]
 disabled_rules:
   - todo
   - trailing_comma
@@ -11,6 +10,9 @@ disabled_rules:
   - type_body_length
   - function_parameter_count
   - empty_enum_arguments
+  # 数値計算 (編集距離 DP など) では i/j/n/m/q/dp のような短い添字が慣用的。
+  - identifier_name
+  - cyclomatic_complexity
 custom_rules:
   no_apple_languages:
     regex: "AppleLanguages"

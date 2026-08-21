@@ -2,6 +2,7 @@
 .swiftpm/
 DerivedData/
 *.xcodeproj
+App/SnapSpeak-Info.plist
 xcuserdata/
 *.xcresult
 .DS_Store

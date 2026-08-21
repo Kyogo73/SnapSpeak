@@ -134,11 +134,9 @@ public enum DelayCalculator: Sendable {
         var tokenIndex = 0
         for timing in wordTimings {
             let pieces = tokenizer.tokenize(timing.text, language: language)
-            for _ in pieces {
-                if tokenIndex < starts.count {
-                    starts[tokenIndex] = timing.startMs
-                    tokenIndex += 1
-                }
+            for _ in pieces where tokenIndex < starts.count {
+                starts[tokenIndex] = timing.startMs
+                tokenIndex += 1
             }
         }
         return starts

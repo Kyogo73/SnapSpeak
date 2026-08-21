@@ -11,7 +11,7 @@ SnapSpeak の開発は 4 フェーズで進める。各フェーズは **目的 
 - 音声は AVFoundation + Speech。**オンデバイス認識は厳格な要求**（シャドーイングはサーバー ASR へ暗黙フォールバックしない）。採点はトークン列アライメントによる **スクリプト一致 / 語の再現度**。
 - 瞬間英作文の LLM 評価は Phase 3。課金は Phase 2。**Supabase（Auth / 進捗同期 / Edge Functions）は Phase 3。**
 - コンテンツは言語ペア第一級（正規化済み BCP-47）。UI 文字列は最初から String Catalog。
-- **Phase 1 から CDN 配信は必須。** シードは初回オフラインと CDN 障害時の保証。
+- **Phase 1 から CDN 配信は必須**（採用: **Cloudflare R2**。構成は architecture §8.1）。シードは初回オフラインと CDN 障害時の保証。
 
 ```mermaid
 flowchart LR
@@ -117,7 +117,7 @@ flowchart LR
 
 ### 依存関係
 
-- **外部**: Apple Developer プログラム、**実機（オンデバイス Speech 対応）**、Speech / マイク権限、**S3/CloudFront 相当の CDN（必須）**、プライバシーポリシーの公開 URL
+- **外部**: Apple Developer プログラム、**実機（オンデバイス Speech 対応）**、Speech / マイク権限、**CDN: Cloudflare R2（必須）**、プライバシーポリシーの公開 URL
 - **成果物依存**: シードおよび CDN 用お手本音声、`captionSegments`、可能な範囲で `wordTimings`、許容パターン
 - **後続への引き渡し**: コンテンツスキーマ v1、複数 release マニフェスト、モジュール境界、Analytics イベント名、`ReviewEvent`、経路ポリシー。Phase 2 はこれらを壊さない
 
@@ -216,6 +216,7 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 - 同期プロトコル: イベント insert の冪等、サーバー revision、tombstone
 - Edge Function: 入力は L1、ユーザー発話テキスト、許容パターン、L2。音声バイナリは送らない
 - LLM Pro 制限のサーバー強制
+- LLM プロバイダは**軽量モデル前提**（Gemini Flash 級。定型添削にフラッグシップは不要）。Edge Function 内に差し替え可能なプロバイダ抽象を置き、正式選定は本 Phase 着手時に最新の価格・品質で再評価する
 - Speech / トークナイザの言語別ストラテジ（空白区切り、日本語、中国語 script 別、韓国語）
 - コンテンツパイプライン: schema lint、wordTimings 検証、マニフェストの複数 release 発行
 - 端末 TTS は補助のまま。本採用のお手本は配信音声

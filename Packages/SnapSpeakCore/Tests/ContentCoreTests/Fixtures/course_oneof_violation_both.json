@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "course_oneof_both",
+  "languagePair": { "sourceLanguage": "ja", "targetLanguage": "en" },
+  "title": { "en": "Violation" },
+  "units": [
+    {
+      "id": "u1",
+      "title": { "en": "U" },
+      "lessons": [
+        {
+          "id": "l1",
+          "mode": "shadowing",
+          "items": [
+            {
+              "id": "item_bad",
+              "kind": "shadowing",
+              "passage": {
+                "text": "Hello",
+                "captionSegments": [{ "startMs": 0, "endMs": 500, "text": "Hello" }]
+              },
+              "sentencePair": { "l1": "x", "acceptable": ["y"] },
+              "audio": { "relativePath": "audio/x.m4a", "durationMs": 1000, "checksumSha256": "00" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+import Foundation
+
+/// Shared contraction-expansion table for scoring preprocessing and composition grading.
+public enum EnglishContractions: Sendable {
+    /// Lowercased contraction → expanded form. `can't` is folded to `can not` (not `cannot`).
+    public static let table: [String: String] = [
+        "ain't": "is not",
+        "aren't": "are not",
+        "can't": "can not",
+        "cannot": "can not",
+        "could've": "could have",
+        "couldn't": "could not",
+        "didn't": "did not",
+        "doesn't": "does not",
+        "don't": "do not",
+        "hadn't": "had not",
+        "hasn't": "has not",
+        "haven't": "have not",
+        "he'd": "he would",
+        "he'll": "he will",
+        "he's": "he is",
+        "how'd": "how did",
+        "how'll": "how will",
+        "how's": "how is",
+        "i'd": "i would",
+        "i'll": "i will",
+        "i'm": "i am",
+        "i've": "i have",
+        "isn't": "is not",
+        "it'd": "it would",
+        "it'll": "it will",
+        "it's": "it is",
+        "let's": "let us",
+        "ma'am": "madam",
+        "mightn't": "might not",
+        "might've": "might have",
+        "mustn't": "must not",
+        "must've": "must have",
+        "needn't": "need not",
+        "ol'": "old",
+        "oughtn't": "ought not",
+        "she'd": "she would",
+        "she'll": "she will",
+        "she's": "she is",
+        "shouldn't": "should not",
+        "should've": "should have",
+        "somebody's": "somebody is",
+        "someone's": "someone is",
+        "something's": "something is",
+        "that'd": "that would",
+        "that'll": "that will",
+        "that's": "that is",
+        "there'd": "there would",
+        "there'll": "there will",
+        "there's": "there is",
+        "they'd": "they would",
+        "they'll": "they will",
+        "they're": "they are",
+        "they've": "they have",
+        "wasn't": "was not",
+        "we'd": "we would",
+        "we'll": "we will",
+        "we're": "we are",
+        "we've": "we have",
+        "weren't": "were not",
+        "what'd": "what did",
+        "what'll": "what will",
+        "what're": "what are",
+        "what's": "what is",
+        "what've": "what have",
+        "when's": "when is",
+        "where'd": "where did",
+        "where's": "where is",
+        "who'd": "who would",
+        "who'll": "who will",
+        "who're": "who are",
+        "who's": "who is",
+        "who've": "who have",
+        "why's": "why is",
+        "won't": "will not",
+        "wouldn't": "would not",
+        "would've": "would have",
+        "you'd": "you would",
+        "you'll": "you will",
+        "you're": "you are",
+        "you've": "you have",
+    ]
+
+    public static func expand(_ token: String) -> String {
+        table[token] ?? token
+    }
+
+    public static func expandAll(in text: String) -> String {
+        text.split(separator: " ", omittingEmptySubsequences: false).map { piece in
+            expand(String(piece))
+        }.joined(separator: " ")
+    }
+}

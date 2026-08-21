@@ -1,0 +1,48 @@
+name: Release
+# semver タグ（例 v1.0.0）の push を契機にリリース成果物を作成する。
+# ブランチモデル: develop（テスト）で検証 → main へマージ → main にタグを打つ。
+# 詳細手順は docs/development-workflow.md §5 を参照。
+on:
+  push:
+    tags: ["v*"]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # GitHub Release の作成に必要
+
+jobs:
+  # 最低限のゲート: Foundation-only の中核パッケージを Linux でビルド/テスト（ci.yml の core-linux 相当）。
+  core-linux:
+    runs-on: ubuntu-24.04
+    container: swift:6.1-noble
+    defaults: { run: { working-directory: Packages/SnapSpeakCore } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: Packages/SnapSpeakCore/.build
+          key: spm-linux-${{ hashFiles('Packages/SnapSpeakCore/Package.resolved', '.swift-version') }}
+      - run: swift build --build-tests
+      - run: swift test
+      - run: swift run contentlint ../../Resources/Seed/course_daily_ja_en/index.json --audio-root ../../Resources/Seed/course_daily_ja_en
+
+  release:
+    needs: core-linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # リリースノート自動生成のため全履歴を取得
+      - name: Create GitHub Release (draft)
+        uses: softprops/action-gh-release@v2   # バージョンはピン（更新は独立 PR で）
+        with:
+          draft: true                 # 内容確認後に手動で公開する
+          generate_release_notes: true
+
+  # TODO(将来対応 / 未着手): 署名付き iOS ビルドと TestFlight / App Store 提出の自動化。
+  # - macOS ランナーで `xcodegen generate` → `xcodebuild archive` → `xcodebuild -exportArchive`。
+  # - App Store Connect API キー（Secrets）で notarize / upload（altool / Fastlane 相当）。
+  # 現時点では秘密情報を扱わず、実配布も行わない（署名・配布は手動）。ci.yml の ios-macos が
+  # ビルド/テストのゲートを担う。導入時は GitHub Environments / OIDC で Secrets を管理する。

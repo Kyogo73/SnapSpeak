@@ -1,0 +1,25 @@
+included: [App, Packages]
+excluded:
+  - "**/.build"
+  - "**/Fixtures"
+line_length: { warning: 140, error: 200 }
+disabled_rules:
+  - todo
+  - trailing_comma
+  - function_body_length
+  - type_body_length
+  - function_parameter_count
+  - empty_enum_arguments
+  # 数値計算 (編集距離 DP など) では i/j/n/m/q/dp のような短い添字が慣用的。
+  - identifier_name
+  - cyclomatic_complexity
+custom_rules:
+  no_apple_languages:
+    regex: "AppleLanguages"
+    message: "AppleLanguages の書き換えは禁止（システムのアプリ別言語設定を正とする）"
+    severity: error
+  no_hardcoded_ui_japanese:
+    included: "Packages/SnapSpeakiOS/Sources|App/Sources"
+    regex: '(?:Text|Button|Label|Toggle|Section|PrimaryButton|SecondaryButton|navigationTitle|\.alert|\.confirmationDialog)\(\s*"[^"]*[\p{Hiragana}\p{Katakana}\p{Han}]'
+    message: "UI 文字列は String Catalog（.xcstrings）経由にする"
+    severity: error

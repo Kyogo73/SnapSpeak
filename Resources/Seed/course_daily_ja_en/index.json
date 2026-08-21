@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "id": "course_daily_ja_en",
+  "languagePair": { "sourceLanguage": "ja", "targetLanguage": "en" },
+  "title": { "ja": "日常英会話", "en": "Daily English" },
+  "units": [
+    {
+      "id": "unit_01_greetings",
+      "title": { "ja": "あいさつと予定調整", "en": "Greetings & Scheduling" },
+      "lessons": [
+        {
+          "id": "lesson_01_shadowing",
+          "mode": "shadowing",
+          "items": [
+            {
+              "id": "crs_daily_ja_en_item_p_001",
+              "kind": "shadowing",
+              "audio": {
+                "relativePath": "audio/item_p_001.m4a",
+                "durationMs": 21000,
+                "checksumSha256": "a10b011a6b6025d87785925f4cd44ece9c18098162eca52e5248de6b417d5e56"
+              },
+              "passage": {
+                "text": "Hi, I'm running a bit late. Could we start in ten minutes?",
+                "captionSegments": [
+                  { "startMs": 0, "endMs": 2100, "text": "Hi, I'm running a bit late." },
+                  { "startMs": 2100, "endMs": 4200, "text": "Could we start in ten minutes?" }
+                ],
+                "wordTimings": [
+                  { "startMs": 0, "endMs": 400, "text": "Hi" },
+                  { "startMs": 450, "endMs": 700, "text": "I'm" },
+                  { "startMs": 750, "endMs": 1100, "text": "running" },
+                  { "startMs": 1150, "endMs": 1250, "text": "a" },
+                  { "startMs": 1280, "endMs": 1450, "text": "bit" },
+                  { "startMs": 1480, "endMs": 1850, "text": "late" }
+                ]
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_p_002",
+              "kind": "shadowing",
+              "audio": {
+                "relativePath": "audio/item_p_002.m4a",
+                "durationMs": 28000,
+                "checksumSha256": "96173452ce778e0643f7815afe2af342854ddc9593944f7ca2a0832011ec163c"
+              },
+              "passage": {
+                "text": "Thanks for waiting. The meeting room is on the third floor.",
+                "captionSegments": [
+                  { "startMs": 0, "endMs": 2500, "text": "Thanks for waiting." },
+                  { "startMs": 2500, "endMs": 6200, "text": "The meeting room is on the third floor." }
+                ]
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_p_003",
+              "kind": "shadowing",
+              "audio": {
+                "relativePath": "audio/item_p_003.m4a",
+                "durationMs": 18000,
+                "checksumSha256": "a55ca519be3891c5a827088435937e891de6548f3e66d69a3c5a000929ded682"
+              },
+              "passage": {
+                "text": "Let me check my calendar and get back to you this afternoon.",
+                "captionSegments": [
+                  { "startMs": 0, "endMs": 3500, "text": "Let me check my calendar" },
+                  { "startMs": 3500, "endMs": 7000, "text": "and get back to you this afternoon." }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "lesson_02_composition",
+          "mode": "composition",
+          "items": [
+            {
+              "id": "crs_daily_ja_en_item_c_001",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "少し遅れます。10分後に始められますか。",
+                "acceptable": [
+                  "I'm running a bit late. Could we start in ten minutes?",
+                  "I'm a little late. Can we start in ten minutes?",
+                  "I am running a bit late. Could we start in 10 minutes?"
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_001.m4a",
+                "durationMs": 5000,
+                "checksumSha256": "791563148dd5447c5e34f45733eecd980b32800c1dd0ce19c986a0c9aaaa2e83"
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_c_002",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "待ってくれてありがとう。",
+                "acceptable": [
+                  "Thanks for waiting.",
+                  "Thank you for waiting.",
+                  "Thanks for waiting for me."
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_002.m4a",
+                "durationMs": 3000,
+                "checksumSha256": "af09f0f556eec417a3fa90076b592a07845e76a2656d513a8fa3c274a0786a74"
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_c_003",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "会議室は3階です。",
+                "acceptable": [
+                  "The meeting room is on the third floor.",
+                  "The meeting room is on the 3rd floor."
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_003.m4a",
+                "durationMs": 4000,
+                "checksumSha256": "2fe504d66e884bcefce4866dc4b9e5aa847aec82172e1b762c75facab30ef0f3"
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_c_004",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "カレンダーを確認して、午後に折り返します。",
+                "acceptable": [
+                  "Let me check my calendar and get back to you this afternoon.",
+                  "I'll check my calendar and get back to you this afternoon.",
+                  "Let me check my calendar and I'll get back to you this afternoon."
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_004.m4a",
+                "durationMs": 6000,
+                "checksumSha256": "0fa4e9cbcba5f3b01fabab844399631a2c44ce9f5d732ff33809c5face4560a8"
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_c_005",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "明日の午前中は空いていますか。",
+                "acceptable": [
+                  "Are you free tomorrow morning?",
+                  "Are you available tomorrow morning?",
+                  "Is tomorrow morning good for you?"
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_005.m4a",
+                "durationMs": 3500,
+                "checksumSha256": "25ed2aa8d66827893148c8b5b0e2378099b9958b6feee396f0aa4514ad2bc027"
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_c_006",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "すみません、もう一度言ってもらえますか。",
+                "acceptable": [
+                  "Sorry, could you say that again?",
+                  "Sorry, can you say that again?",
+                  "I'm sorry, could you repeat that?",
+                  "Excuse me, could you say that again?"
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_006.m4a",
+                "durationMs": 4000,
+                "checksumSha256": "e8f0586e2418c805f8a0f08bb8023f99db56dde565eb710a4ea3bbdab5af2a1a"
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_c_007",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "今日はこれで終わりにしましょう。",
+                "acceptable": [
+                  "Let's wrap up for today.",
+                  "Let's call it a day.",
+                  "Let's finish up for today."
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_007.m4a",
+                "durationMs": 3500,
+                "checksumSha256": "8cc12171f116677867da9448e9644033317e63f08d4f5a4acd21a961b6c147d7"
+              }
+            },
+            {
+              "id": "crs_daily_ja_en_item_c_008",
+              "kind": "composition",
+              "sentencePair": {
+                "l1": "また来週お会いしましょう。",
+                "acceptable": [
+                  "See you next week.",
+                  "Let's meet again next week.",
+                  "I'll see you next week.",
+                  "See you again next week."
+                ]
+              },
+              "audio": {
+                "relativePath": "audio/item_c_008.m4a",
+                "durationMs": 3000,
+                "checksumSha256": "9d963c2d220de5aa7d8da16b7cb1806373467a720944e6998a2d4784bf766371"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

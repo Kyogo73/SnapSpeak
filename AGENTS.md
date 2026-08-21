@@ -26,3 +26,10 @@ PY
 ```
 
 - フェーズ分割の正本は `docs/roadmap.md`。Phase 3 で Supabase（Auth / 同期 / Edge Functions）が入る想定です。将来 Deno/TypeScript の Edge Functions など Linux 上で動くコンポーネントが追加された時点で、その部分のみ Cloud VM 上でセットアップ・実行可能になります。
+
+### ブランチ運用（正本は `docs/development-workflow.md`）
+
+- `main` = **本番**（App Store 配布相当）、`develop` = **テスト環境**（TestFlight / 内部配布相当・常時検証）。どちらも直 push 禁止・PR 必須・CI 必須。
+- **feature（および Cloud Agent の `cursor/*`）ブランチは実質 feature 扱い。最終的に `develop` へ集約**する（PR ベースを develop 相当に向ける）。
+- **リリースは semver タグ（例 `v1.0.0`）を切って `develop` → `main` へマージ**。hotfix は `main` から分岐し `main` と `develop` の両方へ反映する。
+- CI（`.github/workflows/ci.yml`）は `develop` / `main` 宛 PR と push で `lint` / `core-linux` / `ios-macos` を実行。`v*` タグ push で `release.yml` が GitHub Release（ドラフト）を作成する。署名・TestFlight 自動化は未着手（手動）。

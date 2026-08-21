@@ -588,3 +588,39 @@ flowchart LR
 | swift-crypto への依存 | core 唯一の外部依存 | Apple 公式・Linux サポートが明確。代替（自前 SHA-256）は採らない |
 | arch との構成差分 | 2 パッケージ分割・ScoringKit 新設・SpeechKit 新設は arch §2.1/§13 に未記載 | M6 で arch に追記（「逸脱する場合は先に本書を更新する」規約に従い、実装 PR より先または同時にマージ） |
 | AGENTS.md 不在 | リポジトリに AGENTS.md がまだ無い | M1 で「Linux は core のみ検証可能」「ビルド/テストコマンド」を含む AGENTS.md を新設することを推奨（任意） |
+
+---
+
+## 9. レビュー反映状況（GPT5.6 Sol）と据え置き事項
+
+初期実装 PR に対しコードレビュー（GPT5.6 Sol）を実施し、CI 3 ジョブ（`lint` / `core-linux` / `ios-macos`）を全て green 化した。
+
+### 9.1 反映済み（本 PR で修正）
+
+| 分類 | 指摘 | 対応 |
+|------|------|------|
+| CI | `SnapSpeakCore` に `platforms` 未指定で macOS ビルドが swift-crypto の `SHA256`(10.15+) で失敗 | `platforms: [.macOS(.v13), .iOS(.v17)]` を指定 |
+| CI | `swiftlint --strict` が様式規則で多数 error | 数値計算に不適な様式規則（`identifier_name`/`cyclomatic_complexity`/`trailing_comma`/`function_body_length` 等）を disable、i18n カスタムルールを `Text`/`Button`/`Label`/`navigationTitle` 等へ拡大、`for_where`/`force_cast` は実コード修正 |
+| CI(iOS) | Swift 6 strict concurrency（`SFSpeechRecognizer` 非 Sendable、`RecoveryObserver` の `deinit` からの isolated 参照） | recognizer を actor 内に閉じる／トークンを nonisolated box に移し box の deinit で解除 |
+| CI(iOS) | Xcode 16.4 に無い `.allowBluetoothHFP`、`AVAudioEngine.configurationChangeNotification` 誤り、`qualityForShadowing` のラベル欠落、`makeDependencies` の MainActor 隔離、ホストアプリ経由テストのリンク失敗、`DownloadManager` の容量照会順序 | それぞれ SDK 準拠 API・`score:` ラベル・`@MainActor`・ホストレスのロジックテスト・ディレクトリ作成順に修正 |
+| core 正しさ | SM-2 失敗時に「10 分ゲート」と「次学習日 04:00 due」の両建てが崩れていた | `SRSState.relearnGateAt` + `dueAt` の両保持と `isDue`/`isPastRelearnGate` で整理（テスト追加） |
+| core 正しさ | `qualityForShadowing` が confidence=nil を高品質扱いしうる | min/mean いずれか nil なら `nil`（自動更新なし）。タイプ入力経路と分離（テスト追加） |
+| core 正しさ | `DelayCalculator` 文単位概算がリピート時に巨大な負の遅延 | ASR 時刻以前で最も近い提示時刻を採用（テスト追加） |
+| core 正しさ | `Manifest` が `manifestSchemaVersion` を未検査 | 既知版 `[1]` 限定・未知拒否（テスト追加） |
+| iOS 正しさ | `FileStaging` の多段 move が非アトミック / observer データ競合 / `inheritSRS` 固定 | `FileManager.replaceItemAt`＋残 staging 掃除 / actor 隔離 / release 値を伝播し非互換 revision を fold しない |
+
+再レビューにより、core 正しさ修正は全て仕様（arch §6.3/§6.4/§4.5/§7.3）どおりで回帰なしと確認済み。
+
+### 9.2 据え置き（Phase 1 後半・実機/実環境。骨格 PR では未実装）
+
+Sol も「骨格 PR としては据え置き妥当。ただし Phase 1 完成・配布判定前に実機/実環境検証が必須」と判断。§6.2 の範囲と一致する。
+
+- AudioEngine の実挙動（実再生・録音・Voice Processing・経路マトリクス・seek/loop/復旧の実動作）
+- オンデバイス Speech の実認識・機内モード採点・degraded 音声フロー（録音+自己再生の実挙動）
+- 実 CDN からの**音声ファイル本体**の取得（現状 `index.json` とメタのみ取得。音声取得は後半）
+- `CourseStore` の破損/未知 schema 時の旧 revision フォールバック実行時挙動
+- マイク/Speech 権限の 3 状態 UX と `scenePhase` 復帰時再評価（実機）
+- 録音の 14 日保持バッチ削除の実運用
+- シードの**本番収録音声**（現状は checksum 整合のためのダミーバイト。`AVAudioFile` 実再生は本番音声差し替え後）
+
+これらは配布前チェックリストとして roadmap.md Phase 1 の DoD をそのまま用いる。

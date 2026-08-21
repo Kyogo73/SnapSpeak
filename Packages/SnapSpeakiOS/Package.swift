@@ -10,6 +10,9 @@ let package = Package(
     name: "SnapSpeakiOS",
     platforms: [.iOS(.v17)],
     products: [
+        .library(name: "AppFeature", targets: ["AppFeature"]),
+        .library(name: "ShadowingFeature", targets: ["ShadowingFeature"]),
+        .library(name: "CompositionFeature", targets: ["CompositionFeature"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
         .library(name: "Analytics", targets: ["Analytics"]),
@@ -60,6 +63,54 @@ let package = Package(
             dependencies: [
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "ShadowingFeature",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "ContentKit",
+                "DesignSystem",
+                "Persistence",
+                "SpeechKit",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "ScoringKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "CompositionFeature",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "ContentKit",
+                "DesignSystem",
+                "Persistence",
+                "SpeechKit",
+                .product(name: "CompositionKit", package: "SnapSpeakCore"),
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "AppFeature",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "CompositionFeature",
+                "ContentKit",
+                "DesignSystem",
+                "Persistence",
+                "ShadowingFeature",
+                "SpeechKit",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
         ),

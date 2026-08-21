@@ -10,7 +10,12 @@ public enum SpeechClientError: Error, Sendable, Equatable {
 
 /// On-device Speech only. There is intentionally no server-recognition fallback path.
 public actor SpeechClient {
+    // SFSpeechRecognizer / SFSpeechURLRecognitionRequest are non-Sendable; they never
+    // leave this actor's isolation. Keeping them as actor-isolated state (rather than
+    // passing them into @Sendable task closures) satisfies Swift 6 strict concurrency.
     private var currentTask: SFSpeechRecognitionTask?
+    private var pendingRecognizer: SFSpeechRecognizer?
+    private var pendingRequest: SFSpeechURLRecognitionRequest?
 
     public init() {}
 
@@ -28,20 +33,23 @@ public actor SpeechClient {
         guard availability.isOnDeviceReady else {
             throw SpeechClientError.onDeviceUnavailable
         }
-        let recognizer = await MainActor.run { SFSpeechRecognizer(locale: locale) }
-        guard let recognizer else {
+        guard let recognizer = SFSpeechRecognizer(locale: locale) else {
             throw SpeechClientError.onDeviceUnavailable
         }
 
         let request = SFSpeechURLRecognitionRequest(url: url)
         request.requiresOnDeviceRecognition = true
         request.shouldReportPartialResults = false
+        pendingRecognizer = recognizer
+        pendingRequest = request
+        defer {
+            pendingRecognizer = nil
+            pendingRequest = nil
+        }
 
         do {
             return try await withThrowingTaskGroup(of: [SpeechTranscriptSegment].self) { group in
-                group.addTask {
-                    try await self.perform(recognizer: recognizer, request: request)
-                }
+                group.addTask { try await self.perform() }
                 group.addTask {
                     try await Task.sleep(for: .seconds(timeout))
                     throw SpeechClientError.timeout
@@ -62,11 +70,11 @@ public actor SpeechClient {
         }
     }
 
-    private func perform(
-        recognizer: SFSpeechRecognizer,
-        request: SFSpeechURLRecognitionRequest
-    ) async throws -> [SpeechTranscriptSegment] {
-        try await withCheckedThrowingContinuation { continuation in
+    private func perform() async throws -> [SpeechTranscriptSegment] {
+        guard let recognizer = pendingRecognizer, let request = pendingRequest else {
+            throw SpeechClientError.recognitionFailed
+        }
+        return try await withCheckedThrowingContinuation { continuation in
             let once = ResumeOnce()
             let task = recognizer.recognitionTask(with: request) { result, error in
                 if let error {
@@ -84,12 +92,9 @@ public actor SpeechClient {
                 }
                 once.resume { continuation.resume(returning: segments) }
             }
-            Task { await self.remember(task) }
+            // Executed synchronously within the actor's isolation, so this is safe.
+            currentTask = task
         }
-    }
-
-    private func remember(_ task: SFSpeechRecognitionTask) {
-        currentTask = task
     }
 }
 

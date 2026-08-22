@@ -1,7 +1,9 @@
 import Foundation
 import UserNotifications
 
-public actor LiveReminderCenter: ReminderCenter {
+/// 状態を持たないため struct（nonisolated）。actor にすると UserNotifications の
+/// 非 Sendable な戻り値（UNNotificationSettings 等）がアクター境界を越えられずコンパイル不可。
+public struct LiveReminderCenter: ReminderCenter {
     public init() {}
 
     public func authorization() async -> ReminderAuthorization {

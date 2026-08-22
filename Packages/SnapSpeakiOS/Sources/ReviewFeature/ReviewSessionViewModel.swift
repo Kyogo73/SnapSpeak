@@ -75,10 +75,8 @@ public final class ReviewSessionViewModel: ObservableObject {
         func locate(courseId: String, itemId: String) -> (lessonId: String, mode: LessonMode)? {
             for stored in courses where stored.course.id == courseId {
                 for unit in stored.course.units {
-                    for lesson in unit.lessons {
-                        if lesson.items.contains(where: { $0.id == itemId }) {
-                            return (lesson.id, lesson.mode)
-                        }
+                    for lesson in unit.lessons where lesson.items.contains(where: { $0.id == itemId }) {
+                        return (lesson.id, lesson.mode)
                     }
                 }
             }

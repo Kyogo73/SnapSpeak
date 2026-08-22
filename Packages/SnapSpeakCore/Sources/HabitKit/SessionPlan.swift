@@ -68,7 +68,7 @@ public struct SessionPlan: Sendable, Equatable, Hashable {
 public enum SessionPlanner {
     /// due 判定と上限・並び順を適用してプランを組む純関数。
     /// due 条件: (relearnGateAt == nil || relearnGateAt <= now) && dueAt <= now
-    ///（SRSKit `SRSState.isDue(at:)` と同義。カード側の値で再判定する）
+    /// （SRSKit `SRSState.isDue(at:)` と同義。カード側の値で再判定する）
     public static func plan(
         dueCards: [DueCard],
         newLesson: LessonSummary?,

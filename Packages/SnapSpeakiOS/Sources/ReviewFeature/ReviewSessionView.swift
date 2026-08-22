@@ -98,6 +98,9 @@ public struct ReviewSessionView<ItemContent: View>: View {
                     entry,
                     ReviewItemCallbacks(complete: viewModel.advance, skip: viewModel.skip)
                 )
+                // 同一 mode の Item が連続しても @StateObject を作り直させる
+                // （identity を切らないと前の Item の ViewModel が再利用される）。
+                .id(entry.id)
             }
         }
         .padding()

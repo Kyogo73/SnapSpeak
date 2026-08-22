@@ -91,6 +91,8 @@ public final class TodayViewModel: ObservableObject {
 
     public func regeneratePlanThenStart() async -> Bool {
         await refresh()
+        // refresh が失敗した場合は古い snapshot の plan で開始しない。
+        guard state == .ready else { return false }
         return snapshot?.plan.isEmpty == false
     }
 

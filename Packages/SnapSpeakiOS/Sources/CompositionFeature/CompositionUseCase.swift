@@ -126,6 +126,15 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         do {
             let segments = try await speech.recognize(url: recordingURL, locale: locale, timeout: 20)
             let hypothesis = segments.map(\.text).joined(separator: " ")
+            // 空の認識結果は「不一致」ではなく認識失敗（未採点）。fail の ReviewEvent を書かない。
+            guard !hypothesis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return try await persistUnscored(
+                    item: item,
+                    stored: stored,
+                    lessonId: lessonId,
+                    latencyMs: latencyMs
+                )
+            }
             let mean = segments.isEmpty
                 ? nil
                 : segments.map(\.confidence).reduce(0, +) / Double(segments.count)

@@ -21,6 +21,7 @@ let package = Package(
         .library(name: "ContentKit", targets: ["ContentKit"]),
         .library(name: "NotificationsKit", targets: ["NotificationsKit"]),
         .library(name: "ReviewFeature", targets: ["ReviewFeature"]),
+        .library(name: "OnboardingFeature", targets: ["OnboardingFeature"]),
     ],
     dependencies: [
         .package(path: "../SnapSpeakCore"),
@@ -119,6 +120,17 @@ let package = Package(
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
                 .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "OnboardingFeature",
+            dependencies: [
+                "Analytics",
+                "DesignSystem",
+                "NotificationsKit",
+                "Persistence",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
         ),

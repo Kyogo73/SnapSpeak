@@ -129,8 +129,10 @@ schemes:
         SnapSpeak: all
         PersistenceTests: [test]
         ContentKitTests: [test]
+        ReviewFeatureTests: [test]
     test:
       config: Debug
       targets:
         - PersistenceTests
         - ContentKitTests
+        - ReviewFeatureTests

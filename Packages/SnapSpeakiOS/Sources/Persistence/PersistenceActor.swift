@@ -25,11 +25,29 @@ public actor PersistenceActor {
         )
     }
 
+    /// save 失敗時に未保存変更を巻き戻してから rethrow する（部分状態を残さない）。
+    func saveOrRollback() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+    }
+
+    /// テスト用。未保存 insert を rollback すると 0 件になることを固定する。
+    public func countAttemptsAfterUnsavedInsertRollback(_ write: LessonAttemptWrite) throws -> Int {
+        let model = makeAttemptModel(write)
+        modelContext.insert(model)
+        modelContext.rollback()
+        return try modelContext.fetch(FetchDescriptor<LessonAttempt>()).count
+    }
+
     public func appendAttempt(_ write: LessonAttemptWrite) throws -> LessonAttemptDTO {
         if let existing = try fetchAttempt(id: write.id) { return existing }
         let model = makeAttemptModel(write)
         modelContext.insert(model)
-        try modelContext.save()
+        try saveOrRollback()
         return PersistenceMapping.attemptDTO(model)
     }
 
@@ -83,7 +101,7 @@ public actor PersistenceActor {
             payloadJSON: write.payloadJSON
         )
         modelContext.insert(model)
-        try modelContext.save()
+        try saveOrRollback()
         return PersistenceMapping.reviewDTO(model)
     }
 
@@ -159,7 +177,7 @@ public actor PersistenceActor {
         model.lastReviewedAt = state.lastReviewedAt
         model.lastQuality = state.lastQuality
         model.foldedThroughRevision = highestRevision
-        try modelContext.save()
+        try saveOrRollback()
         return PersistenceMapping.cardDTO(model)
     }
 

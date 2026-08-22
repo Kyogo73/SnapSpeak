@@ -32,7 +32,7 @@ extension PersistenceActor {
             deletedAt: defaults.deletedAt
         )
         modelContext.insert(model)
-        try modelContext.save()
+        try saveOrRollback()
         return PersistenceMapping.settingsDTO(model)
     }
 
@@ -87,7 +87,7 @@ extension PersistenceActor {
         model.lastOpenedMode = dto.lastOpenedMode
         model.fieldRevisionsJSON = dto.fieldRevisionsJSON
         model.deletedAt = dto.deletedAt
-        try modelContext.save()
+        try saveOrRollback()
         return PersistenceMapping.settingsDTO(model)
     }
 

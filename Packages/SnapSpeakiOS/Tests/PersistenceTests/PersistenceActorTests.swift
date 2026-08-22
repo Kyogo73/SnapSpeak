@@ -137,4 +137,13 @@ struct PersistenceActorTests {
         #expect(storedEvents.count == 1)
         #expect(storedEvents[0].contentRevision == 1)
     }
+
+    @Test("rollback は未保存 insert を消す")
+    func rollbackDiscardsUnsavedInsert() async throws {
+        let actor = try makeActor()
+        let write = attemptWrite(itemId: "unsaved", createdAt: Date(timeIntervalSince1970: 1_700_000_000))
+        let remaining = try await actor.countAttemptsAfterUnsavedInsertRollback(write)
+        #expect(remaining == 0)
+        #expect(try await actor.fetchAttempt(id: write.id) == nil)
+    }
 }

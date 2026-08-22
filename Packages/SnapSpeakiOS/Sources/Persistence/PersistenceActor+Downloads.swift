@@ -39,7 +39,7 @@ extension PersistenceActor {
         model.downloadedAt = dto.downloadedAt
         model.bytes = dto.bytes
         model.checksumSha256 = dto.checksumSha256
-        try modelContext.save()
+        try saveOrRollback()
         return PersistenceMapping.downloadedDTO(model)
     }
 
@@ -55,6 +55,6 @@ extension PersistenceActor {
         for model in try modelContext.fetch(descriptor) {
             modelContext.delete(model)
         }
-        try modelContext.save()
+        try saveOrRollback()
     }
 }

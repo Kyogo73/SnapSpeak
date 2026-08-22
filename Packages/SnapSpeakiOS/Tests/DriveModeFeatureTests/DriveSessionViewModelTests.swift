@@ -252,7 +252,8 @@ private func makeViewModelPersistence() throws -> PersistenceActor {
     return PersistenceActor(modelContainer: container)
 }
 
-private func waitUntil(timeoutMs: Int = 2_000, _ predicate: @escaping () async -> Bool) async {
+@MainActor
+private func waitUntil(timeoutMs: Int = 2_000, _ predicate: @escaping @MainActor () async -> Bool) async {
     let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1_000)
     while Date() < deadline {
         if await predicate() { return }

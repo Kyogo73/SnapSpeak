@@ -392,9 +392,17 @@ public func attemptCount(from start: Date, to end: Date) throws -> Int
 
 /// 試行が 1 件以上ある (courseId, itemId) の集合（次レッスン選定の入力）。
 public func attemptedItemRefs() throws -> Set<ItemRef>
+
+/// Attempt・habit markers・lastKnownStreakDays を単一 save で追記する。
+/// 学習日は `write.createdAt`（引数 `now` は使わない。04:00 跨ぎの誤判定を防ぐ）。
+public func appendAttemptEvaluatingHabit(
+    _ write: LessonAttemptWrite,
+    now: Date,
+    timeZoneIdentifier: String
+) throws -> AttemptHabitResult
 ```
 
-実装注意: `#Predicate` で日付比較（`createdAt >= start && createdAt < end`、`dueAt <= now`）。`attemptedItemRefs` は fetch 後に `Set(map)` で潰す（SwiftData に distinct がないため。件数規模は年間数千行で問題ない）。
+実装注意: `#Predicate` で日付比較（`createdAt >= start && createdAt < end`、`dueAt <= now`）。`attemptedItemRefs` は fetch 後に `Set(map)` で潰す（SwiftData に distinct がないため。件数規模は年間数千行で問題ない）。`appendAttemptEvaluatingHabit` を途中 save 3 回に分けない（Attempt だけ残ると習慣イベントが永久喪失する）。
 
 ### 4.2 NotificationsKit（新規 target）
 
@@ -532,7 +540,7 @@ public struct ReviewSessionView<ItemContent: View>: View {
     /// ShadowingLessonView / CompositionCardView を AppFeature 側で組み立てる。
     public init(
         viewModel: ReviewSessionViewModel,
-        @ViewBuilder itemContent: @escaping (ReviewEntry, @escaping () -> Void) -> ItemContent,
+        @ViewBuilder itemContent: @escaping (ReviewEntry, ReviewItemCallbacks) -> ItemContent,
         onClose: @escaping () -> Void
     )
     // 進捗ヘッダ（"%1$lld / %2$lld"）、離脱確認ダイアログ、
@@ -543,12 +551,20 @@ public struct ReviewSessionView<ItemContent: View>: View {
 // 「ホームへ戻る」「続けて学習する」。
 ```
 
-**既存 Feature への最小変更**: `ShadowingLessonView` と `CompositionCardView` に任意の完了コールバックを追加する（結果フェーズで「次へ」ボタンを表示）。
+**既存 Feature への最小変更**: `ShadowingLessonView` と `CompositionCardView` に完了 / スキップのコールバックを分離する。
 
 ```swift
-// ShadowingFeature / CompositionFeature（それぞれ）
-public var onCompleted: (() -> Void)?   // nil のとき従来どおり（単発レッスン。「次へ」非表示）
+// ShadowingFeature
+public var onCompleted: (() -> Void)?   // 採点または未採点完了後の「次へ」
+public var onSkipped: (() -> Void)?     // マイク拒否。Attempt なし。completedCount に入れない
+
+// CompositionFeature
+public var onCompleted: (() -> Void)?
 ```
+
+- 復習セッション: `onCompleted` → `advance()`、`onSkipped` → `skip()`。Item 提示時に `recordLastOpenedLesson`。
+- 単発レッスン: 完了 / スキップ後に画面を閉じる（「次へ」が refresh だけで残る回帰を防ぐ）。
+- `resolveEntries` は `courseId+itemId` が due と new で重なるとき new を除外する（失敗直後の 10 分ゲート迂回を防ぐ）。
 
 ### 4.4 OnboardingFeature（新規 target）
 
@@ -575,7 +591,7 @@ public final class OnboardingViewModel: ObservableObject {
     /// 設定保存 → reminderEnabled なら requestAuthorizationIfNeeded()（拒否なら
     /// reminderEnabled=false で保存し直す）→ onboardingCompletedAt = now →
     /// onboarding_completed を track。
-    public func completeGoalStep() async
+    public func completeGoalStep() async -> Bool?  // 保存成功時のみ。失敗は nil で cover を閉じない
     /// step に応じ既定値で保存して完了扱い。onboarding_skipped(step:) を track。
     public func skip() async
     // FlowView が onFinished(startFirstLesson:) を発火する。complete 経由と
@@ -594,9 +610,9 @@ public struct OnboardingFlowView: View {
 
 | ファイル | 変更 |
 |----------|------|
-| `TodayViewModel.swift`（新規） | `@MainActor final class TodayViewModel: ObservableObject`。`state: TodayState`（`loading / ready(TodaySnapshot) / empty / recovery(totalDays: Int, longest: Int)`）。`refresh(now:)` が `TodayPlanService.makeToday` を呼び、`lastKnownStreakDays` と比較して喪失検出（> 0 → 0 なら `recovery` 状態 + `streak_broken` track + `lastKnownStreakDays` 更新）。当日初完了の検出で `streak_day_recorded` / `goal_met` を track。リマインダー再計算 → `ReminderPlanner.plan` → `ReminderScheduler.sync` |
-| `HomeView.swift`（再設計） | ux-design §4.3 のレイアウトに置換。`TodayViewModel` を注入。主 CTA が `ReviewSessionInput`（`SessionPlan`）を持って復習セッションへ遷移。既存の「続きから」は副 CTA として維持 |
-| `RootView.swift` | (1) `settings.onboardingCompletedAt == nil` のとき `fullScreenCover` で `OnboardingFlowView` を表示、完了時にシード最初のレッスンへ `homePath.append`。(2) ホームタブに復習セッションへの `navigationDestination` を追加し、`ReviewSessionView` の `itemContent` で `ShadowingLessonView` / `CompositionCardView`（`onCompleted` 付き）を組み立てる。(3) `scenePhase` が `.active` に戻ったら `TodayViewModel.refresh()` |
+| `TodayViewModel.swift`（新規） | `@MainActor final class TodayViewModel: ObservableObject`。`state: TodayState`（`loading / ready(TodaySnapshot) / empty / recovery(totalDays: Int, longest: Int)`）。`refresh(now:)` は全ての `await` 復帰点で世代確認する。`dismissRecovery()` は async。`regeneratePlanThenStart()` は plan が空なら false |
+| `HomeView.swift`（再設計） | ux-design §4.3 のレイアウトに置換。主 CTA は `regeneratePlanThenStart()` が true のときだけ `.review` へ。回復カードの再開は `dismissRecovery()` 完了後に refresh/start |
+| `RootView.swift` | (1) オンボーディングは保存成功時のみ cover を閉じる。(2) 単発レッスンは完了後 dismiss。セッションは `onCompleted`/`onSkipped` を分離し、Item 提示で `lastOpened` を更新。(3) `scenePhase` が `.active` に戻ったら `TodayViewModel.refresh()` |
 | `SettingsView.swift` | 「継続」セクション追加（ux-design §4.6）: 目標プリセット Picker、リマインダートグル + 時刻、権限拒否時の設定アプリ導線。保存は `saveSettings` 経由、変更時にリマインダー再同期 |
 | `AppDependencies.swift` | `reminderScheduler: ReminderScheduler`、`todayPlanService: TodayPlanService` を追加し `live(resourceBundle:)` で生成。`settings` は起動時ロード値を使う既存構造を維持 |
 
@@ -719,8 +735,8 @@ Swift Testing。`now` / `Calendar` / `TimeZone` は全ケース固定注入。�
 
 | 対象 | ケース |
 |------|--------|
-| `PersistenceTests` 追記 | UserSettings 新フィールドの既定値と roundtrip / `SRSCard.relearnGateAt` が fold で書かれる（q<3 のイベントで非 nil、q>=3 で nil）/ `dueCards(now:)` のフィルタと昇順 / `attemptCount(from:to:)` の半開区間境界 / `attemptActivityDates` / `attemptedItemRefs` の distinct |
-| `ReviewFeature` の純関数（新規 `ReviewFeatureTests` を PersistenceTests と同方式の hostless target として追加） | `TodayPlanService.lessonSummaries(from:)` がカタログ順 / `dueCard(from:)` の写像 / `ReviewSessionViewModel.resolveEntries(plan:courses:)` の欠損スキップと件数 |
+| `PersistenceTests` 追記 | UserSettings 新フィールドの既定値と roundtrip / `SRSCard.relearnGateAt` が fold で書かれる（q<3 のイベントで非 nil、q>=3 で nil）/ `dueCards(now:)` のフィルタと昇順 / `attemptCount(from:to:)` の半開区間境界 / `attemptActivityDates` / `attemptedItemRefs` の distinct / `appendAttemptEvaluatingHabit` の原子性と `write.createdAt` 学習日（04:00 跨ぎ） |
+| `ReviewFeature` の純関数（新規 `ReviewFeatureTests` を PersistenceTests と同方式の hostless target として追加） | `TodayPlanService.lessonSummaries(from:)` がカタログ順 / `dueCard(from:)` の写像 / `ReviewSessionViewModel.resolveEntries(plan:courses:)` の欠損スキップ・due/new 重複除外 / intro 二重タップ / skip は completedCount に入れない |
 | コンパイルゲート | `xcodegen generate` + `xcodebuild build`（OnboardingFeature / NotificationsKit / ReviewFeature を含む全体） |
 
 ### 6.3 CI で担保しない（実機 / シミュレータ手動）
@@ -773,6 +789,6 @@ Swift Testing。`now` / `Calendar` / `TimeZone` は全ケース固定注入。�
 | 復習セッションでの音声セッション切替頻発（shadowing ↔ composition 混在） | 遅延・グリッチ | 既存 AudioEngine が Item ごとに停止→再構成する設計のため機能上は安全。体感が悪ければ並び順ポリシー（§2.3 の tie-break）を skill ブロック化に変える余地を `SessionPlanPolicy` に残す（現時点では追加しない） |
 | 通知の実発火は CI で検証不能 | リマインダー不具合の見逃し | 予定計算（純関数）を Linux テストで固定し、`ReminderScheduler.sync` の冪等性は `ReminderCenter` のフェイクで hostless テスト。実発火はシミュレータ手動（§6.3） |
 | `lastKnownStreakDays` と導出値の不整合 | 喪失カードの誤表示 | この値は「最後に見せた値」であり正本ではない（§4.1 コメント）。表示のたびに導出値で上書きし、比較にのみ使う |
-| 既存 View への `onCompleted` 追加が単発レッスン導線を壊す | 回帰 | 既定 nil で従来挙動を完全維持。hostless テストではなくコンパイルと目視で確認（UI 分岐は「次へ」ボタンの有無のみ） |
+| 既存 View への `onCompleted` 追加が単発レッスン導線を壊す | 回帰 | 単発は完了後 dismiss。セッションだけ `advance()`。`onSkipped` は完了数に入れない |
 | オンボーディングの通知権限が拒否された後の再要求不可 | リマインダー導線の行き止まり | OS 仕様どおり再ダイアログは出さず、Settings に `openSettingsURLString` 導線を常設（ux-design §4.6） |
 | due 一斉到来（タイムゾーンジャンプ） | セッション肥大 | `SessionPlanPolicy.maxReviews = 20` で削り、`deferredDueCount` を UI に明示（architecture §6.4 と整合） |

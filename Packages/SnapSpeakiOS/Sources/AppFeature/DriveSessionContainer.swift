@@ -90,10 +90,43 @@ struct DriveSessionContainer: View {
         )
         .task {
             await dependencies.audio.stop()
+            dependencies.driveRemoteBridge.attach(sequencer: dependencies.driveSequencer)
+            refreshNowPlaying()
+        }
+        .onChange(of: viewModel.phase) { _, _ in
+            refreshNowPlaying()
+        }
+        .onChange(of: viewModel.completedCount) { _, _ in
+            refreshNowPlaying()
+        }
+        .onChange(of: viewModel.currentCourseTitle) { _, _ in
+            refreshNowPlaying()
         }
         .onDisappear {
+            dependencies.driveRemoteBridge.detach()
             Task { await dependencies.driveSequencer.stop() }
         }
+    }
+
+    private func refreshNowPlaying() {
+        let paused: Bool
+        switch viewModel.phase {
+        case let .running(_, _, isPaused):
+            paused = isPaused
+        case .starting:
+            paused = false
+        case .idle, .finished:
+            paused = true
+        }
+        dependencies.driveRemoteBridge.updateNowPlaying(
+            title: DriveAnnouncementText.nowPlayingTitle(),
+            artist: DriveAnnouncementText.nowPlayingArtist(
+                courseTitle: viewModel.currentCourseTitle,
+                completed: viewModel.completedCount,
+                planned: viewModel.plannedCount
+            ),
+            isPaused: paused
+        )
     }
 
     private func persistLength(_ length: DriveScriptSettings.SessionLength) async {

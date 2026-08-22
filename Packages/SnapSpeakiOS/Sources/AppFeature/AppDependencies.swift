@@ -31,6 +31,7 @@ public final class AppDependencies: ObservableObject {
     public let speechSynthesis: any SpeechSynthesizing
     public let driveFilePlayer: any PhaseFilePlaying
     public let driveSequencer: any DriveSequencing
+    public let driveRemoteBridge: DriveRemoteCommandBridge
 
     public init(
         persistence: PersistenceActor,
@@ -51,7 +52,8 @@ public final class AppDependencies: ObservableObject {
         reminderRouter: ReminderRouter,
         speechSynthesis: any SpeechSynthesizing,
         driveFilePlayer: any PhaseFilePlaying,
-        driveSequencer: any DriveSequencing
+        driveSequencer: any DriveSequencing,
+        driveRemoteBridge: DriveRemoteCommandBridge
     ) {
         self.persistence = persistence
         self.audio = audio
@@ -72,6 +74,7 @@ public final class AppDependencies: ObservableObject {
         self.speechSynthesis = speechSynthesis
         self.driveFilePlayer = driveFilePlayer
         self.driveSequencer = driveSequencer
+        self.driveRemoteBridge = driveRemoteBridge
     }
 
     public static func live(resourceBundle: Bundle) throws -> AppDependencies {
@@ -123,6 +126,7 @@ public final class AppDependencies: ObservableObject {
             speech: speechSynthesis,
             filePlayer: driveFilePlayer
         )
+        let driveRemoteBridge = DriveRemoteCommandBridge()
 
         let settings: UserSettingsDTO = UserSettingsDTO.phase1Default
         return AppDependencies(
@@ -144,7 +148,8 @@ public final class AppDependencies: ObservableObject {
             reminderRouter: reminderRouter,
             speechSynthesis: speechSynthesis,
             driveFilePlayer: driveFilePlayer,
-            driveSequencer: driveSequencer
+            driveSequencer: driveSequencer,
+            driveRemoteBridge: driveRemoteBridge
         )
     }
 

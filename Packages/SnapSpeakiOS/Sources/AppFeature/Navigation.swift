@@ -15,7 +15,18 @@ public struct LessonCoordinate: Hashable, Sendable {
     }
 }
 
+public enum HomeDestination: Hashable, Sendable {
+    case lesson(LessonCoordinate)
+    case review
+}
+
 public enum SettingsDestination: Hashable {
     case privacy
     case downloads
+}
+
+public enum AppTab: Hashable {
+    case home
+    case catalog
+    case settings
 }

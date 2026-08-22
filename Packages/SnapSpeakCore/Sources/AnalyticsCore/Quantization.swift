@@ -16,4 +16,16 @@ public enum Quantization: Sendable {
         default: return "60s+"
         }
     }
+
+    /// ストリーク日数の帯（生値を送らない）。"1" | "2-3" | "4-6" | "7-13" | "14-29" | "30+"
+    public static func streakBand(days: Int) -> String {
+        switch days {
+        case ...1: return "1"
+        case 2...3: return "2-3"
+        case 4...6: return "4-6"
+        case 7...13: return "7-13"
+        case 14...29: return "14-29"
+        default: return "30+"
+        }
+    }
 }

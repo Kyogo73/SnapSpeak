@@ -26,6 +26,36 @@ public struct LocalAnalytics: AnalyticsClient {
             )
         case let .downloadFailed(courseId):
             logger.log("download_failed course=\(courseId, privacy: .public)")
+        case .onboardingStarted:
+            logger.log("onboarding_started")
+        case let .onboardingCompleted(goalItems, reminderEnabled, skippedGoal):
+            logger.log(
+                """
+                onboarding_completed goal=\(goalItems, privacy: .public) \
+                reminder=\(reminderEnabled, privacy: .public) skipped_goal=\(skippedGoal, privacy: .public)
+                """
+            )
+        case let .onboardingSkipped(step):
+            logger.log("onboarding_skipped step=\(step, privacy: .public)")
+        case let .reviewSessionStarted(dueCount, newCount):
+            logger.log("review_session_started due=\(dueCount, privacy: .public) new=\(newCount, privacy: .public)")
+        case let .reviewSessionCompleted(completedCount, durationBand):
+            logger.log(
+                """
+                review_session_completed completed=\(completedCount, privacy: .public) \
+                duration=\(durationBand, privacy: .public)
+                """
+            )
+        case let .goalMet(goalItems):
+            logger.log("goal_met goal=\(goalItems, privacy: .public)")
+        case let .streakDayRecorded(streakBand):
+            logger.log("streak_day_recorded band=\(streakBand, privacy: .public)")
+        case let .streakBroken(lengthBand):
+            logger.log("streak_broken band=\(lengthBand, privacy: .public)")
+        case let .reminderScheduled(kind):
+            logger.log("reminder_scheduled kind=\(kind, privacy: .public)")
+        case let .reminderOpened(kind):
+            logger.log("reminder_opened kind=\(kind, privacy: .public)")
         }
     }
 }

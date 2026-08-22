@@ -1,15 +1,11 @@
 import Foundation
+import HabitKit
 import Persistence
 import SRSKit
 import Testing
 
 @Suite("Persistence VersionedSchema v1")
 struct PersistenceActorTests {
-    private func makeActor() throws -> PersistenceActor {
-        let container = try PersistenceActor.makeContainer(inMemory: true)
-        return PersistenceActor(modelContainer: container)
-    }
-
     @Test("append attempt then fetch DTO with payload pairing")
     func appendAttemptRoundTrip() async throws {
         let actor = try makeActor()

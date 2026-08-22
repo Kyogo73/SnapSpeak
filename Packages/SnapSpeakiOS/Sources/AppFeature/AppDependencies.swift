@@ -4,7 +4,9 @@ import Combine
 import CompositionFeature
 import ContentKit
 import Foundation
+import NotificationsKit
 import Persistence
+import ReviewFeature
 import ShadowingFeature
 import SpeechKit
 
@@ -22,6 +24,10 @@ public final class AppDependencies: ObservableObject {
     public let settings: UserSettingsDTO
     public let shadowingUseCase: LiveShadowingUseCase
     public let compositionUseCase: LiveCompositionUseCase
+    public let reminderScheduler: ReminderScheduler
+    public let todayPlanService: TodayPlanService
+    public let reminderDelegate: ReminderDelegate
+    public let reminderRouter: ReminderRouter
 
     public init(
         persistence: PersistenceActor,
@@ -35,7 +41,11 @@ public final class AppDependencies: ObservableObject {
         seed: SeedInstaller,
         settings: UserSettingsDTO,
         shadowingUseCase: LiveShadowingUseCase,
-        compositionUseCase: LiveCompositionUseCase
+        compositionUseCase: LiveCompositionUseCase,
+        reminderScheduler: ReminderScheduler,
+        todayPlanService: TodayPlanService,
+        reminderDelegate: ReminderDelegate,
+        reminderRouter: ReminderRouter
     ) {
         self.persistence = persistence
         self.audio = audio
@@ -49,6 +59,10 @@ public final class AppDependencies: ObservableObject {
         self.settings = settings
         self.shadowingUseCase = shadowingUseCase
         self.compositionUseCase = compositionUseCase
+        self.reminderScheduler = reminderScheduler
+        self.todayPlanService = todayPlanService
+        self.reminderDelegate = reminderDelegate
+        self.reminderRouter = reminderRouter
     }
 
     public static func live(resourceBundle: Bundle) throws -> AppDependencies {
@@ -90,6 +104,10 @@ public final class AppDependencies: ObservableObject {
             analytics: analytics,
             recordingsDirectory: recordings
         )
+        let reminderRouter = ReminderRouter()
+        let reminderDelegate = ReminderDelegate(analytics: analytics, router: reminderRouter)
+        let reminderScheduler = ReminderScheduler(center: LiveReminderCenter(), analytics: analytics)
+        let todayPlanService = TodayPlanService(persistence: persistence, courseStore: courseStore)
 
         let settings: UserSettingsDTO = UserSettingsDTO.phase1Default
         return AppDependencies(
@@ -104,7 +122,11 @@ public final class AppDependencies: ObservableObject {
             seed: seed,
             settings: settings,
             shadowingUseCase: shadowing,
-            compositionUseCase: composition
+            compositionUseCase: composition,
+            reminderScheduler: reminderScheduler,
+            todayPlanService: todayPlanService,
+            reminderDelegate: reminderDelegate,
+            reminderRouter: reminderRouter
         )
     }
 

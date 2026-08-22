@@ -3,9 +3,11 @@ import SwiftUI
 
 public struct CompositionCardView: View {
     @StateObject private var viewModel: CompositionSessionViewModel
+    public var onCompleted: (() -> Void)?
 
-    public init(viewModel: CompositionSessionViewModel) {
+    public init(viewModel: CompositionSessionViewModel, onCompleted: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.onCompleted = onCompleted
     }
 
     public var body: some View {
@@ -23,6 +25,11 @@ public struct CompositionCardView: View {
                     .background(Colors.background, in: RoundedRectangle(cornerRadius: 12))
                 switch viewModel.phase {
                 case .prompt:
+                    if viewModel.microphoneDenied {
+                        Text("composition.mic_denied")
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.secondaryFill)
+                    }
                     PrimaryButton("composition.speak", systemImage: "mic.fill") {
                         Task { await viewModel.startSpeaking() }
                     }
@@ -67,6 +74,19 @@ public struct CompositionCardView: View {
                 Label("composition.fail", systemImage: "xmark.circle.fill")
                     .foregroundStyle(Colors.danger)
                     .font(Typography.headline)
+            case .unscored:
+                Label("composition.unscored", systemImage: "minus.circle.fill")
+                    .foregroundStyle(Colors.warning)
+                    .font(Typography.headline)
+                Text("composition.type_instead")
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.secondaryFill)
+                TypingInputView(text: $viewModel.typedText) {
+                    Task { await viewModel.submitTyped() }
+                }
+            }
+            if let onCompleted {
+                PrimaryButton("review.session.next", systemImage: "arrow.right", action: onCompleted)
             }
         }
     }

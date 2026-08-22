@@ -70,6 +70,8 @@ targets:
         product: SRSKit
       - package: SnapSpeakCore
         product: ContentCore
+      - package: SnapSpeakCore
+        product: HabitKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -91,6 +93,50 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.ContentKitTests
+  ReviewFeatureTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/ReviewFeatureTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: ReviewFeature
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakiOS
+        product: ContentKit
+      - package: SnapSpeakiOS
+        product: Persistence
+      - package: SnapSpeakCore
+        product: HabitKit
+      - package: SnapSpeakCore
+        product: ContentCore
+      - package: SnapSpeakCore
+        product: LanguageKit
+      - package: SnapSpeakCore
+        product: SRSKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.ReviewFeatureTests
+  NotificationsKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/NotificationsKitTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: NotificationsKit
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakCore
+        product: HabitKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.NotificationsKitTests
 schemes:
   SnapSpeak:
     build:
@@ -102,8 +148,12 @@ schemes:
         SnapSpeak: all
         PersistenceTests: [test]
         ContentKitTests: [test]
+        ReviewFeatureTests: [test]
+        NotificationsKitTests: [test]
     test:
       config: Debug
       targets:
         - PersistenceTests
         - ContentKitTests
+        - ReviewFeatureTests
+        - NotificationsKitTests

@@ -2,6 +2,8 @@
 
 本書は、docs と実装の全面監査（設計書整備パス）で確定した品質改善の**実行計画**である。実行担当はコード・テスト・`Resources/Localizable.xcstrings`・`App/project.yml`、および変更に対応する docs の同期を編集してよい。CI 設定（`.github/workflows/`）の変更は不要（新規テストターゲットは `App/project.yml` の scheme 追加だけで `ios-macos` に取り込まれる）。
 
+> **状態: 実行済み（`cursor/quality-pass-4b92`）。** Q1〜Q11 を計画どおり実装した。Linux `swift test` は 153 件 green（ベースライン 147 + T1 4 + T2 + T3）。hostless 追加は `OnboardingFeatureTests` / `CompositionFeatureTests` / `AppFeatureTests`。`AppFeatureTests` は AppFeature（SwiftUI を含む）を直接リンクする — macOS CI でリンク失敗した場合は T5 をスキップしてよい（§4.2）。
+
 関連文書: [architecture.md](./architecture.md)（設計正本）/ [ux-design.md](./ux-design.md)（UX 正本）/ [phase2-retention-implementation-plan.md](./phase2-retention-implementation-plan.md)（継続機能の実装記録）/ [development-workflow.md](./development-workflow.md)（ブランチ・コミット規約）。
 
 ## 0. 前提と原則
@@ -301,3 +303,30 @@ PR は 1 本（`develop` 向け）。タイトルは Conventional Commits（例 
 4. **docs 同期は同一コミット。** 特に U1（ux-design §3.3 / §4.4）、B2（ux-design §9）、R1 / R2（phase2 記録・architecture）。
 5. **テストの期待値を実装に合わせて曲げない。** 期待値は ux-design / architecture の仕様から導く。仕様が曖昧な場合は本書の該当項の方針を正とする。
 6. スコープ外: StoreKit / Paywall、ダッシュボード、`AudioEngineActor` のプロトコル化、実機依存の検証（§5.2 はユーザーに委ねる）。
+
+---
+
+## 9. 実行結果（Q1〜Q11）
+
+| 項目 | 結果 |
+|------|------|
+| R1 | `appendAttemptEvaluatingHabit` から `now` を削除。学習日は `write.createdAt` |
+| R2 / T1 | `uniquedActiveReleases` に `releaseId` タイブレーク。4 ケース追加 |
+| R3 | `makeToday` の再 uniqued を削除。`lessonSummaries` の一意化は保持 |
+| R4 | DTO / PersistenceActor を extension に純移動 |
+| R5 | `startPlayback` から未使用 `asrReady` を削除 |
+| R6 | `fallbackMode` 削除、`begin(at:)` 抽出、`LocalizedFormat` 統一、未参照 2 キー削除 |
+| R7 | `SettingsStoring` / `TodayPlanning` / `SpeechRecognizing` を導入。`AppDependencies` は具象のまま |
+| U1 / T6 | `skippedMissingCount` / `skippedByUserCount` 分離。`review.summary.skipped_user` 追加 |
+| U2 | サマリに `home.goal.progress`（`afterSnapshot` があるとき） |
+| U3 | `HomeView.navigationTitle` を `home.title` |
+| U4 | ストリーク 1 日目に `streak.rule_note` |
+| B1 / T9 | 全 `save` を `saveOrRollback` に集約。rollback で未保存 insert が消えることをテスト |
+| B2 / T4 | `onboarding_skipped` を保存成功後へ。`OnboardingFeatureTests` 追加 |
+| B3 / T7 | `CompositionAttemptPayload`。`CompositionFeatureTests` 追加 |
+| T2 | 目標を当日下げても `itemsTodayBefore >= 新 goal` なら `goal_met` しない |
+| T3 | `maxReviews = 0` は全件 deferred、newLesson は方針どおり |
+| T5 | `AppFeatureTests` を追加（hostless。リンク失敗時は §4.2 どおりスキップ可） |
+| T8 | `reminder-` 以外の pending を消さない |
+
+Linux `swift test`: 153 passed。`contentlint` の seed 検証: ok。iOS hostless / SwiftLint は macOS CI（`ios-macos` / `lint`）で確認する。

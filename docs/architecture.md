@@ -1125,6 +1125,8 @@ enum SnapSpeakSchemaV1: VersionedSchema {
 - `@ModelActor`（例: `PersistenceActor`）が `ModelContext` を所有する。
 - Feature には Sendable DTO だけを返す。
 - `payloadJSON` には必ず `payloadSchemaVersion` を並列で持つ。
+- `save()` は `saveOrRollback` 経由。失敗時は未保存変更を巻き戻してから rethrow する（部分状態を残さない）。
+- ローカル表示カタログ（seed + downloaded）は `CourseCatalog.uniquedActiveReleases` で `courseId` ごとに revision 最大を残す。同一 revision は `releaseId` 非 nil（downloaded）を優先し、双方非 nil なら辞書順で大きい方、双方 nil なら先勝ち。
 
 学習履歴と ReviewEvent は **追記型**。SRSCard は派生。設定の同期はフィールド別 revision。削除は tombstone。
 

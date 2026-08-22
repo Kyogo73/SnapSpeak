@@ -50,6 +50,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
     public var recordingsDirectory: URL
     public var localeResolver: any SpeechLocaleResolver
     public var permissions: any RecordingPermissionClient
+    public var availability: any SpeechAvailabilityInspecting
 
     public init(
         audio: AudioEngineActor,
@@ -58,7 +59,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         analytics: any AnalyticsClient,
         recordingsDirectory: URL,
         localeResolver: any SpeechLocaleResolver = StaticSpeechLocaleResolver(),
-        permissions: any RecordingPermissionClient = LiveRecordingPermissionClient()
+        permissions: any RecordingPermissionClient = LiveRecordingPermissionClient(),
+        availability: any SpeechAvailabilityInspecting = LiveSpeechAvailabilityInspector()
     ) {
         self.audio = audio
         self.speech = speech
@@ -67,6 +69,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         self.recordingsDirectory = recordingsDirectory
         self.localeResolver = localeResolver
         self.permissions = permissions
+        self.availability = availability
     }
 
     public func gradeTyped(
@@ -120,8 +123,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             for: stored.course.languagePair.targetLanguage,
             regionPreference: nil
         ) ?? Locale(identifier: "en-US")
-        let availability = await SpeechAvailability.inspect(locale: locale)
-        let canTranscribe = availability.isOnDeviceReady && permissions.speechStatus() == .authorized
+        let inspected = await availability.inspect(locale: locale)
+        let canTranscribe = inspected.isOnDeviceReady && permissions.speechStatus() == .authorized
         guard canTranscribe else {
             return try await persistUnscored(
                 item: item,

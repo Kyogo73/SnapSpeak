@@ -48,27 +48,25 @@ struct CompositionUseCaseTests {
 
     @Test("空 ASR は unscored・Attempt 追記・ReviewEvent 0 件")
     func emptyTranscriptPersistsUnscoredWithoutReviewEvent() async throws {
-        let outcome = try await finish(
-            speech: FakeSpeech(result: .success([])),
-            usedHint: false
-        )
+        let speech = CountingSpeech(result: .success([]))
+        let outcome = try await finish(speech: speech, usedHint: false)
         #expect(outcome.grade == .unscored)
         #expect(outcome.persisted)
         #expect(outcome.quality == nil)
+        #expect(speech.recognizeCallCount == 1)
     }
 
     @Test("認識 throw は unscored・Attempt 追記・ReviewEvent 0 件")
     func recognitionThrowPersistsUnscoredWithoutReviewEvent() async throws {
-        let outcome = try await finish(
-            speech: FakeSpeech(result: .failure(SpeechClientError.recognitionFailed)),
-            usedHint: true
-        )
+        let speech = CountingSpeech(result: .failure(SpeechClientError.recognitionFailed))
+        let outcome = try await finish(speech: speech, usedHint: true)
         #expect(outcome.grade == .unscored)
         #expect(outcome.persisted)
+        #expect(speech.recognizeCallCount == 1)
     }
 
     private func finish(
-        speech: FakeSpeech,
+        speech: CountingSpeech,
         usedHint: Bool
     ) async throws -> CompositionOutcome {
         let fixture = try CompositionFixture()
@@ -78,7 +76,8 @@ struct CompositionUseCaseTests {
             persistence: fixture.persistence,
             analytics: NoopAnalytics(),
             recordingsDirectory: fixture.recordings,
-            permissions: AuthorizedPermissions()
+            permissions: AuthorizedPermissions(),
+            availability: ReadySpeechAvailability()
         )
         let dummy = fixture.recordings.appendingPathComponent("dummy.caf")
         try Data().write(to: dummy)
@@ -158,19 +157,25 @@ private struct CompositionFixture {
     }
 }
 
-private struct FakeSpeech: SpeechRecognizing {
+private final class CountingSpeech: SpeechRecognizing, @unchecked Sendable {
     enum Result {
         case success([SpeechTranscriptSegment])
         case failure(Error)
     }
 
-    var result: Result
+    let result: Result
+    private(set) var recognizeCallCount = 0
+
+    init(result: Result) {
+        self.result = result
+    }
 
     func recognize(
         url: URL,
         locale: Locale,
         timeout: TimeInterval
     ) async throws -> [SpeechTranscriptSegment] {
+        recognizeCallCount += 1
         _ = url
         _ = locale
         _ = timeout
@@ -180,6 +185,18 @@ private struct FakeSpeech: SpeechRecognizing {
         case let .failure(error):
             throw error
         }
+    }
+}
+
+private struct ReadySpeechAvailability: SpeechAvailabilityInspecting {
+    func inspect(locale: Locale) async -> SpeechAvailability {
+        _ = locale
+        return SpeechAvailability(
+            localeSupported: true,
+            recognizerInitializable: true,
+            supportsOnDeviceRecognition: true,
+            isAvailable: true
+        )
     }
 }
 

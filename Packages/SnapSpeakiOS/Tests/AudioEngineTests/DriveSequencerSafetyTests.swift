@@ -223,11 +223,15 @@ private final class EventCollector: @unchecked Sendable {
         let stream = await sequencer.events()
         task = Task {
             for await event in stream {
-                self.lock.lock()
-                self.stored.append(event)
-                self.lock.unlock()
+                self.append(event)
             }
         }
+    }
+
+    private func append(_ event: DriveSequencerEvent) {
+        lock.lock()
+        stored.append(event)
+        lock.unlock()
     }
 }
 

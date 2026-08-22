@@ -23,4 +23,12 @@ public enum AnalyticsEvent: Sendable, Equatable {
     case streakBroken(lengthBand: String)
     case reminderScheduled(kind: String)
     case reminderOpened(kind: String)
+    case driveSessionStarted(dueCount: Int, newCount: Int, lengthCode: String)
+    case driveSessionCompleted(
+        completedCount: Int,
+        durationBand: String,
+        endReason: String,
+        usedTTSFallback: Bool
+    )
+    case driveNoteOpened(completedCount: Int)
 }

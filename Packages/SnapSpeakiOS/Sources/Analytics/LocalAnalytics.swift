@@ -56,6 +56,23 @@ public struct LocalAnalytics: AnalyticsClient {
             logger.log("reminder_scheduled kind=\(kind, privacy: .public)")
         case let .reminderOpened(kind):
             logger.log("reminder_opened kind=\(kind, privacy: .public)")
+        case let .driveSessionStarted(dueCount, newCount, lengthCode):
+            logger.log(
+                """
+                drive_session_started due=\(dueCount, privacy: .public) \
+                new=\(newCount, privacy: .public) length=\(lengthCode, privacy: .public)
+                """
+            )
+        case let .driveSessionCompleted(completedCount, durationBand, endReason, usedTTSFallback):
+            logger.log(
+                """
+                drive_session_completed completed=\(completedCount, privacy: .public) \
+                duration=\(durationBand, privacy: .public) end=\(endReason, privacy: .public) \
+                tts_fallback=\(usedTTSFallback, privacy: .public)
+                """
+            )
+        case let .driveNoteOpened(completedCount):
+            logger.log("drive_note_opened completed=\(completedCount, privacy: .public)")
         }
     }
 }

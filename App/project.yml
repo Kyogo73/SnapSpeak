@@ -158,6 +158,37 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.OnboardingFeatureTests
+  CompositionFeatureTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/CompositionFeatureTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: CompositionFeature
+      - package: SnapSpeakiOS
+        product: Persistence
+      - package: SnapSpeakiOS
+        product: SpeechKit
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakiOS
+        product: AudioEngine
+      - package: SnapSpeakiOS
+        product: ContentKit
+      - package: SnapSpeakCore
+        product: ContentCore
+      - package: SnapSpeakCore
+        product: LanguageKit
+      - package: SnapSpeakCore
+        product: CompositionKit
+      - package: SnapSpeakCore
+        product: SRSKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.CompositionFeatureTests
 schemes:
   SnapSpeak:
     build:
@@ -172,6 +203,7 @@ schemes:
         ReviewFeatureTests: [test]
         NotificationsKitTests: [test]
         OnboardingFeatureTests: [test]
+        CompositionFeatureTests: [test]
     test:
       config: Debug
       targets:
@@ -180,3 +212,4 @@ schemes:
         - ReviewFeatureTests
         - NotificationsKitTests
         - OnboardingFeatureTests
+        - CompositionFeatureTests

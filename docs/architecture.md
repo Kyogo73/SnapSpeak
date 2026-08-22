@@ -613,6 +613,17 @@ func grade(input: String, acceptable: [String], language: BCP47Language) -> Comp
 
 `.unscored` は照合器ではなく UseCase 層が付与する（ASR が使えない・認識が空のとき）。`.unscored` は `LessonAttempt` のみ追記し、`.fail` の `ReviewEvent` を書かない（認識失敗を学習失敗として SRS に流さない）。
 
+瞬間英作文の Attempt `payloadJSON` は型付き Codable（`payloadSchemaVersion` は 1。未リリースのため互換不要）:
+
+```swift
+struct CompositionAttemptPayload: Codable, Sendable {
+    var payloadSchemaVersion: Int  // 1
+    var result: String             // "pass" | "fail" | "unscored"
+    var usedHint: Bool
+    var latencyMs: Int
+}
+```
+
 ### 5.3 応答時間
 
 - `t0`: L1 文が画面に出た時刻

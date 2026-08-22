@@ -81,7 +81,14 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             .lessonStarted(languagePair: stored.course.languagePair.pairKey, lessonId: lessonId)
         )
         var outcome = grade(input: input, item: item, latencyMs: latencyMs, usedHint: usedHint, confidence: nil)
-        try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+        try await persist(
+            outcome: outcome,
+            item: item,
+            stored: stored,
+            lessonId: lessonId,
+            latencyMs: latencyMs,
+            usedHint: usedHint
+        )
         outcome.persisted = true
         return outcome
     }
@@ -120,7 +127,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 item: item,
                 stored: stored,
                 lessonId: lessonId,
-                latencyMs: latencyMs
+                latencyMs: latencyMs,
+                usedHint: usedHint
             )
         }
         do {
@@ -132,7 +140,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                     item: item,
                     stored: stored,
                     lessonId: lessonId,
-                    latencyMs: latencyMs
+                    latencyMs: latencyMs,
+                    usedHint: usedHint
                 )
             }
             let mean = segments.isEmpty
@@ -145,7 +154,14 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 usedHint: usedHint,
                 confidence: mean
             )
-            try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+            try await persist(
+                outcome: outcome,
+                item: item,
+                stored: stored,
+                lessonId: lessonId,
+                latencyMs: latencyMs,
+                usedHint: usedHint
+            )
             outcome.persisted = true
             return outcome
         } catch {
@@ -153,7 +169,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 item: item,
                 stored: stored,
                 lessonId: lessonId,
-                latencyMs: latencyMs
+                latencyMs: latencyMs,
+                usedHint: usedHint
             )
         }
     }
@@ -191,22 +208,16 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         item: ItemV1,
         stored: StoredCourse,
         lessonId: String,
-        latencyMs: Int
+        latencyMs: Int,
+        usedHint: Bool
     ) async throws {
-        let passedLabel: String
-        switch outcome.grade {
-        case .pass:
-            passedLabel = "true"
-        case .fail:
-            passedLabel = "false"
-        case .unscored:
-            passedLabel = "unscored"
-        }
         let payload = try JSONEncoder().encode(
-            [
-                "payloadSchemaVersion": "1",
-                "passed": passedLabel,
-            ]
+            CompositionAttemptPayload(
+                payloadSchemaVersion: 1,
+                result: CompositionAttemptPayload.resultLabel(for: outcome.grade),
+                usedHint: usedHint,
+                latencyMs: latencyMs
+            )
         )
         let habit = try await persistence.appendAttemptEvaluatingHabit(
             LessonAttemptWrite(
@@ -278,10 +289,18 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         item: ItemV1,
         stored: StoredCourse,
         lessonId: String,
-        latencyMs: Int
+        latencyMs: Int,
+        usedHint: Bool
     ) async throws -> CompositionOutcome {
         var outcome = CompositionOutcome(grade: .unscored, quality: nil)
-        try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+        try await persist(
+            outcome: outcome,
+            item: item,
+            stored: stored,
+            lessonId: lessonId,
+            latencyMs: latencyMs,
+            usedHint: usedHint
+        )
         outcome.persisted = true
         return outcome
     }

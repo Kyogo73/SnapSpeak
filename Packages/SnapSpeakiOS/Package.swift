@@ -206,5 +206,21 @@ let package = Package(
             ],
             swiftSettings: swift6
         ),
+        .testTarget(
+            name: "CompositionFeatureTests",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "CompositionFeature",
+                "ContentKit",
+                "Persistence",
+                "SpeechKit",
+                .product(name: "CompositionKit", package: "SnapSpeakCore"),
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
     ]
 )

@@ -36,7 +36,7 @@ jobs:
             echo "Release PR #$existing already open; the PR diff follows develop automatically"
             exit 0
           fi
-          gh pr create \
+          if ! gh pr create \
             --base main \
             --head develop \
             --title "release: develop を main へ反映" \
@@ -47,4 +47,7 @@ jobs:
               '' \
               '- 差分は Files changed タブを正とする（develop への push で自動更新される）' \
               '- マージすると Release ワークフローが自動で semver タグとドラフト GitHub Release を作成する' \
-              '- 運用手順の正本: docs/development-workflow.md §5')"
+              '- 運用手順の正本: docs/development-workflow.md §5')"; then
+            echo "::error title=リリース PR を自動作成できませんでした::リポジトリ設定で GitHub Actions の PR 作成を許可してください: Settings → Actions → General → Workflow permissions → 'Allow GitHub Actions to create and approve pull requests' にチェック。設定後は develop への次の push で自動作成されます（手動で develop → main の PR を作成しても可）。"
+            exit 1
+          fi

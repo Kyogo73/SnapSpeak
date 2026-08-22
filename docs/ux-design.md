@@ -291,7 +291,7 @@ flowchart TD
 | 続きから | | 最後に開いたレッスン（単発・復習セッションで提示した Item を含む。`recordLastOpenedLesson`）。初回起動直後は非表示 |
 | 状態バナー | | §5 の状態マトリクスに従う。学習を止めない情報提示に留める |
 
-**状態遷移**: `loading → ready(プランあり) / goalMet(達成) / empty(コースなし) / recovery(喪失直後)`。いずれの状態でもタブ・設定への導線は生きている。
+**状態遷移**: `loading → ready(プランあり / 達成) / empty(コースなし) / failed(読み込み失敗) / recovery(喪失直後)`（実装は `TodayViewModel.TodayState` と 1:1）。達成は独立状態ではなく、`ready` でプランが空のときの表示切替。`failed` はプラン読み込み失敗時で、「今日の学習を読み込めませんでした」＋再読み込み導線を出し学習を止めない。いずれの状態でもタブ・設定への導線は生きている。
 
 ### 4.4 復習セッション（コンテナ）
 
@@ -402,6 +402,7 @@ flowchart TD
 | 通知権限拒否 | オンボーディングはトグル OFF で続行。Settings は `settings.reminder_denied` ＋ 設定アプリ導線 |
 | ストリーク喪失直後 | `TodayViewModel` が `lastKnownStreakDays > 0 && current == 0` で回復カード。1 回閉じたら通常 |
 | タイムゾーン大移動 | `SessionPlanPolicy.maxReviews = 20` と `home.today.deferred` |
+| プラン読み込み失敗 | `TodayState.failed` → `home.today.load_failed` ＋ `home.today.retry`（再読み込み）。既存 snapshot があっても古い plan で開始しない（`regeneratePlanThenStart` は `ready` のみ true） |
 
 ---
 
@@ -444,7 +445,7 @@ architecture §9 に従う。継続機能で追加するキーの規約:
 | 規約 | 内容 |
 |------|------|
 | 命名 | `<画面/ドメイン>.<要素>[.<状態>]` の英語ドット区切り。単語内は snake_case（既存の `settings.reset_install_id` と同型）。例: `home.today.start`、`streak.broken.title` |
-| 名前空間 | `onboarding.*` / `home.today.*` / `home.goal.*` / `streak.*` / `review.session.*` / `review.summary.*` / `notification.*` / `settings.*`（既存に追加） |
+| 名前空間 | `onboarding.*` / `home.today.*` / `home.goal.*` / `home.recovery.*` / `streak.*` / `review.session.*` / `review.summary.*` / `notification.*` / `settings.*`（既存に追加） |
 | 変数 | 件数は `%lld`、複数変数は位置指定（`%1$lld / %2$lld`）。将来の英語 UI で複数形が必要になるキー（件数系）は最初から変数化しておき、`.xcstrings` の plural variation を英語追加時に付与する |
 | 値 | Phase 2 時点は `ja` のみ。キー名から意味が推測できること（翻訳者がコード無しで訳せる） |
 | 禁止 | 文字列連結による文生成、コード内日本語リテラル（SwiftLint カスタムルールで強制）、`AppleLanguages` 書換え |

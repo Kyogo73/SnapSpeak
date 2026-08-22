@@ -595,6 +595,12 @@ Phase 1 は菱形 LLM が常に No。Pro 判定は Phase 3 では **サーバー
 ### 5.2 照合
 
 ```swift
+enum CompositionGrade {
+    case pass(kind: CompositionPassKind)  // normalizedMatch（Phase 3 で semantic を追加）
+    case fail
+    case unscored  // Speech 拒否・ASR 不可・認識エラー・空の認識結果。「不一致」ではない
+}
+
 func grade(input: String, acceptable: [String], language: BCP47Language) -> CompositionGrade {
     let hyp = normalize(input, language: language)
     let refs = acceptable.map { normalize($0, language: language) }
@@ -604,6 +610,8 @@ func grade(input: String, acceptable: [String], language: BCP47Language) -> Comp
 ```
 
 部分一致・編集距離しきい値は MVP では入れない。近い誤答のヒントは Phase 3 の LLM に任せる。
+
+`.unscored` は照合器ではなく UseCase 層が付与する（ASR が使えない・認識が空のとき）。`.unscored` は `LessonAttempt` のみ追記し、`.fail` の `ReviewEvent` を書かない（認識失敗を学習失敗として SRS に流さない）。
 
 ### 5.3 応答時間
 
@@ -742,13 +750,22 @@ enum ReviewQuality: Int { case blackout = 0, fail = 1, hard = 2, pass = 3, good 
 
 struct SRSEngine: Sendable {
     var policy: GradingPolicy
-    func qualityForComposition(pass: Bool, latencyMs: Int, usedHint: Bool, confidence: Double?) -> ReviewQuality?
-    func qualityForShadowing(score: ShadowingScore) -> ReviewQuality?
+
+    /// tokenCount / language で GradingPolicy の速度帯を選ぶ（§6.3 の校正方針）。
+    /// skipped は q=0（blackout）。confidence が帯の下限未満なら nil（自動更新しない）。
+    func qualityForComposition(
+        pass: Bool, latencyMs: Int, usedHint: Bool, confidence: Double?,
+        tokenCount: Int, skipped: Bool, language: BCP47Language?
+    ) -> ReviewQuality?
+
+    /// 同時採点でない・confidence 欠落（空 ASR）・confidence 低は nil。
+    func qualityForShadowing(score: ShadowingScoreSnapshot) -> ReviewQuality?
+
     func fold(events: [ReviewEventDTO], now: Date, calendar: Calendar, dayBoundaryHour: Int) -> SRSState
 }
 ```
 
-`qualityFor*` が `nil` のときはイベントを書かない。乱数なし。テストは固定 `now`。
+`qualityFor*` が `nil` のときはイベントを書かない。乱数なし。テストは固定 `now`。`ShadowingScoreSnapshot` は §4.6 の `ShadowingScore` から SRS 判定に必要な列だけを写像した core 側の Sendable 値。
 
 ### 6.7 同期モデル（Phase 3）— LWW を SRS に使わない
 
@@ -1065,6 +1082,20 @@ enum SnapSpeakSchemaV1: VersionedSchema {
     var dailyGoalItems: Int          // 1 日の目標アイテム数。既定 10
     var onboardingCompletedAt: Date? // nil = 未完了
     var lastKnownStreakDays: Int     // 最後に提示したストリーク。正本ではない
+
+    // 分析イベントの重複発火防止マーカー（学習日開始時刻で 1 日 1 回を保証。正本ではない）
+    var habitStreakRecordedDayStart: Date?  // streak_day_recorded を発火済みの学習日
+    var habitGoalMetDayStart: Date?         // goal_met を発火済みの学習日
+    var habitBrokenRecordedDayStart: Date?  // streak_broken を記録済みの学習日
+
+    var recoveryDismissedFromStreak: Int    // 回復カードを閉じたときのストリーク値（同一喪失で再表示しない）
+
+    // ホームの「続きから」導線（最後に開いたレッスン）
+    var lastOpenedCourseId: String?
+    var lastOpenedLessonId: String?
+    var lastOpenedItemId: String?
+    var lastOpenedMode: String?      // "shadowing" | "composition"
+
     var fieldRevisionsJSON: Data     // フィールド別 revision
     var deletedAt: Date?             // tombstone（アカウント単位）
 }

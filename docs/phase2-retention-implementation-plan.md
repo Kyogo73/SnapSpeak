@@ -731,8 +731,6 @@ public struct CardContainer<Content: View>: View {
 | `onboarding.goal.reminder_time` | リマインド時刻 |
 | `onboarding.goal.start_lesson` | 最初のレッスンを始める |
 | `home.today.start` | 今日の学習を始める |
-| `home.today.review_count` | 復習 %lld 件 |
-| `home.today.new_lesson` | 新しいレッスン |
 | `home.today.deferred` | ほか %lld 件はまた明日 |
 | `home.today.all_done_title` | 今日の目標を達成しました |
 | `home.today.all_done_subtitle` | 明日もこの調子で続けましょう |
@@ -788,7 +786,7 @@ public struct CardContainer<Content: View>: View {
 | `review.session.new_lesson_continue` | 新しいレッスンを始める | 新規レッスン区切り画面の続行 |
 | `review.session.progress_a11y` | %2$lld 問中 %1$lld 問目 | 進捗ヘッダの VoiceOver 読み上げ |
 
-注意: 件数系キー（`%lld`）は将来の英語 UI で plural variation を付けられるよう、必ず変数のまま保持する（「8件」を値へ焼き込まない）。`home.title`（今日の学習）と `home.continue`（続きから始める）は既存キーを再利用する。`home.today.review_count` / `home.today.new_lesson` は計画時のキーで、実装ではプラン内訳を `home.today.plan_*` の 3 態に分けたため**現在未参照**（カタログに残存。削除は [quality-pass-plan.md](./quality-pass-plan.md) の対象）。
+注意: 件数系キー（`%lld`）は将来の英語 UI で plural variation を付けられるよう、必ず変数のまま保持する（「8件」を値へ焼き込まない）。`home.title`（今日の学習）と `home.continue`（続きから始める）は既存キーを再利用する。計画時の `home.today.review_count` / `home.today.new_lesson` は実装で `home.today.plan_*` の 3 態に置換したため**削除済み**。
 
 ---
 

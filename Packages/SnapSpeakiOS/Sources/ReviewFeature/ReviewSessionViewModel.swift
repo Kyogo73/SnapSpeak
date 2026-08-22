@@ -48,16 +48,7 @@ public final class ReviewSessionViewModel: ObservableObject {
         skippedCount = resolved.skipped
         let newCount = plan.newLesson == nil ? 0 : 1
         analytics.track(.reviewSessionStarted(dueCount: plan.reviews.count, newCount: newCount))
-        if entries.isEmpty {
-            trackCompleted()
-            phase = .summary
-        } else if shouldShowNewLessonIntro(beforeIndex: 0) {
-            pendingIndexAfterIntro = 0
-            introConsumed = false
-            phase = .newLessonIntro
-        } else {
-            phase = .running(index: 0, total: entries.count)
-        }
+        begin(at: 0)
     }
 
     /// 新規レッスン区切りの続行。Item 完了とは別経路（二重タップで未実施 Item を飛ばさない）。
@@ -86,14 +77,19 @@ public final class ReviewSessionViewModel: ObservableObject {
         lastAdvancedIndex = nil
         introConsumed = false
         startedAt = Date()
+        begin(at: 0)
+    }
+
+    private func begin(at index: Int) {
         if entries.isEmpty {
             trackCompleted()
             phase = .summary
-        } else if shouldShowNewLessonIntro(beforeIndex: 0) {
-            pendingIndexAfterIntro = 0
+        } else if shouldShowNewLessonIntro(beforeIndex: index) {
+            pendingIndexAfterIntro = index
+            introConsumed = false
             phase = .newLessonIntro
         } else {
-            phase = .running(index: 0, total: entries.count)
+            phase = .running(index: index, total: entries.count)
         }
     }
 
@@ -172,7 +168,6 @@ public final class ReviewSessionViewModel: ObservableObject {
         }
 
         if let lesson = plan.newLesson {
-            let fallbackMode = LessonMode(rawValue: lesson.mode) ?? .shadowing
             for itemId in lesson.itemIds {
                 let key = "\(lesson.courseId)|\(itemId)"
                 if seenItemKeys.contains(key) {
@@ -192,7 +187,6 @@ public final class ReviewSessionViewModel: ObservableObject {
                     )
                 } else {
                     skipped += 1
-                    _ = fallbackMode
                 }
             }
         }

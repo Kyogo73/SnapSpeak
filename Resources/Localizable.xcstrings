@@ -7,8 +7,6 @@
     "home.title": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "今日の学習" } } } },
     "home.continue": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "続きから始める" } } } },
     "home.today.start": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "今日の学習を始める" } } } },
-    "home.today.review_count": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "復習 %lld 件" } } } },
-    "home.today.new_lesson": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "新しいレッスン" } } } },
     "home.today.deferred": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "ほか %lld 件はまた明日" } } } },
     "home.today.all_done_title": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "今日の目標を達成しました" } } } },
     "home.today.all_done_subtitle": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "明日もこの調子で続けましょう" } } } },

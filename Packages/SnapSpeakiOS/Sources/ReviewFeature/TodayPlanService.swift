@@ -24,11 +24,7 @@ public struct TodayPlanService: Sendable {
         calendar.timeZone = timeZone
         calendar.locale = Locale(identifier: "en_US_POSIX")
 
-        let courses = CourseCatalog.uniquedActiveReleases(
-            await courseStore.allCourses(),
-            id: { $0.course.id },
-            revision: { $0.revision }
-        )
+        let courses = await courseStore.allCourses()
         let cardDTOs = try await persistence.dueCards(now: now)
         let dueCards = cardDTOs.compactMap(Self.dueCard(from:))
         let activity = try await persistence.attemptActivityDates()

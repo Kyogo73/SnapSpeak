@@ -195,7 +195,7 @@ public struct HomeView: View {
             return LocalizedFormat.string("home.today.plan_review_only", plan.reviews.count)
         }
         if hasNew {
-            return String(localized: String.LocalizationValue("home.today.plan_new_only"))
+            return LocalizedFormat.string("home.today.plan_new_only")
         }
         return ""
     }

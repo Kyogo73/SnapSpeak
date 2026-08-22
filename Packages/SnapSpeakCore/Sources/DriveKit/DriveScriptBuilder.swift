@@ -56,6 +56,12 @@ public enum DriveScriptBuilder {
         )
     }
 
+    private struct PassPlan {
+        var items: [DriveItem]
+        var passIndex: Int
+        var includeSection: Bool
+    }
+
     private static func buildBudgeted(
         items: [DriveItem],
         omitted: [String],
@@ -64,7 +70,7 @@ public enum DriveScriptBuilder {
         let timing = settings.timing
         let budget = settings.budgetMs
         let outroMs = timing.announceOutroMs
-        var passes: [(items: [DriveItem], passIndex: Int, includeSection: Bool)] = []
+        var passes: [PassPlan] = []
         var usedMs = timing.announceIntroMs
         var unrolled = 0
         var passIndex = 0
@@ -85,7 +91,7 @@ public enum DriveScriptBuilder {
                 unrolled += 1
             }
             if passItems.isEmpty { break }
-            passes.append((passItems, passIndex, firstPass))
+            passes.append(PassPlan(items: passItems, passIndex: passIndex, includeSection: firstPass))
             firstPass = false
             passIndex += 1
             if passItems.count < items.count { break }

@@ -19,7 +19,8 @@ public enum DriveSequencerEvent: Sendable, Equatable {
 }
 
 public protocol DriveSequencing: Sendable {
-    func events() -> AsyncStream<DriveSequencerEvent>
+    // actor 実装が満たせるよう async 要件にする（同期要件は actor 分離と両立しない）
+    func events() async -> AsyncStream<DriveSequencerEvent>
     func start(
         script: DriveScript,
         announcementTexts: [DriveAnnouncement: String],

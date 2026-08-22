@@ -158,7 +158,7 @@ public final class DriveSessionViewModel: ObservableObject {
     }
 
     private func listen() async {
-        for await event in sequencer.events() {
+        for await event in await sequencer.events() {
             handle(event)
         }
     }

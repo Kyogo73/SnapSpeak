@@ -3,7 +3,10 @@ import SwiftUI
 
 public struct ReviewSummaryView: View {
     public var completedCount: Int
-    public var skippedCount: Int
+    public var skippedMissingCount: Int
+    public var skippedByUserCount: Int
+    public var completedItems: Int?
+    public var goalItems: Int?
     public var didMeetGoal: Bool
     public var streakFrom: Int
     public var streakTo: Int
@@ -12,7 +15,10 @@ public struct ReviewSummaryView: View {
 
     public init(
         completedCount: Int,
-        skippedCount: Int,
+        skippedMissingCount: Int,
+        skippedByUserCount: Int,
+        completedItems: Int? = nil,
+        goalItems: Int? = nil,
         didMeetGoal: Bool,
         streakFrom: Int,
         streakTo: Int,
@@ -20,7 +26,10 @@ public struct ReviewSummaryView: View {
         onContinue: @escaping () -> Void
     ) {
         self.completedCount = completedCount
-        self.skippedCount = skippedCount
+        self.skippedMissingCount = skippedMissingCount
+        self.skippedByUserCount = skippedByUserCount
+        self.completedItems = completedItems
+        self.goalItems = goalItems
         self.didMeetGoal = didMeetGoal
         self.streakFrom = streakFrom
         self.streakTo = streakTo
@@ -35,10 +44,19 @@ public struct ReviewSummaryView: View {
                 .font(Typography.title)
             Text(LocalizedFormat.string("review.summary.completed", completedCount))
                 .font(Typography.headline)
-            if skippedCount > 0 {
-                Text(LocalizedFormat.string("review.summary.skipped", skippedCount))
+            if skippedMissingCount > 0 {
+                Text(LocalizedFormat.string("review.summary.skipped", skippedMissingCount))
                     .font(Typography.body)
                     .foregroundStyle(Colors.secondaryFill)
+            }
+            if skippedByUserCount > 0 {
+                Text(LocalizedFormat.string("review.summary.skipped_user", skippedByUserCount))
+                    .font(Typography.body)
+                    .foregroundStyle(Colors.secondaryFill)
+            }
+            if let completedItems, let goalItems {
+                Text(LocalizedFormat.string("home.goal.progress", completedItems, goalItems))
+                    .font(Typography.body)
             }
             if didMeetGoal {
                 Label("review.summary.goal_met", systemImage: "checkmark.circle.fill")

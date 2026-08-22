@@ -561,12 +561,13 @@ public final class ReviewSessionViewModel: ObservableObject {
     @Published public private(set) var phase: Phase
     @Published public private(set) var entries: [ReviewEntry]
     @Published public private(set) var completedCount: Int
-    @Published public private(set) var skippedCount: Int   // 欠損コンテンツ + マイク拒否スキップの合算
+    @Published public private(set) var skippedMissingCount: Int   // resolveEntries の解決不能分
+    @Published public private(set) var skippedByUserCount: Int    // skip() の増分
 
     public init(plan: SessionPlan, courseStore: CourseStore, analytics: any AnalyticsClient)
 
     /// plan.reviews と plan.newLesson.itemIds を courseStore.allCourses() で
-    /// ReviewEntry に解決する。解決できないものは skippedCount に積んで除外。
+    /// ReviewEntry に解決する。解決できないものは skippedMissingCount に積んで除外。
     /// 解決は static 純関数 `resolveEntries(plan:courses:)
     /// -> (entries: [ReviewEntry], skipped: Int)` に切り出し、hostless テスト対象。
     public func load() async
@@ -606,7 +607,7 @@ public struct ReviewSessionView<ItemContent: View>: View {
 
 // ReviewSummaryView.swift — 完了数 / スキップ数 / ゴール達成 / ストリーク更新表示、
 // 「ホームへ戻る」「続けて学習する」。
-// init(completedCount:skippedCount:didMeetGoal:streakFrom:streakTo:onBackHome:onContinue:)
+// init(completedCount:skippedMissingCount:skippedByUserCount:completedItems:goalItems:didMeetGoal:streakFrom:streakTo:onBackHome:onContinue:)
 ```
 
 **既存 Feature への最小変更**: `ShadowingLessonView` と `CompositionCardView` に完了 / スキップのコールバックを分離する。
@@ -756,6 +757,7 @@ public struct CardContainer<Content: View>: View {
 | `review.summary.title` | セッション完了 |
 | `review.summary.completed` | %lld 問 完了 |
 | `review.summary.skipped` | 教材が見つからないため %lld 問スキップしました |
+| `review.summary.skipped_user` | %lld 問スキップしました |
 | `review.summary.goal_met` | 今日の目標を達成しました！ |
 | `review.summary.streak_extended` | %1$lld → %2$lld 日連続 |
 | `review.summary.back_home` | ホームへ戻る |

@@ -16,7 +16,8 @@ public final class ReviewSessionViewModel: ObservableObject {
     @Published public private(set) var phase: Phase = .loading
     @Published public private(set) var entries: [ReviewEntry] = []
     @Published public private(set) var completedCount: Int = 0
-    @Published public private(set) var skippedCount: Int = 0
+    @Published public private(set) var skippedMissingCount: Int = 0
+    @Published public private(set) var skippedByUserCount: Int = 0
 
     private let plan: SessionPlan
     private let courseStore: CourseStore
@@ -45,7 +46,8 @@ public final class ReviewSessionViewModel: ObservableObject {
         let courses = await courseStore.allCourses()
         let resolved = Self.resolveEntries(plan: plan, courses: courses)
         entries = resolved.entries
-        skippedCount = resolved.skipped
+        skippedMissingCount = resolved.skipped
+        skippedByUserCount = 0
         let newCount = plan.newLesson == nil ? 0 : 1
         analytics.track(.reviewSessionStarted(dueCount: plan.reviews.count, newCount: newCount))
         begin(at: 0)
@@ -72,7 +74,8 @@ public final class ReviewSessionViewModel: ObservableObject {
     /// 解決済み entries から intro / running を開始する（hostless テスト用）。
     public func startResolved(entries: [ReviewEntry], skipped: Int = 0) {
         self.entries = entries
-        skippedCount = skipped
+        skippedMissingCount = skipped
+        skippedByUserCount = 0
         completedCount = 0
         lastAdvancedIndex = nil
         introConsumed = false
@@ -100,7 +103,7 @@ public final class ReviewSessionViewModel: ObservableObject {
         if countingAsCompleted {
             completedCount += 1
         } else {
-            skippedCount += 1
+            skippedByUserCount += 1
         }
         moveForward(from: index, total: total)
     }

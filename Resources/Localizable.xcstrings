@@ -114,6 +114,7 @@
     "review.summary.title": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "セッション完了" } } } },
     "review.summary.completed": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%lld 問 完了" } } } },
     "review.summary.skipped": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "教材が見つからないため %lld 問スキップしました" } } } },
+    "review.summary.skipped_user": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%lld 問スキップしました" } } } },
     "review.summary.goal_met": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "今日の目標を達成しました！" } } } },
     "review.summary.streak_extended": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%1$lld → %2$lld 日連続" } } } },
     "review.summary.back_home": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "ホームへ戻る" } } } },

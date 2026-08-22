@@ -47,7 +47,9 @@ struct ReviewSessionContainer: View {
             onContinueLearning: onContinueLearning,
             didMeetGoal: after?.goal.isMet ?? false,
             streakFrom: streakFrom,
-            streakTo: streakTo
+            streakTo: streakTo,
+            completedItems: after?.goal.completedItems,
+            goalItems: after?.goal.goalItems
         )
         .task(id: session.phase) {
             guard session.phase == .summary else { return }

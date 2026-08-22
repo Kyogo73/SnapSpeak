@@ -10,6 +10,8 @@ public struct ReviewSessionView<ItemContent: View>: View {
     private let didMeetGoal: Bool
     private let streakFrom: Int
     private let streakTo: Int
+    private let completedItems: Int?
+    private let goalItems: Int?
     @State private var confirmLeave = false
 
     public init(
@@ -19,7 +21,9 @@ public struct ReviewSessionView<ItemContent: View>: View {
         onContinueLearning: @escaping () -> Void = {},
         didMeetGoal: Bool = false,
         streakFrom: Int = 0,
-        streakTo: Int = 0
+        streakTo: Int = 0,
+        completedItems: Int? = nil,
+        goalItems: Int? = nil
     ) {
         _viewModel = ObservedObject(wrappedValue: viewModel)
         self.itemContent = itemContent
@@ -28,6 +32,8 @@ public struct ReviewSessionView<ItemContent: View>: View {
         self.didMeetGoal = didMeetGoal
         self.streakFrom = streakFrom
         self.streakTo = streakTo
+        self.completedItems = completedItems
+        self.goalItems = goalItems
     }
 
     public var body: some View {
@@ -43,7 +49,10 @@ public struct ReviewSessionView<ItemContent: View>: View {
             case .summary:
                 ReviewSummaryView(
                     completedCount: viewModel.completedCount,
-                    skippedCount: viewModel.skippedCount,
+                    skippedMissingCount: viewModel.skippedMissingCount,
+                    skippedByUserCount: viewModel.skippedByUserCount,
+                    completedItems: completedItems,
+                    goalItems: goalItems,
                     didMeetGoal: didMeetGoal,
                     streakFrom: streakFrom,
                     streakTo: streakTo,

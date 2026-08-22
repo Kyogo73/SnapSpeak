@@ -74,12 +74,12 @@ public final class OnboardingViewModel: ObservableObject {
     /// 保存成功時のみ `startFirstLesson` を返す。失敗時は `nil`。
     public func skip() async -> Bool? {
         let fromWelcome = step == .welcome
-        analytics.track(.onboardingSkipped(step: fromWelcome ? "welcome" : "goal"))
         do {
             try await persist(goal: .standard, reminderEnabled: false, skippedGoal: true)
         } catch {
             return nil
         }
+        analytics.track(.onboardingSkipped(step: fromWelcome ? "welcome" : "goal"))
         analytics.track(
             .onboardingCompleted(
                 goalItems: DailyGoal.standard.itemsPerDay,

@@ -195,5 +195,16 @@ let package = Package(
             ],
             swiftSettings: swift6
         ),
+        .testTarget(
+            name: "OnboardingFeatureTests",
+            dependencies: [
+                "Analytics",
+                "NotificationsKit",
+                "OnboardingFeature",
+                "Persistence",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
     ]
 )

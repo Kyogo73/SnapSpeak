@@ -464,7 +464,7 @@ AnalyticsCore の原則（生テキスト・音声・個人データを送らな
 |-------------|--------|------------------------------|
 | `onboarding_started` | 価値提案画面の表示 | — |
 | `onboarding_completed` | 目標画面の完了（スキップ経由含む） | goalItems、reminderEnabled、skippedGoal |
-| `onboarding_skipped` | 各画面のスキップ | step（`welcome` / `goal`） |
+| `onboarding_skipped` | 各画面のスキップ（保存成功時に 1 回） | step（`welcome` / `goal`） |
 | `review_session_started` | 今日の学習セッション開始 | dueCount、newCount |
 | `review_session_completed` | セッションサマリ表示 | completedCount、durationBand |
 | `goal_met` | 当日初の目標達成 | goalItems |

@@ -159,6 +159,7 @@ let package = Package(
                 "CompositionFeature",
                 "ContentKit",
                 "DesignSystem",
+                "DriveModeFeature",
                 "NotificationsKit",
                 "OnboardingFeature",
                 "Persistence",

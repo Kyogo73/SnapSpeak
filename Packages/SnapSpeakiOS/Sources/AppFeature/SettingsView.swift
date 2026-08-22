@@ -1,5 +1,7 @@
 import Analytics
 import DesignSystem
+import DriveKit
+import DriveModeFeature
 import HabitKit
 import NotificationsKit
 import Persistence
@@ -16,6 +18,9 @@ public struct SettingsView: View {
     @State private var reminderEnabled = false
     @State private var reminderDate = SettingsView.defaultReminderDate
     @State private var reminderDenied = false
+    @State private var driveLength = DriveScriptSettings.SessionLength.minutes10
+    @State private var drivePause = DrivePausePreset.standard
+    @State private var driveRepeats = 2
     @State private var didLoad = false
     @State private var saveFailed = false
     @Environment(\.scenePhase) private var scenePhase
@@ -69,6 +74,7 @@ public struct SettingsView: View {
                     .frame(minHeight: 44)
                 }
             }
+            SettingsDriveSection(length: $driveLength, pause: $drivePause, repeats: $driveRepeats)
             LabeledContent("settings.install_id") {
                 Text(installID)
                     .font(Typography.caption)
@@ -109,6 +115,18 @@ public struct SettingsView: View {
             guard didLoad else { return }
             Task { await persistHabitSettings() }
         }
+        .onChange(of: driveLength) { _, _ in
+            guard didLoad else { return }
+            Task { await persistHabitSettings() }
+        }
+        .onChange(of: drivePause) { _, _ in
+            guard didLoad else { return }
+            Task { await persistHabitSettings() }
+        }
+        .onChange(of: driveRepeats) { _, _ in
+            guard didLoad else { return }
+            Task { await persistHabitSettings() }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task { await reloadAuthorization() }
@@ -121,6 +139,9 @@ public struct SettingsView: View {
         captionsEnabled = loaded.captionsEnabled
         dailyGoalItems = loaded.dailyGoalItems
         reminderEnabled = loaded.reminderEnabled
+        driveLength = DriveSettingsMapping.sessionLength(minutes: loaded.driveSessionMinutes)
+        drivePause = DrivePausePreset.from(stored: loaded.drivePausePreset)
+        driveRepeats = loaded.driveShadowingRepeats
         var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         components.hour = loaded.reminderHour ?? 21
         components.minute = loaded.reminderMinute
@@ -153,6 +174,12 @@ public struct SettingsView: View {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: reminderDate)
         dto.reminderHour = parts.hour
         dto.reminderMinute = parts.minute ?? 0
+        dto = DriveSettingsMapping.applying(
+            length: driveLength,
+            pause: drivePause,
+            repeats: driveRepeats,
+            to: dto
+        )
         do {
             _ = try await dependencies.persistence.saveSettings(dto)
             saveFailed = false

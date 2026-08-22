@@ -96,6 +96,13 @@ public final class TodayViewModel: ObservableObject {
         return snapshot?.plan.isEmpty == false
     }
 
+    /// ドライブはプラン空でも開始できる（反復充填）。失敗時は開始画面で再試行する。
+    public func prepareDrivePlan() async -> (plan: SessionPlan, loadFailed: Bool) {
+        await refresh()
+        let plan = snapshot?.plan ?? SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil)
+        return (plan, state == .failed)
+    }
+
     private func isCurrent(_ generation: Int) -> Bool {
         generation == refreshGeneration
     }

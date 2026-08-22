@@ -72,8 +72,8 @@ struct CourseStoreTests {
             schemaVersion: 1,
             id: courseId,
             languagePair: LanguagePair(
-                sourceLanguage: BCP47Language("ja"),
-                targetLanguage: BCP47Language("en")
+                sourceLanguage: try BCP47Language("ja"),
+                targetLanguage: try BCP47Language("en")
             ),
             title: ["ja": "t"],
             units: [

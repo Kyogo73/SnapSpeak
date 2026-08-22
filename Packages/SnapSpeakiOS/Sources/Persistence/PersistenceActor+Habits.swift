@@ -49,13 +49,11 @@ extension PersistenceActor {
     }
 
     /// Attempt・markers・lastKnownStreakDays を単一 `save()` で追記する。
-    /// 学習日は `write.createdAt`（`now` は互換のため残すが判定に使わない）。
+    /// 学習日は `write.createdAt` で判定する。
     public func appendAttemptEvaluatingHabit(
         _ write: LessonAttemptWrite,
-        now: Date = Date(),
         timeZoneIdentifier: String = TimeZone.autoupdatingCurrent.identifier
     ) throws -> AttemptHabitResult {
-        _ = now
         let settings = try loadOrCreateSettings()
         if let existing = try fetchAttempt(id: write.id) {
             return AttemptHabitResult(

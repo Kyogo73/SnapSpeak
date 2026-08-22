@@ -414,18 +414,17 @@ public func attemptCount(from start: Date, to end: Date) throws -> Int
 public func attemptedItemRefs() throws -> Set<ItemRef>
 
 /// Attempt・habit markers・lastKnownStreakDays を単一 save で追記する。
-/// 学習日は `write.createdAt`（引数 `now` は使わない。04:00 跨ぎの誤判定を防ぐ）。
+/// 学習日は `write.createdAt`（04:00 跨ぎの誤判定を防ぐ）。
 /// 同一 Attempt id の再評価は冪等（イベントを再発火しない）。
 public func appendAttemptEvaluatingHabit(
     _ write: LessonAttemptWrite,
-    now: Date,
     timeZoneIdentifier: String
 ) throws -> AttemptHabitResult
 ```
 
-実装注意: `#Predicate` で日付比較（`createdAt >= start && createdAt < end`）。`dueCards` は optional の `#Predicate` 比較を避け、`dueAt` 昇順 fetch 後にメモリ上で `relearnGateAt` 到達分を合流する（件数規模が小さい前提）。`attemptedItemRefs` は fetch 後に `Set(map)` で潰す（SwiftData に distinct がないため。件数規模は年間数千行で問題ない）。`appendAttemptEvaluatingHabit` を途中 save 3 回に分けない（Attempt だけ残ると習慣イベントが永久喪失する）。
+実装注意: `#Predicate` で日付比較（`createdAt >= start && createdAt < end`）。`dueCards` は optional の `#Predicate` 比較を避け、`dueAt` 昇順 fetch 後にメモリ上で `relearnGateAt` 到達分を合流する（件数規模が小さい前提）。`attemptedItemRefs` は fetch 後に `Set(map)` で潰す（SwiftData に distinct がないため。件数規模は年間数千行で問題ない）。`appendAttemptEvaluatingHabit` を途中 save 3 回に分けない（Attempt だけ残ると習慣イベントが永久喪失する）。学習日は `write.createdAt` で判定する。
 
-**実装差分**: `appendAttemptEvaluatingHabit` の引数 `now` は互換維持のため残っているが実装内では未使用（`_ = now`）。API 整理（引数削除）は [quality-pass-plan.md](./quality-pass-plan.md) の対象。また、レビュー反映で次の部分更新 API を追加した（いずれも `PersistenceActor+Habits.swift`）:
+**実装差分**: レビュー反映で次の部分更新 API を追加した（いずれも `PersistenceActor+Habits.swift`）:
 
 ```swift
 /// lastKnownStreakDays のみ更新（他フィールドの巻き戻しを防ぐアトミック更新）。

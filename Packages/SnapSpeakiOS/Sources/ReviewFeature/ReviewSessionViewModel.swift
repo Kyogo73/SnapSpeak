@@ -60,18 +60,56 @@ public final class ReviewSessionViewModel: ObservableObject {
         }
     }
 
+    /// 新規レッスン区切りの続行。Item 完了とは別経路（二重タップで未実施 Item を飛ばさない）。
+    public func continueNewLesson() {
+        guard case .newLessonIntro = phase else { return }
+        guard !introConsumed else { return }
+        introConsumed = true
+        phase = .running(index: pendingIndexAfterIntro, total: entries.count)
+    }
+
     /// アイテム完了時に AppFeature 側から呼ばれる（既存 UseCase が永続化済み）。
     public func advance() {
-        if case .newLessonIntro = phase {
-            guard !introConsumed else { return }
-            introConsumed = true
-            phase = .running(index: pendingIndexAfterIntro, total: entries.count)
-            return
+        finishCurrentItem(countingAsCompleted: true)
+    }
+
+    /// マイク拒否などのスキップ。Attempt なし。completedCount には入れない。
+    public func skip() {
+        finishCurrentItem(countingAsCompleted: false)
+    }
+
+    /// 解決済み entries から intro / running を開始する（hostless テスト用）。
+    public func startResolved(entries: [ReviewEntry], skipped: Int = 0) {
+        self.entries = entries
+        skippedCount = skipped
+        completedCount = 0
+        lastAdvancedIndex = nil
+        introConsumed = false
+        startedAt = Date()
+        if entries.isEmpty {
+            trackCompleted()
+            phase = .summary
+        } else if shouldShowNewLessonIntro(beforeIndex: 0) {
+            pendingIndexAfterIntro = 0
+            phase = .newLessonIntro
+        } else {
+            phase = .running(index: 0, total: entries.count)
         }
+    }
+
+    private func finishCurrentItem(countingAsCompleted: Bool) {
         guard case let .running(index, total) = phase else { return }
         guard lastAdvancedIndex != index else { return }
         lastAdvancedIndex = index
-        completedCount += 1
+        if countingAsCompleted {
+            completedCount += 1
+        } else {
+            skippedCount += 1
+        }
+        moveForward(from: index, total: total)
+    }
+
+    private func moveForward(from index: Int, total: Int) {
         let next = index + 1
         if next >= total {
             trackCompleted()
@@ -102,6 +140,7 @@ public final class ReviewSessionViewModel: ObservableObject {
     ) -> (entries: [ReviewEntry], skipped: Int) {
         var skipped = 0
         var entries: [ReviewEntry] = []
+        var seenItemKeys = Set<String>()
 
         func locate(courseId: String, itemId: String) -> (lessonId: String, mode: LessonMode)? {
             for stored in courses where stored.course.id == courseId {
@@ -116,6 +155,7 @@ public final class ReviewSessionViewModel: ObservableObject {
 
         for card in plan.reviews {
             if let location = locate(courseId: card.courseId, itemId: card.itemId) {
+                seenItemKeys.insert("\(card.courseId)|\(card.itemId)")
                 entries.append(
                     ReviewEntry(
                         id: "\(card.courseId)/\(card.itemId)/due",
@@ -134,7 +174,12 @@ public final class ReviewSessionViewModel: ObservableObject {
         if let lesson = plan.newLesson {
             let fallbackMode = LessonMode(rawValue: lesson.mode) ?? .shadowing
             for itemId in lesson.itemIds {
+                let key = "\(lesson.courseId)|\(itemId)"
+                if seenItemKeys.contains(key) {
+                    continue
+                }
                 if let location = locate(courseId: lesson.courseId, itemId: itemId) {
+                    seenItemKeys.insert(key)
                     entries.append(
                         ReviewEntry(
                             id: "\(lesson.courseId)/\(itemId)/new",

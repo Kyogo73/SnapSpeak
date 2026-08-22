@@ -103,6 +103,8 @@ targets:
       - package: SnapSpeakiOS
         product: ReviewFeature
       - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakiOS
         product: ContentKit
       - package: SnapSpeakiOS
         product: Persistence

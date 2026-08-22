@@ -1,3 +1,4 @@
+import Analytics
 import ContentCore
 import ContentKit
 import Foundation
@@ -137,9 +138,110 @@ struct ReviewFeatureMappingTests {
         )
         let plan = SessionPlan(reviews: [due, missing], deferredDueCount: 0, newLesson: newLesson)
         let resolved = ReviewSessionViewModel.resolveEntries(plan: plan, courses: [stored(course)])
-        #expect(resolved.entries.map(\.itemId) == ["item_ok", "item_ok"])
-        #expect(resolved.entries.map(\.origin) == [.due(cardKey: "k1"), .newLesson])
+        #expect(resolved.entries.map(\.itemId) == ["item_ok"])
+        #expect(resolved.entries.map(\.origin) == [.due(cardKey: "k1")])
         #expect(resolved.skipped == 2)
+    }
+
+    @Test("due と new の courseId+itemId 重複は due のみ残す")
+    func resolveEntriesDropsNewDuplicateOfDue() throws {
+        let course = try makeCourse(id: "course_a", lessons: [
+            ("lesson_1", ["item_ok", "item_new"]),
+        ])
+        let due = DueCard(
+            cardKey: "k1",
+            courseId: "course_a",
+            itemId: "item_ok",
+            skill: .shadowing,
+            dueAt: Date(timeIntervalSince1970: 1),
+            relearnGateAt: nil
+        )
+        let newLesson = LessonSummary(
+            courseId: "course_a",
+            lessonId: "lesson_1",
+            mode: "shadowing",
+            itemIds: ["item_ok", "item_new"]
+        )
+        let plan = SessionPlan(reviews: [due], deferredDueCount: 0, newLesson: newLesson)
+        let resolved = ReviewSessionViewModel.resolveEntries(plan: plan, courses: [stored(course)])
+        #expect(resolved.entries.map(\.itemId) == ["item_ok", "item_new"])
+        #expect(resolved.entries.map(\.origin) == [.due(cardKey: "k1"), .newLesson])
+        #expect(resolved.skipped == 0)
+    }
+
+    @Test("intro 二重タップは先頭 Item を飛ばさない")
+    @MainActor
+    func introDoubleTapDoesNotSkipFirstItem() {
+        let first = ReviewEntry(
+            id: "n1",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i1",
+            mode: .shadowing,
+            origin: .newLesson
+        )
+        let second = ReviewEntry(
+            id: "n2",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i2",
+            mode: .shadowing,
+            origin: .newLesson
+        )
+        let vm = ReviewSessionViewModel(
+            plan: SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil),
+            courseStore: emptyStore(),
+            analytics: NoopAnalytics()
+        )
+        vm.startResolved(entries: [first, second])
+        #expect(vm.phase == .newLessonIntro)
+        vm.continueNewLesson()
+        vm.continueNewLesson()
+        #expect(vm.phase == .running(index: 0, total: 2))
+        #expect(vm.current?.itemId == "i1")
+        #expect(vm.completedCount == 0)
+        vm.advance()
+        #expect(vm.current?.itemId == "i2")
+        #expect(vm.completedCount == 1)
+    }
+
+    @Test("skip は completedCount を増やさない")
+    @MainActor
+    func skipDoesNotIncrementCompletedCount() {
+        let first = ReviewEntry(
+            id: "d1",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i1",
+            mode: .shadowing,
+            origin: .due(cardKey: "k")
+        )
+        let second = ReviewEntry(
+            id: "d2",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i2",
+            mode: .shadowing,
+            origin: .due(cardKey: "k2")
+        )
+        let vm = ReviewSessionViewModel(
+            plan: SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil),
+            courseStore: emptyStore(),
+            analytics: NoopAnalytics()
+        )
+        vm.startResolved(entries: [first, second])
+        vm.skip()
+        #expect(vm.completedCount == 0)
+        #expect(vm.skippedCount == 1)
+        #expect(vm.current?.itemId == "i2")
+    }
+
+    private func emptyStore() -> CourseStore {
+        CourseStore(
+            seed: SeedInstaller(bundle: .main),
+            downloadsRoot: FileManager.default.temporaryDirectory
+                .appendingPathComponent("review-tests-\(UUID().uuidString)", isDirectory: true)
+        )
     }
 
     private func stored(_ course: Course, revision: Int = 0) -> StoredCourse {
@@ -183,4 +285,8 @@ struct ReviewFeatureMappingTests {
             units: [UnitV1(id: "unit_1", title: ["ja": "u"], lessons: unitLessons)]
         )
     }
+}
+
+private struct NoopAnalytics: AnalyticsClient {
+    func track(_ event: AnalyticsEvent) {}
 }

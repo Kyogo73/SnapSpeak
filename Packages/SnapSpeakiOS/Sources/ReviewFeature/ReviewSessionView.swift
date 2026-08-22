@@ -4,7 +4,7 @@ import UIKit
 
 public struct ReviewSessionView<ItemContent: View>: View {
     @ObservedObject private var viewModel: ReviewSessionViewModel
-    private let itemContent: (ReviewEntry, @escaping () -> Void) -> ItemContent
+    private let itemContent: (ReviewEntry, ReviewItemCallbacks) -> ItemContent
     private let onClose: () -> Void
     private let onContinueLearning: () -> Void
     private let didMeetGoal: Bool
@@ -14,7 +14,7 @@ public struct ReviewSessionView<ItemContent: View>: View {
 
     public init(
         viewModel: ReviewSessionViewModel,
-        @ViewBuilder itemContent: @escaping (ReviewEntry, @escaping () -> Void) -> ItemContent,
+        @ViewBuilder itemContent: @escaping (ReviewEntry, ReviewItemCallbacks) -> ItemContent,
         onClose: @escaping () -> Void,
         onContinueLearning: @escaping () -> Void = {},
         didMeetGoal: Bool = false,
@@ -94,7 +94,10 @@ public struct ReviewSessionView<ItemContent: View>: View {
                     LocalizedFormat.string("review.session.progress_a11y", index + 1, total)
                 )
             if let entry = viewModel.current {
-                itemContent(entry, viewModel.advance)
+                itemContent(
+                    entry,
+                    ReviewItemCallbacks(complete: viewModel.advance, skip: viewModel.skip)
+                )
             }
         }
         .padding()
@@ -110,7 +113,7 @@ public struct ReviewSessionView<ItemContent: View>: View {
                     .font(Typography.title)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 PrimaryButton("review.session.new_lesson_continue") {
-                    viewModel.advance()
+                    viewModel.continueNewLesson()
                 }
             }
             .padding()

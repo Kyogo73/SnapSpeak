@@ -175,6 +175,7 @@ let package = Package(
         .testTarget(
             name: "ReviewFeatureTests",
             dependencies: [
+                "Analytics",
                 "ContentKit",
                 "Persistence",
                 "ReviewFeature",

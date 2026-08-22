@@ -192,7 +192,7 @@ public struct SessionPlanPolicy: Sendable, Equatable {
 
 /// 「今日の学習」1 セッションの内容（ux-design §2.4）。
 public struct SessionPlan: Sendable, Equatable {
-    /// 実施する復習。dueAt 昇順 → composition 優先 → itemId 昇順（決定的）。
+    /// 実施する復習。dueAt 昇順 → composition 優先 → itemId → courseId → cardKey（決定的）。
     public var reviews: [DueCard]
     /// 上限で切った残り due 件数（「ほか n 件はまた明日」表示用）。
     public var deferredDueCount: Int
@@ -204,8 +204,8 @@ public struct SessionPlan: Sendable, Equatable {
 
 public enum SessionPlanner {
     /// due 判定と上限・並び順を適用してプランを組む純関数。
-    /// due 条件: (relearnGateAt == nil || relearnGateAt <= now) && dueAt <= now
-    ///（SRSKit `SRSState.isDue(at:)` と同義。カード側の値で再判定する）
+    /// 通常カード: dueAt <= now。失敗カード: relearnGateAt <= now（dueAt が翌学習日でも可）。
+    /// architecture §6.4。Persistence.dueCards はゲート到達カードも含めて返す。
     public static func plan(
         dueCards: [DueCard],
         newLesson: LessonSummary?,
@@ -380,7 +380,8 @@ public var relearnGateAt: Date?
 **`PersistenceActor.swift`** — 追加クエリ（すべて Sendable DTO 返却。`import HabitKit` を追加）:
 
 ```swift
-/// dueAt <= now のカードを dueAt 昇順で返す（ゲート判定は SessionPlanner の責務）。
+/// dueAt <= now のカードに加え、relearnGateAt <= now の失敗カードも含めて返す。
+/// 同日再学習の最終判定は SessionPlanner（architecture §6.4）。
 public func dueCards(now: Date) throws -> [SRSCardDTO]
 
 /// 全 LessonAttempt の createdAt（ストリーク計算の入力。propertiesToFetch で軽量化）。
@@ -707,7 +708,7 @@ Swift Testing。`now` / `Calendar` / `TimeZone` は全ケース固定注入。�
 |----------------|--------|
 | `StreakCalculatorTests.swift` | 空 activity → 全ゼロ / 今日 1 件のみ → current=1, studiedToday / **03:59 完了が前学習日、04:00 が当学習日**に入る / 連続 3 日 → 3 / 今日未学習・昨日学習 → current 維持 + isAtRisk / 昨日休み・一昨日学習 → 橋渡し維持 + isOnLastGraceDay / 昨日・一昨日休み → current=0 / `.none` ポリシーでは 1 日休みで 0 / 橋渡し日がカウントに入らない（学習 5 日 + 休み 2 回交互 → current=5）/ 同一学習日の複数完了が 1 日 / **タイムゾーン変更**（Asia/Tokyo で積んだ activity を America/Los_Angeles の Calendar で再解釈して破綻しない・イベント自体は不変）/ longest と total の独立性 / activity 順不同入力 |
 | `GoalEvaluatorTests.swift` | goal 0 以下 → 1 に正規化 / ちょうど達成 / 超過時 fraction=1.0 クランプ / 負の completed → 0 / isMet 境界（9/10 は false、10/10 は true） |
-| `SessionPlannerTests.swift` | 空 due + 新規なし → isEmpty / **dueAt == now ちょうど**は含む / relearnGateAt 未来 → 除外・ゲートちょうど now → 含む / 上限 20 で切って deferredDueCount が正しい / 並び: dueAt 昇順 → 同時刻 composition 優先 → itemId 昇順（固定フィクスチャで完全一致）/ includeNewLesson=false で newLesson が落ちる / due 21 件 + 新規ありの合成 |
+| `SessionPlannerTests.swift` | 空 due + 新規なし → isEmpty / **dueAt == now ちょうど**は含む / relearnGateAt 未来 → 除外・ゲートちょうど now → 含む / **失敗カードは dueAt が翌学習日でもゲート到達で含む** / 上限 20 で切って deferredDueCount が正しい / 並び: dueAt 昇順 → 同時刻 composition 優先 → itemId → courseId → cardKey（入力逆順でも一致）/ includeNewLesson=false で newLesson が落ちる / due 21 件 + 新規ありの合成 |
 | `NextLessonSelectorTests.swift` | 未着手コース → 先頭レッスン / 一部 Item のみ試行済み → 同レッスンが返る / 全 Item 試行済み → 次レッスン / 全コース完了 → nil / itemIds 空レッスンをスキップ / 複数コースでカタログ順を維持 |
 | `ReminderPlannerTests.swift` | disabled → [] / hour=24 等の範囲外 → [] / 今日の時刻が未来かつ未学習 → 今日分あり・**streak>0 なら kind=streakRisk** / streak=0 なら daily / **今日学習済み → 今日分スキップ**、翌日から horizon 分 / 今日の時刻が過去 → 明日から / horizonDays=3 で件数上限 / id が "reminder-yyyy-MM-dd" 形式で日毎に一意 / **深夜設定の学習日跨ぎ**: now=0:30・設定 1:00・現学習日（昨日 04:00 開始）に学習済み → 1:00 の候補は現学習日に属するためスキップ / DST 切替日でも 1 日 1 件 |
 | `QuantizationTests.swift`（追記） | streakBand 境界（1 / 2 / 3 / 4 / 6 / 7 / 13 / 14 / 29 / 30 / 100） |

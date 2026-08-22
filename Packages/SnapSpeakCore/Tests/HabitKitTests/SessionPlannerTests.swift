@@ -99,6 +99,35 @@ struct SessionPlannerTests {
         #expect(plan.isEmpty == false)
     }
 
+    @Test("失敗カードは dueAt が翌学習日でもゲート到達で同日再挑戦できる")
+    func failedCardSameDayRetryWhenGatePassed() {
+        let failed = card(
+            itemId: "failed_retry",
+            skill: .shadowing,
+            dueOffset: 86_400,
+            gateOffset: 0
+        )
+        let stillGated = card(
+            itemId: "still_gated",
+            skill: .shadowing,
+            dueOffset: 86_400,
+            gateOffset: 60
+        )
+        let plan = SessionPlanner.plan(dueCards: [failed, stillGated], newLesson: nil, now: now)
+        #expect(plan.reviews.map(\.itemId) == ["failed_retry"])
+    }
+
+    @Test("同一 itemId・別 courseId は入力順に依らず courseId 昇順")
+    func sameItemIdDifferentCourseIdIsDeterministic() {
+        let courseB = card(itemId: "shared", skill: .shadowing, dueOffset: -10, courseId: "course_b")
+        let courseA = card(itemId: "shared", skill: .shadowing, dueOffset: -10, courseId: "course_a")
+        let forward = SessionPlanner.plan(dueCards: [courseA, courseB], newLesson: nil, now: now)
+        let reversed = SessionPlanner.plan(dueCards: [courseB, courseA], newLesson: nil, now: now)
+        #expect(forward.reviews.map(\.courseId) == ["course_a", "course_b"])
+        #expect(reversed.reviews.map(\.courseId) == ["course_a", "course_b"])
+        #expect(forward.reviews.map(\.cardKey) == reversed.reviews.map(\.cardKey))
+    }
+
     @Test("due 21 件 + 新規ありの合成")
     func twentyOneDuePlusNewLesson() {
         let cards = (0..<21).map { index in

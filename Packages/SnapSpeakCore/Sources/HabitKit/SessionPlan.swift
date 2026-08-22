@@ -27,9 +27,13 @@ public struct DueCard: Sendable, Equatable, Hashable {
         self.relearnGateAt = relearnGateAt
     }
 
+    /// 通常カードは `dueAt`。失敗カード（`relearnGateAt` あり）はゲート到達で候補にする。
+    /// `dueAt` が翌学習日 04:00 でも、同日 10 分後の再挑戦を許可する（architecture §6.4）。
     func isDue(at now: Date) -> Bool {
-        let gatePassed = relearnGateAt.map { now >= $0 } ?? true
-        return gatePassed && now >= dueAt
+        if let gate = relearnGateAt {
+            return now >= gate
+        }
+        return now >= dueAt
     }
 }
 
@@ -49,7 +53,7 @@ public struct SessionPlanPolicy: Sendable, Equatable, Hashable {
 
 /// 「今日の学習」1 セッションの内容（ux-design §2.4）。
 public struct SessionPlan: Sendable, Equatable, Hashable {
-    /// 実施する復習。dueAt 昇順 → composition 優先 → itemId 昇順（決定的）。
+    /// 実施する復習。dueAt 昇順 → composition 優先 → itemId → courseId → cardKey（決定的）。
     public var reviews: [DueCard]
     /// 上限で切った残り due 件数（「ほか n 件はまた明日」表示用）。
     public var deferredDueCount: Int
@@ -67,8 +71,7 @@ public struct SessionPlan: Sendable, Equatable, Hashable {
 
 public enum SessionPlanner {
     /// due 判定と上限・並び順を適用してプランを組む純関数。
-    /// due 条件: (relearnGateAt == nil || relearnGateAt <= now) && dueAt <= now
-    /// （SRSKit `SRSState.isDue(at:)` と同義。カード側の値で再判定する）
+    /// 通常カード: `dueAt <= now`。失敗カード: `relearnGateAt <= now`（`dueAt` が未来でも可）。
     public static func plan(
         dueCards: [DueCard],
         newLesson: LessonSummary?,
@@ -85,7 +88,7 @@ public enum SessionPlanner {
         return SessionPlan(reviews: reviews, deferredDueCount: deferred, newLesson: lesson)
     }
 
-    /// dueAt 昇順 → 同時刻は composition 優先 → itemId 昇順。
+    /// dueAt 昇順 → 同時刻は composition 優先 → itemId → courseId → cardKey。
     static func compareForPlan(_ lhs: DueCard, _ rhs: DueCard) -> Bool {
         if lhs.dueAt != rhs.dueAt {
             return lhs.dueAt < rhs.dueAt
@@ -94,6 +97,12 @@ public enum SessionPlanner {
             if lhs.skill == .composition { return true }
             if rhs.skill == .composition { return false }
         }
-        return lhs.itemId < rhs.itemId
+        if lhs.itemId != rhs.itemId {
+            return lhs.itemId < rhs.itemId
+        }
+        if lhs.courseId != rhs.courseId {
+            return lhs.courseId < rhs.courseId
+        }
+        return lhs.cardKey < rhs.cardKey
     }
 }

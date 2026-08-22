@@ -70,6 +70,11 @@ public enum ReminderPlanner {
             components.minute = settings.minute
             components.second = 0
             guard let fireAt = calendar.date(from: components) else { continue }
+            // 存在しない壁時計時刻（DST 春の飛び）は別時刻へ丸められるので捨てる。
+            if calendar.component(.hour, from: fireAt) != settings.hour
+                || calendar.component(.minute, from: fireAt) != settings.minute {
+                continue
+            }
             if fireAt <= now { continue }
 
             let fireStudyDay = StudyDay.studyDay(

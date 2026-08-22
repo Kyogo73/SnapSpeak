@@ -724,7 +724,7 @@ struct SRSState: Codable, Equatable, Sendable {
 |------|--------|
 | 学習日の境界 | **ローカル時刻 04:00**。4:00 未満は前日の学習日。Anki と同様の「夜更かしを同日にする」ため |
 | 成功時の `dueAt` | 境界合わせした「翌々…学習日の 04:00」 |
-| 失敗時（q < 3） | **最小再学習間隔 10 分**（同一セッションで即再提示しない）。学習日としては **次の学習日 04:00** も due に残し、キューは「10 分後以降かつ due 済み」で取る |
+| 失敗時（q < 3） | **最小再学習間隔 10 分**（同一セッションで即再提示しない）。学習日としては **次の学習日 04:00** を `dueAt` に残す。同日再挑戦は `relearnGateAt` 到達で許可し、`dueAt` が未来でもキューに含める |
 | カレンダー | 端末の現在タイムゾーン。`dueAt` は UTC 絶対時刻で保存 |
 | タイムゾーン変更 | 過去の `ReviewEvent` は書き換えない。「今日」の判定だけ新タイムゾーンの 04:00 境界で行う。大きなジャンプで due が一斉到来しても 1 セッション上限 n 件で削る |
 | 時計改ざん | 未来へ飛ばした `reviewedAt` は同期時にサーバー時刻でクリップ（Phase 3） |
@@ -733,7 +733,7 @@ struct SRSState: Codable, Equatable, Sendable {
 
 Phase 1: レッスン内で、confidence が十分なときだけ `ReviewEvent` を追記しカードを再計算。専用キュー UI は任意。
 
-Phase 2: `dueAt <= now` を skill 混在で取り、1 セッション上限 n 件（`HabitKit.SessionPlanner`、既定 20）。新規未学習は Course 順のレッスンが担当（`HabitKit.NextLessonSelector`）。
+Phase 2: 通常カードは `dueAt <= now`、失敗カードは `relearnGateAt <= now` を skill 混在で取り、1 セッション上限 n 件（`HabitKit.SessionPlanner`、既定 20）。新規未学習は Course 順のレッスンが担当（`HabitKit.NextLessonSelector`）。
 
 ### 6.6 純関数インタフェース
 

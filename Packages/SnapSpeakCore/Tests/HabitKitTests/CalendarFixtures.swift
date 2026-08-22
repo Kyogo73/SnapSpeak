@@ -16,6 +16,10 @@ enum CalendarFixtures {
         calendar(timeZone: "America/Los_Angeles")
     }
 
+    static func london() -> Calendar {
+        calendar(timeZone: "Europe/London")
+    }
+
     static func date(
         _ year: Int,
         _ month: Int,

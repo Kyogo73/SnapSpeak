@@ -156,6 +156,57 @@ struct ReminderPlannerTests {
         #expect(plan.map(\.id) == ["reminder-2026-08-22", "reminder-2026-08-23"])
     }
 
+    @Test("学習日境界 04:00 を DST 切替日でも解決できる")
+    func dstStudyDayBoundaryAtFourAM() {
+        let calendar = la
+        // US Pacific spring-forward 2026-03-08 02:00 → 03:00。04:00 は存在する。
+        let now = CalendarFixtures.date(2026, 3, 8, 3, 30, calendar: calendar)
+        let plan = ReminderPlanner.plan(
+            settings: ReminderSettings(isEnabled: true, hour: 4, minute: 0),
+            streak: streak(current: 2, studiedToday: false, isAtRisk: true),
+            now: now,
+            calendar: calendar,
+            horizonDays: 2
+        )
+        #expect(plan.isEmpty == false)
+        #expect(plan[0].id == "reminder-2026-03-08")
+        #expect(calendarHour(plan[0].fireAt, calendar: calendar) == 4)
+    }
+
+    @Test("存在しない壁時計時刻の日はスキップし残りを組む")
+    func missingWallClockTimeSkipsThatDay() {
+        let calendar = la
+        // 2026-03-08 02:30 は spring-forward で存在しない。
+        let now = CalendarFixtures.date(2026, 3, 7, 10, 0, calendar: calendar)
+        let plan = ReminderPlanner.plan(
+            settings: ReminderSettings(isEnabled: true, hour: 2, minute: 30),
+            streak: streak(current: 0, studiedToday: false, isAtRisk: false),
+            now: now,
+            calendar: calendar,
+            horizonDays: 3
+        )
+        #expect(plan.contains { $0.id == "reminder-2026-03-08" } == false)
+        #expect(plan.allSatisfy { $0.id != "reminder-2026-03-08" })
+        #expect(Set(plan.map(\.id)).count == plan.count)
+    }
+
+    @Test("重複する壁時計時刻でも 1 日 1 件")
+    func duplicateWallClockTimeEmitsAtMostOne() {
+        let calendar = CalendarFixtures.london()
+        // 2026-10-25 01:30 は秋の巻き戻しで 2 回存在する。
+        let now = CalendarFixtures.date(2026, 10, 24, 10, 0, calendar: calendar)
+        let plan = ReminderPlanner.plan(
+            settings: ReminderSettings(isEnabled: true, hour: 1, minute: 30),
+            streak: streak(current: 0, studiedToday: false, isAtRisk: false),
+            now: now,
+            calendar: calendar,
+            horizonDays: 3
+        )
+        let fallBack = plan.filter { $0.id == "reminder-2026-10-25" }
+        #expect(fallBack.count <= 1)
+        #expect(Set(plan.map(\.id)).count == plan.count)
+    }
+
     @Test("DST 切替日でも 1 日 1 件")
     func dstTransitionAtMostOnePerCalendarDay() {
         // US Pacific spring-forward 2026-03-08 02:00 → 03:00

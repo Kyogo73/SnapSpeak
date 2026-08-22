@@ -4,7 +4,9 @@ iPhone 向け語学学習アプリ。中核は **シャドーイング** と **�
 
 まず日本人向け英語学習（UI は日本語）から開始し、学習言語（L2）の拡張、さらに海外展開（UI 多言語化・母語 L1 の追加）まで見据えた設計です。多言語化・国際化は後付けではなく、最初から第一級の要件として組み込みます。
 
-フェーズ分割の正本は [docs/roadmap.md](docs/roadmap.md) です。
+フェーズ分割の正本は [docs/roadmap.md](docs/roadmap.md) です。オンボーディングと継続体験の UX 正本は [docs/ux-design.md](docs/ux-design.md)、実装分解は [docs/phase2-retention-implementation-plan.md](docs/phase2-retention-implementation-plan.md) です。
+
+中核ドメインは `Packages/SnapSpeakCore`（`HabitKit` を含む。Linux で `swift test` 可能）。iOS 機能は `Packages/SnapSpeakiOS`（`OnboardingFeature` / `ReviewFeature` / `NotificationsKit` ほか。macOS CI で検証）。
 
 ## ドキュメント
 

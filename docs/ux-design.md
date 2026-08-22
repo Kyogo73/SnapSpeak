@@ -386,6 +386,21 @@ flowchart TD
 | **ストリーク喪失直後** | 回復カード（§3.4）。1 回閉じたら通常表示 | | | |
 | **タイムゾーン大移動** | due 一斉到来は復習上限 20 件で削る。「ほか n 件はまた明日」で明示 | 同左 | | |
 
+### 5.1 実装対応メモ（目視確認）
+
+状態マトリクスは次の実装に写像した。実機確認は計画書 §6.3（通知実発火・権限 3 状態・60 秒計測・VoiceOver）に残す。
+
+| 状態 | 実装箇所 |
+|------|----------|
+| コースなし | `HomeView` が `courses.isEmpty` / `TodayState.empty` で `home.today.empty_course` ＋ コース一覧へ |
+| due 0・新規なし | `SessionPlan.isEmpty` のとき達成カード（`home.today.all_done_*`）＋ `home.today.extra` |
+| ASR 劣化 | 既存 `degraded.no_asr` バナー。完了は `LessonAttempt` 追記でゴール / ストリークに算入 |
+| オフライン | プラン・ストリークはローカル（`HabitKit` + SwiftData）。追加取得のみ失敗しうる |
+| マイク / Speech 拒否 | 既存レッスンフロー。オンボーディングでは要求しない |
+| 通知権限拒否 | オンボーディングはトグル OFF で続行。Settings は `settings.reminder_denied` ＋ 設定アプリ導線 |
+| ストリーク喪失直後 | `TodayViewModel` が `lastKnownStreakDays > 0 && current == 0` で回復カード。1 回閉じたら通常 |
+| タイムゾーン大移動 | `SessionPlanPolicy.maxReviews = 20` と `home.today.deferred` |
+
 ---
 
 ## 6. 通知戦略

@@ -116,10 +116,12 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         let availability = await SpeechAvailability.inspect(locale: locale)
         let canTranscribe = availability.isOnDeviceReady && permissions.speechStatus() == .authorized
         guard canTranscribe else {
-            var outcome = CompositionOutcome(grade: .fail, quality: nil)
-            try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
-            outcome.persisted = true
-            return outcome
+            return try await persistUnscored(
+                item: item,
+                stored: stored,
+                lessonId: lessonId,
+                latencyMs: latencyMs
+            )
         }
         do {
             let segments = try await speech.recognize(url: recordingURL, locale: locale, timeout: 20)
@@ -138,10 +140,12 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             outcome.persisted = true
             return outcome
         } catch {
-            var outcome = CompositionOutcome(grade: .fail, quality: nil)
-            try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
-            outcome.persisted = true
-            return outcome
+            return try await persistUnscored(
+                item: item,
+                stored: stored,
+                lessonId: lessonId,
+                latencyMs: latencyMs
+            )
         }
     }
 
@@ -158,7 +162,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         let passed: Bool
         switch result {
         case .pass: passed = true
-        case .fail: passed = false
+        case .fail, .unscored: passed = false
         }
         let tokens = input.split { $0.isWhitespace }.count
         let quality = SRSEngine().qualityForComposition(
@@ -180,10 +184,19 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         lessonId: String,
         latencyMs: Int
     ) async throws {
+        let passedLabel: String
+        switch outcome.grade {
+        case .pass:
+            passedLabel = "true"
+        case .fail:
+            passedLabel = "false"
+        case .unscored:
+            passedLabel = "unscored"
+        }
         let payload = try JSONEncoder().encode(
             [
                 "payloadSchemaVersion": "1",
-                "passed": outcome.grade == .fail ? "false" : "true",
+                "passed": passedLabel,
             ]
         )
         let habit = try await persistence.appendAttemptEvaluatingHabit(
@@ -201,7 +214,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             )
         )
         trackHabit(habit)
-        if let quality = outcome.quality {
+        if let quality = outcome.quality, outcome.grade.shouldAppendReviewEvent {
             let seq = try await persistence.nextClientSeq()
             let cardKey = CardKey(
                 pair: stored.course.languagePair,
@@ -250,6 +263,18 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 routeCategory: nil
             )
         )
+    }
+
+    private func persistUnscored(
+        item: ItemV1,
+        stored: StoredCourse,
+        lessonId: String,
+        latencyMs: Int
+    ) async throws -> CompositionOutcome {
+        var outcome = CompositionOutcome(grade: .unscored, quality: nil)
+        try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+        outcome.persisted = true
+        return outcome
     }
 
     private func trackHabit(_ result: AttemptHabitResult) {

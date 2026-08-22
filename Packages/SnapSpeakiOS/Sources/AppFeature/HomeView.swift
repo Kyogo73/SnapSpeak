@@ -135,8 +135,9 @@ public struct HomeView: View {
                 }
                 PrimaryButton("home.today.start") {
                     Task {
-                        await today.refresh()
-                        path.append(.review)
+                        if await today.regeneratePlanThenStart() {
+                            path.append(.review)
+                        }
                     }
                 }
             }
@@ -160,14 +161,15 @@ public struct HomeView: View {
                 }
             }
             PrimaryButton("streak.broken.restart") {
-                today.dismissRecovery()
                 Task {
-                    await today.refresh()
-                    path.append(.review)
+                    await today.dismissRecovery()
+                    if await today.regeneratePlanThenStart() {
+                        path.append(.review)
+                    }
                 }
             }
             SecondaryButton("home.recovery.dismiss") {
-                today.dismissRecovery()
+                Task { await today.dismissRecovery() }
             }
         }
     }

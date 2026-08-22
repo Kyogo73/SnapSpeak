@@ -46,7 +46,8 @@ public final class OnboardingViewModel: ObservableObject {
     /// 設定保存 → reminderEnabled なら requestAuthorizationIfNeeded()（拒否なら
     /// reminderEnabled=false で保存し直す）→ onboardingCompletedAt = now →
     /// onboarding_completed を track。
-    public func completeGoalStep() async -> Bool {
+    /// 保存成功時のみ `startFirstLesson` を返す。失敗時は `nil`（cover は閉じない）。
+    public func completeGoalStep() async -> Bool? {
         var enabled = reminderEnabled
         if enabled {
             let granted = await scheduler.requestAuthorizationIfNeeded()
@@ -58,7 +59,7 @@ public final class OnboardingViewModel: ObservableObject {
         do {
             try await persist(goal: selectedGoal, reminderEnabled: enabled, skippedGoal: false)
         } catch {
-            return false
+            return nil
         }
         analytics.track(
             .onboardingCompleted(
@@ -70,14 +71,14 @@ public final class OnboardingViewModel: ObservableObject {
         return true
     }
 
-    /// step に応じ既定値で保存して完了扱い。onboarding_skipped(step:) を track。
-    public func skip() async -> Bool {
+    /// 保存成功時のみ `startFirstLesson` を返す。失敗時は `nil`。
+    public func skip() async -> Bool? {
         let fromWelcome = step == .welcome
         analytics.track(.onboardingSkipped(step: fromWelcome ? "welcome" : "goal"))
         do {
             try await persist(goal: .standard, reminderEnabled: false, skippedGoal: true)
         } catch {
-            return false
+            return nil
         }
         analytics.track(
             .onboardingCompleted(

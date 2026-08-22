@@ -47,7 +47,7 @@ public final class TodayViewModel: ObservableObject {
         let generation = refreshGeneration
         state = snapshot == nil ? .loading : state
         let settings = (try? await persistence.loadOrCreateSettings()) ?? UserSettingsDTO.phase1Default
-        guard generation == refreshGeneration else { return }
+        guard isCurrent(generation) else { return }
         let timeZone = TimeZone.current
         let goal = DailyGoal(itemsPerDay: settings.dailyGoalItems)
         do {
@@ -57,34 +57,35 @@ public final class TodayViewModel: ObservableObject {
                 goal: goal,
                 policy: .standard
             )
-            guard generation == refreshGeneration else { return }
+            guard isCurrent(generation) else { return }
             asrDegraded = Self.speechIsDegraded(settings: settings)
-            continueLesson = await resolveContinueLesson(settings: settings)
+            let resolvedContinue = await resolveContinueLesson(settings: settings)
+            guard isCurrent(generation) else { return }
+            continueLesson = resolvedContinue
             try await applyHabitState(
                 today: today,
                 settings: settings,
                 now: now,
-                timeZone: timeZone
+                timeZone: timeZone,
+                generation: generation
             )
-            guard generation == refreshGeneration else { return }
+            guard isCurrent(generation) else { return }
             snapshot = today
             await syncReminders(settings: settings, streak: today.streak, now: now, timeZone: timeZone)
         } catch {
-            guard generation == refreshGeneration else { return }
+            guard isCurrent(generation) else { return }
             state = .failed
         }
     }
 
-    public func dismissRecovery() {
-        Task {
-            let settings = (try? await persistence.loadOrCreateSettings()) ?? UserSettingsDTO.phase1Default
-            try? await persistence.markRecoveryDismissed(fromStreak: settings.lastKnownStreakDays)
-            try? await persistence.updateLastKnownStreakDays(snapshot?.streak.currentStreakDays ?? 0)
-            if snapshot?.hasCourses == false {
-                state = .empty
-            } else if snapshot != nil {
-                state = .ready
-            }
+    public func dismissRecovery() async {
+        let settings = (try? await persistence.loadOrCreateSettings()) ?? UserSettingsDTO.phase1Default
+        try? await persistence.markRecoveryDismissed(fromStreak: settings.lastKnownStreakDays)
+        try? await persistence.updateLastKnownStreakDays(snapshot?.streak.currentStreakDays ?? 0)
+        if snapshot?.hasCourses == false {
+            state = .empty
+        } else if snapshot != nil {
+            state = .ready
         }
     }
 
@@ -93,11 +94,16 @@ public final class TodayViewModel: ObservableObject {
         return snapshot?.plan.isEmpty == false
     }
 
+    private func isCurrent(_ generation: Int) -> Bool {
+        generation == refreshGeneration
+    }
+
     private func applyHabitState(
         today: TodaySnapshot,
         settings: UserSettingsDTO,
         now: Date,
-        timeZone: TimeZone
+        timeZone: TimeZone,
+        generation: Int
     ) async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -111,6 +117,11 @@ public final class TodayViewModel: ObservableObject {
         let dismissedThisBreak = settings.recoveryDismissedFromStreak == settings.lastKnownStreakDays
             && settings.lastKnownStreakDays > 0
         if broken && !dismissedThisBreak {
+            guard isCurrent(generation) else { return }
+            var markers = settings.habitMarkers
+            markers.brokenRecordedDayStart = studyDayStart
+            try await persistence.updateHabitMarkers(markers)
+            guard isCurrent(generation) else { return }
             state = .recovery(
                 totalDays: today.streak.totalStudyDays,
                 longest: today.streak.longestStreakDays
@@ -118,17 +129,18 @@ public final class TodayViewModel: ObservableObject {
             analytics.track(
                 .streakBroken(lengthBand: Quantization.streakBand(days: settings.lastKnownStreakDays))
             )
-            var markers = settings.habitMarkers
-            markers.brokenRecordedDayStart = studyDayStart
-            try await persistence.updateHabitMarkers(markers)
         } else if case .recovery = state, today.streak.currentStreakDays == 0, !dismissedThisBreak {
             // keep recovery until dismiss
         } else if !today.hasCourses {
+            guard isCurrent(generation) else { return }
+            try await persistence.updateLastKnownStreakDays(today.streak.currentStreakDays)
+            guard isCurrent(generation) else { return }
             state = .empty
-            try await persistence.updateLastKnownStreakDays(today.streak.currentStreakDays)
         } else {
-            state = .ready
+            guard isCurrent(generation) else { return }
             try await persistence.updateLastKnownStreakDays(today.streak.currentStreakDays)
+            guard isCurrent(generation) else { return }
+            state = .ready
         }
     }
 

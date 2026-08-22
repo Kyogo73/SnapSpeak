@@ -5,10 +5,16 @@ public struct ShadowingLessonView: View {
     @StateObject private var viewModel: ShadowingLessonViewModel
     @Environment(\.dismiss) private var dismiss
     public var onCompleted: (() -> Void)?
+    public var onSkipped: (() -> Void)?
 
-    public init(viewModel: ShadowingLessonViewModel, onCompleted: (() -> Void)? = nil) {
+    public init(
+        viewModel: ShadowingLessonViewModel,
+        onCompleted: (() -> Void)? = nil,
+        onSkipped: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.onCompleted = onCompleted
+        self.onSkipped = onSkipped
     }
 
     public var body: some View {
@@ -44,8 +50,11 @@ public struct ShadowingLessonView: View {
                 if case .microphoneDenied = viewModel.phase {
                     Text("shadowing.mic_denied")
                         .font(Typography.body)
-                    if let onCompleted {
-                        PrimaryButton("shadowing.skip", systemImage: "forward", action: onCompleted)
+                    PrimaryButton("shadowing.play_preview", systemImage: "play.fill") {
+                        Task { await viewModel.replayPreview() }
+                    }
+                    if let onSkipped {
+                        SecondaryButton("shadowing.skip", systemImage: "forward", action: onSkipped)
                     } else {
                         SecondaryButton("shadowing.skip") { dismiss() }
                     }

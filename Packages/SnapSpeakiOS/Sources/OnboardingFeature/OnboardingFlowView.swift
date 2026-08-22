@@ -20,8 +20,9 @@ public struct OnboardingFlowView: View {
                     onStart: { viewModel.advanceToGoal() },
                     onSkip: {
                         Task {
-                            let startLesson = await viewModel.skip()
-                            onFinished(startLesson)
+                            if let startLesson = await viewModel.skip() {
+                                onFinished(startLesson)
+                            }
                         }
                     }
                 )
@@ -32,14 +33,16 @@ public struct OnboardingFlowView: View {
                     reminderTime: $viewModel.reminderTime,
                     onStartLesson: {
                         Task {
-                            let startLesson = await viewModel.completeGoalStep()
-                            onFinished(startLesson)
+                            if let startLesson = await viewModel.completeGoalStep() {
+                                onFinished(startLesson)
+                            }
                         }
                     },
                     onSkip: {
                         Task {
-                            let startLesson = await viewModel.skip()
-                            onFinished(startLesson)
+                            if let startLesson = await viewModel.skip() {
+                                onFinished(startLesson)
+                            }
                         }
                     }
                 )

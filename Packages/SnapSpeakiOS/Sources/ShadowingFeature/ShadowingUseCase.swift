@@ -32,6 +32,7 @@ public struct ShadowingCompletion: Sendable, Equatable {
 public protocol ShadowingUseCase: Sendable {
     func prepare(targetLanguage: BCP47Language) async -> ShadowingPreparation
     func startPlayback(item: ItemV1, stored: StoredCourse, rate: Float, asrReady: Bool) async throws
+    func startPreviewPlayback(item: ItemV1, stored: StoredCourse, rate: Float) async throws
     func stopAndScore(
         item: ItemV1,
         stored: StoredCourse,
@@ -94,6 +95,7 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
         _ = asrReady
         let access = await RecordingPermissionCoordinator.prepare(client: permissions)
         guard access.canRecord else {
+            try await audio.startPreview(fileURL: fileURL, rate: rate)
             throw ShadowingUseCaseError.microphoneDenied
         }
         let recordingURL = try makeRecordingURL(itemId: item.id)
@@ -102,6 +104,13 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
             recordingURL: recordingURL,
             rate: rate
         )
+    }
+
+    public func startPreviewPlayback(item: ItemV1, stored: StoredCourse, rate: Float) async throws {
+        guard let fileURL = audioURL(for: item, stored: stored) else {
+            throw ShadowingUseCaseError.missingAudio
+        }
+        try await audio.startPreview(fileURL: fileURL, rate: rate)
     }
 
     public func stopAndScore(

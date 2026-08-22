@@ -74,6 +74,16 @@ public struct CompositionCardView: View {
                 Label("composition.fail", systemImage: "xmark.circle.fill")
                     .foregroundStyle(Colors.danger)
                     .font(Typography.headline)
+            case .unscored:
+                Label("composition.unscored", systemImage: "minus.circle.fill")
+                    .foregroundStyle(Colors.warning)
+                    .font(Typography.headline)
+                Text("composition.type_instead")
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.secondaryFill)
+                TypingInputView(text: $viewModel.typedText) {
+                    Task { await viewModel.submitTyped() }
+                }
             }
             if let onCompleted {
                 PrimaryButton("review.session.next", systemImage: "arrow.right", action: onCompleted)

@@ -105,6 +105,17 @@ public final class ShadowingLessonViewModel: ObservableObject {
         }
     }
 
+    /// マイク拒否時のお手本再生（録音しない）。
+    public func replayPreview() async {
+        guard let item, let stored else { return }
+        do {
+            try await useCase.startPreviewPlayback(item: item, stored: stored, rate: rate)
+            phase = .microphoneDenied
+        } catch {
+            phase = .failed(String(describing: error))
+        }
+    }
+
     public func stopAndScore() async {
         guard let item, let stored else { return }
         phase = .scoring

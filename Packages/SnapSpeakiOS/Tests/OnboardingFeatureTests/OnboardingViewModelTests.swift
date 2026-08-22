@@ -65,6 +65,28 @@ struct OnboardingViewModelTests {
         )
     }
 
+    @Test("保存中の同時 skip は 2 本目を捨てて保存・イベントは 1 組")
+    func skipRejectsConcurrentSecondCall() async {
+        let store = FakeSettingsStore()
+        await store.enableSaveHold()
+        let analytics = RecordingAnalytics()
+        let viewModel = makeViewModel(store: store, analytics: analytics)
+
+        async let first = viewModel.skip()
+        await store.waitUntilSaveStarted()
+        let second = await viewModel.skip()
+        await store.releaseSave()
+        let firstResult = await first
+
+        #expect(firstResult == false)
+        #expect(second == nil)
+        #expect(await store.saveCount == 1)
+        #expect(analytics.events == [
+            .onboardingSkipped(step: "welcome"),
+            .onboardingCompleted(goalItems: 10, reminderEnabled: false, skippedGoal: true),
+        ])
+    }
+
     @Test("リマインダー拒否時は reminderEnabled=false で保存する")
     func deniedReminderSavesDisabled() async {
         let store = FakeSettingsStore()
@@ -109,10 +131,35 @@ struct OnboardingViewModelTests {
 actor FakeSettingsStore: SettingsStoring {
     private var failRemaining = 0
     private(set) var saved: [UserSettingsDTO] = []
+    private(set) var saveCount = 0
     private var current = UserSettingsDTO.phase1Default
+    private var holdSaves = false
+    private var saveHasStarted = false
+    private var saveStarted: CheckedContinuation<Void, Never>?
+    private var saveHold: CheckedContinuation<Void, Never>?
 
     func setFailRemaining(_ count: Int) {
         failRemaining = count
+    }
+
+    func enableSaveHold() {
+        holdSaves = true
+    }
+
+    func waitUntilSaveStarted() async {
+        if saveHasStarted { return }
+        await withCheckedContinuation { continuation in
+            if saveHasStarted {
+                continuation.resume()
+            } else {
+                saveStarted = continuation
+            }
+        }
+    }
+
+    func releaseSave() {
+        saveHold?.resume()
+        saveHold = nil
     }
 
     func loadOrCreateSettings() async throws -> UserSettingsDTO {
@@ -120,6 +167,15 @@ actor FakeSettingsStore: SettingsStoring {
     }
 
     func saveSettings(_ dto: UserSettingsDTO) async throws -> UserSettingsDTO {
+        saveCount += 1
+        saveHasStarted = true
+        saveStarted?.resume()
+        saveStarted = nil
+        if holdSaves {
+            await withCheckedContinuation { continuation in
+                saveHold = continuation
+            }
+        }
         if failRemaining > 0 {
             failRemaining -= 1
             throw FakeSettingsError.saveFailed

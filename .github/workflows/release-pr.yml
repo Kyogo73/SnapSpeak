@@ -1,0 +1,53 @@
+name: Release PR
+# develop が main より先行したら、リリース PR（develop → main）を自動で用意する。
+# マージ判断は人間（本番リリースはユーザーのチェック必須）。マージすると release.yml が
+# 自動でタグとドラフト Release を作成する。
+#
+# 補足: GITHUB_TOKEN で作成した PR には pull_request トリガーの CI が走らないが、
+# head が develop 本体のため、develop への push で走った CI（同一 SHA のチェック）が
+# そのまま PR の必須チェックとして評価される。
+on:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-release-pr:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Open release PR if develop is ahead
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if [ -z "$(git rev-list origin/main..HEAD)" ]; then
+            echo "develop is not ahead of main; nothing to do"
+            exit 0
+          fi
+          existing="$(gh pr list --base main --head develop --state open --json number --jq '.[0].number' || true)"
+          if [ -n "$existing" ]; then
+            echo "Release PR #$existing already open; the PR diff follows develop automatically"
+            exit 0
+          fi
+          if ! gh pr create \
+            --base main \
+            --head develop \
+            --title "release: develop を main へ反映" \
+            --body "$(printf '%s\n' \
+              '## 目的' \
+              '' \
+              'テスト環境（develop）で検証済みの変更を本番（main）へ反映する。' \
+              '' \
+              '- 差分は Files changed タブを正とする（develop への push で自動更新される）' \
+              '- マージすると Release ワークフローが自動で semver タグとドラフト GitHub Release を作成する' \
+              '- 運用手順の正本: docs/development-workflow.md §5')"; then
+            echo "::error title=リリース PR を自動作成できませんでした::リポジトリ設定で GitHub Actions の PR 作成を許可してください: Settings → Actions → General → Workflow permissions → 'Allow GitHub Actions to create and approve pull requests' にチェック。設定後は develop への次の push で自動作成されます（手動で develop → main の PR を作成しても可）。"
+            exit 1
+          fi

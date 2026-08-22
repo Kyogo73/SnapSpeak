@@ -1,16 +1,20 @@
 name: Release
-# semver タグ（例 v1.0.0）の push を契機にリリース成果物を作成する。
-# ブランチモデル: develop（テスト）で検証 → main へマージ → main にタグを打つ。
-# 詳細手順は docs/development-workflow.md §5 を参照。
+# リリース自動化（docs/development-workflow.md §5 が正）:
+# - main への push（= リリース PR のマージ）で次バージョンを自動計算し、
+#   タグ vX.Y.Z を打ってドラフト GitHub Release を作成する。公開は内容確認後に手動。
+# - タグを手動 push した場合（hotfix の再リリース等）も同じくドラフト Release を作成する。
+#   ※ GITHUB_TOKEN による自動タグ push は tag トリガーを再発火させない（GitHub の仕様）ため、
+#     auto-release ジョブがタグ作成と Release 作成を同一ジョブで行う。二重作成は起きない。
 on:
   push:
+    branches: [main]
     tags: ["v*"]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
-  contents: write   # GitHub Release の作成に必要
+  contents: write # タグ push と GitHub Release の作成に必要
 
 jobs:
   # 最低限のゲート: Foundation-only の中核パッケージを Linux でビルド/テスト（ci.yml の core-linux 相当）。
@@ -28,17 +32,56 @@ jobs:
       - run: swift test
       - run: swift run contentlint ../../Resources/Seed/course_daily_ja_en/index.json --audio-root ../../Resources/Seed/course_daily_ja_en
 
-  release:
+  # main マージ → 自動タグ → ドラフト Release
+  auto-release:
+    if: github.ref == 'refs/heads/main'
     needs: core-linux
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # リリースノート自動生成のため全履歴を取得
+          fetch-depth: 0 # タグ探索とリリースノート生成のため全履歴
+      - name: Compute next version
+        id: version
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if next=$(scripts/next-version.sh); then
+            echo "next=$next" >> "$GITHUB_OUTPUT"
+            echo "Next version: $next"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipped: HEAD already tagged or no new commits"
+          fi
+      - name: Create tag
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.next }}" -m "Release ${{ steps.version.outputs.next }}"
+          git push origin "refs/tags/${{ steps.version.outputs.next }}"
       - name: Create GitHub Release (draft)
-        uses: softprops/action-gh-release@v2   # バージョンはピン（更新は独立 PR で）
+        if: steps.version.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2 # バージョンはピン（更新は Dependabot PR で）
         with:
-          draft: true                 # 内容確認後に手動で公開する
+          tag_name: ${{ steps.version.outputs.next }}
+          draft: true # 内容確認後に手動で公開する
+          generate_release_notes: true
+
+  # 手動タグ push（hotfix の付け直し等）→ ドラフト Release
+  tag-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: core-linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create GitHub Release (draft)
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
           generate_release_notes: true
 
   # TODO(将来対応 / 未着手): 署名付き iOS ビルドと TestFlight / App Store 提出の自動化。

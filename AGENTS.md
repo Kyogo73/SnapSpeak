@@ -4,6 +4,12 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の�
 
 ## Cursor Cloud specific instructions
 
+### サブエージェント運用（ユーザー指示・恒久設定）
+
+- コーディネーター分業: **計画 = Claude Fable（thinking xhigh）/ 実行 = Grok 4.6（最上位 effort）/ レビュー・QA = GPT5.6 Sol（xhigh）**。
+- サブエージェントへ委任する際は、**常に各系列で選択可能な最上位の reasoning/effort** を指定する。
+- マージ前にレビュー担当（Sol）の「マージ可」判定を得る。`main`（本番）へのマージのみユーザーのチェック必須、`develop` へは CI green で自動マージ可。
+
 ### リポジトリ構成（2 SwiftPM パッケージ + App）
 
 - `Packages/SnapSpeakCore` … **Foundation のみに依存する中核ドメイン**（`LanguageKit` / `ScoringKit` / `CompositionKit` / `SRSKit` / `ContentCore` / `AnalyticsCore` / `HabitKit` と実行可能 `contentlint`）。外部依存は swift-crypto のみ。**この Linux VM で `swift build` / `swift test` が完結する唯一の部分**。

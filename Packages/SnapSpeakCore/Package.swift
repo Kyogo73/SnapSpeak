@@ -20,6 +20,7 @@ let package = Package(
         .library(name: "ContentCore", targets: ["ContentCore"]),
         .library(name: "AnalyticsCore", targets: ["AnalyticsCore"]),
         .library(name: "HabitKit", targets: ["HabitKit"]),
+        .library(name: "DriveKit", targets: ["DriveKit"]),
         .executable(name: "contentlint", targets: ["contentlint"]),
     ],
     dependencies: [
@@ -63,6 +64,11 @@ let package = Package(
             dependencies: ["SRSKit"],
             swiftSettings: swift6
         ),
+        .target(
+            name: "DriveKit",
+            dependencies: ["SRSKit"],
+            swiftSettings: swift6
+        ),
         .executableTarget(
             name: "contentlint",
             dependencies: ["ContentCore"],
@@ -102,6 +108,11 @@ let package = Package(
         .testTarget(
             name: "HabitKitTests",
             dependencies: ["HabitKit", "SRSKit"],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "DriveKitTests",
+            dependencies: ["DriveKit", "SRSKit"],
             swiftSettings: swift6
         ),
     ]

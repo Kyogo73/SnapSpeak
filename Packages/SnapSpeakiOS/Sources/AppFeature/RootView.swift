@@ -131,7 +131,7 @@ public struct RootView: View {
 
     @ViewBuilder
     private func lessonDestination(_ coordinate: LessonCoordinate) -> some View {
-        let onCompleted = {
+        let onCompleted: () -> Void = {
             Task { await todayViewModel?.refresh() }
         }
         Group {

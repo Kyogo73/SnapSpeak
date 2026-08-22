@@ -85,7 +85,7 @@ public final class ReviewSessionViewModel: ObservableObject {
         }
     }
 
-    public static func shouldInsertNewLessonIntro(entries: [ReviewEntry], at index: Int) -> Bool {
+    nonisolated public static func shouldInsertNewLessonIntro(entries: [ReviewEntry], at index: Int) -> Bool {
         guard entries.indices.contains(index) else { return false }
         guard entries[index].origin == .newLesson else { return false }
         if index == 0 { return true }

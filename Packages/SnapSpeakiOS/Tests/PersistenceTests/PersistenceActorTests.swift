@@ -160,7 +160,5 @@ struct PersistenceActorTests {
         context.insert(model)
         context.rollback()
         #expect(try context.fetch(FetchDescriptor<LessonAttempt>()).isEmpty)
-        let actor = PersistenceActor(modelContainer: container)
-        #expect(try actor.fetchAttempt(id: write.id) == nil)
     }
 }

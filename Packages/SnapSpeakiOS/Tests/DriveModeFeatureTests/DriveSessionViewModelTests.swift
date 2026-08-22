@@ -63,7 +63,7 @@ struct DriveSessionViewModelTests {
             return false
         }}
 
-        await waitUntil { (try? persistence.latestAttempt()) != nil }
+        await waitUntil { (try? await persistence.latestAttempt()) != nil }
         let attempt = try await persistence.latestAttempt()
         #expect(attempt?.itemId == "item_ok")
         #expect(attempt?.payloadSchemaVersion == 2)
@@ -185,10 +185,10 @@ private func makeViewModelPersistence() throws -> PersistenceActor {
     return PersistenceActor(modelContainer: container)
 }
 
-private func waitUntil(timeoutMs: Int = 2_000, _ predicate: @escaping () -> Bool) async {
+private func waitUntil(timeoutMs: Int = 2_000, _ predicate: @escaping () async -> Bool) async {
     let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1_000)
     while Date() < deadline {
-        if predicate() { return }
+        if await predicate() { return }
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
 }

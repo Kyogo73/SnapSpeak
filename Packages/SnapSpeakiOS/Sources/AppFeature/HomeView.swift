@@ -43,7 +43,7 @@ public struct HomeView: View {
             }
             .padding()
         }
-        .navigationTitle("tab.home")
+        .navigationTitle("home.title")
         .onAppear {
             Task { await today.refresh() }
         }
@@ -74,6 +74,11 @@ public struct HomeView: View {
                             Text("streak.last_grace")
                                 .font(Typography.caption)
                                 .foregroundStyle(Colors.warning)
+                        }
+                        if snapshot.streak.currentStreakDays == 1 {
+                            Text("streak.rule_note")
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.secondaryFill)
                         }
                     }
                     if !dynamicTypeSize.isAccessibilitySize {
@@ -195,7 +200,7 @@ public struct HomeView: View {
             return LocalizedFormat.string("home.today.plan_review_only", plan.reviews.count)
         }
         if hasNew {
-            return String(localized: String.LocalizationValue("home.today.plan_new_only"))
+            return LocalizedFormat.string("home.today.plan_new_only")
         }
         return ""
     }

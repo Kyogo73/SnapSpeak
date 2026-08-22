@@ -232,8 +232,106 @@ struct ReviewFeatureMappingTests {
         vm.startResolved(entries: [first, second])
         vm.skip()
         #expect(vm.completedCount == 0)
-        #expect(vm.skippedCount == 1)
+        #expect(vm.skippedByUserCount == 1)
+        #expect(vm.skippedMissingCount == 0)
         #expect(vm.current?.itemId == "i2")
+    }
+
+    @Test("ReviewEntry.id は due/new 判別子込みで一意")
+    func reviewEntryIdsIncludeOriginAndStayUnique() throws {
+        let course = try makeCourse(id: "course_a", lessons: [
+            ("lesson_1", ["item_due", "item_new"]),
+        ])
+        let due = DueCard(
+            cardKey: "k1",
+            courseId: "course_a",
+            itemId: "item_due",
+            skill: .shadowing,
+            dueAt: Date(timeIntervalSince1970: 1),
+            relearnGateAt: nil
+        )
+        let newLesson = LessonSummary(
+            courseId: "course_a",
+            lessonId: "lesson_1",
+            mode: "shadowing",
+            itemIds: ["item_new"]
+        )
+        let resolved = ReviewSessionViewModel.resolveEntries(
+            plan: SessionPlan(reviews: [due], deferredDueCount: 0, newLesson: newLesson),
+            courses: [stored(course)]
+        )
+        #expect(resolved.entries.map(\.id) == [
+            "course_a/item_due/due",
+            "course_a/item_new/new",
+        ])
+        #expect(Set(resolved.entries.map(\.id)).count == 2)
+    }
+
+    @Test("別コースの同名 itemId を混同しない")
+    func resolveEntriesKeepsSameItemIdOnDifferentCourses() throws {
+        let courseA = try makeCourse(id: "course_a", lessons: [("l", ["shared"])])
+        let courseB = try makeCourse(id: "course_b", lessons: [("l", ["shared"])])
+        let dueA = DueCard(
+            cardKey: "ka",
+            courseId: "course_a",
+            itemId: "shared",
+            skill: .shadowing,
+            dueAt: Date(timeIntervalSince1970: 1),
+            relearnGateAt: nil
+        )
+        let dueB = DueCard(
+            cardKey: "kb",
+            courseId: "course_b",
+            itemId: "shared",
+            skill: .shadowing,
+            dueAt: Date(timeIntervalSince1970: 2),
+            relearnGateAt: nil
+        )
+        let resolved = ReviewSessionViewModel.resolveEntries(
+            plan: SessionPlan(reviews: [dueA, dueB], deferredDueCount: 0, newLesson: nil),
+            courses: [stored(courseA), stored(courseB)]
+        )
+        #expect(resolved.entries.map(\.courseId) == ["course_a", "course_b"])
+        #expect(resolved.entries.map(\.itemId) == ["shared", "shared"])
+        #expect(Set(resolved.entries.map(\.id)).count == 2)
+        #expect(resolved.skipped == 0)
+    }
+
+    @Test("欠損スキップとユーザースキップは独立に数える")
+    @MainActor
+    func missingAndUserSkipsAreIndependent() {
+        let first = ReviewEntry(
+            id: "d1",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i1",
+            mode: .shadowing,
+            origin: .due(cardKey: "k")
+        )
+        let second = ReviewEntry(
+            id: "d2",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i2",
+            mode: .shadowing,
+            origin: .due(cardKey: "k2")
+        )
+        let vm = ReviewSessionViewModel(
+            plan: SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil),
+            courseStore: emptyStore(),
+            analytics: NoopAnalytics()
+        )
+        vm.startResolved(entries: [first, second], skipped: 3)
+        #expect(vm.skippedMissingCount == 3)
+        #expect(vm.skippedByUserCount == 0)
+        vm.skip()
+        #expect(vm.skippedMissingCount == 3)
+        #expect(vm.skippedByUserCount == 1)
+        #expect(vm.completedCount == 0)
+        vm.advance()
+        #expect(vm.skippedMissingCount == 3)
+        #expect(vm.skippedByUserCount == 1)
+        #expect(vm.completedCount == 1)
     }
 
     private func emptyStore() -> CourseStore {

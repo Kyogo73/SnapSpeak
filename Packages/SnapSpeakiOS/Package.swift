@@ -19,6 +19,8 @@ let package = Package(
         .library(name: "AudioEngine", targets: ["AudioEngine"]),
         .library(name: "SpeechKit", targets: ["SpeechKit"]),
         .library(name: "ContentKit", targets: ["ContentKit"]),
+        .library(name: "NotificationsKit", targets: ["NotificationsKit"]),
+        .library(name: "ReviewFeature", targets: ["ReviewFeature"]),
     ],
     dependencies: [
         .package(path: "../SnapSpeakCore"),
@@ -96,6 +98,14 @@ let package = Package(
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
                 .product(name: "LanguageKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "NotificationsKit",
+            dependencies: [
+                "Analytics",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
         ),

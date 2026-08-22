@@ -4,9 +4,11 @@ import SwiftUI
 public struct ShadowingLessonView: View {
     @StateObject private var viewModel: ShadowingLessonViewModel
     @Environment(\.dismiss) private var dismiss
+    public var onCompleted: (() -> Void)?
 
-    public init(viewModel: ShadowingLessonViewModel) {
+    public init(viewModel: ShadowingLessonViewModel, onCompleted: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.onCompleted = onCompleted
     }
 
     public var body: some View {
@@ -47,6 +49,9 @@ public struct ShadowingLessonView: View {
                         },
                         onClose: { dismiss() }
                     )
+                    if let onCompleted {
+                        PrimaryButton("review.session.next", systemImage: "arrow.right", action: onCompleted)
+                    }
                 }
             }
             .padding()

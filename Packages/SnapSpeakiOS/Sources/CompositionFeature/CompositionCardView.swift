@@ -3,9 +3,11 @@ import SwiftUI
 
 public struct CompositionCardView: View {
     @StateObject private var viewModel: CompositionSessionViewModel
+    public var onCompleted: (() -> Void)?
 
-    public init(viewModel: CompositionSessionViewModel) {
+    public init(viewModel: CompositionSessionViewModel, onCompleted: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.onCompleted = onCompleted
     }
 
     public var body: some View {
@@ -67,6 +69,9 @@ public struct CompositionCardView: View {
                 Label("composition.fail", systemImage: "xmark.circle.fill")
                     .foregroundStyle(Colors.danger)
                     .font(Typography.headline)
+            }
+            if let onCompleted {
+                PrimaryButton("review.session.next", systemImage: "arrow.right", action: onCompleted)
             }
         }
     }

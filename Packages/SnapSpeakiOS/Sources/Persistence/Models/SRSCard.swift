@@ -15,6 +15,7 @@ public final class SRSCard {
     public var intervalDays: Int
     public var repetitions: Int
     public var dueAt: Date
+    public var relearnGateAt: Date?
     public var lastReviewedAt: Date?
     public var lastQuality: Int?
     public var foldedThroughRevision: Int64?
@@ -32,6 +33,7 @@ public final class SRSCard {
         intervalDays: Int,
         repetitions: Int,
         dueAt: Date,
+        relearnGateAt: Date?,
         lastReviewedAt: Date?,
         lastQuality: Int?,
         foldedThroughRevision: Int64?
@@ -48,6 +50,7 @@ public final class SRSCard {
         self.intervalDays = intervalDays
         self.repetitions = repetitions
         self.dueAt = dueAt
+        self.relearnGateAt = relearnGateAt
         self.lastReviewedAt = lastReviewedAt
         self.lastQuality = lastQuality
         self.foldedThroughRevision = foldedThroughRevision

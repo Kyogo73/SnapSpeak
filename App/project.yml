@@ -70,6 +70,8 @@ targets:
         product: SRSKit
       - package: SnapSpeakCore
         product: ContentCore
+      - package: SnapSpeakCore
+        product: HabitKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

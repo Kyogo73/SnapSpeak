@@ -39,6 +39,7 @@ let package = Package(
             name: "Persistence",
             dependencies: [
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
@@ -118,6 +119,7 @@ let package = Package(
             name: "PersistenceTests",
             dependencies: [
                 "Persistence",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6

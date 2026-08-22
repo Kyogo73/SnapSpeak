@@ -1,4 +1,5 @@
 import Foundation
+import HabitKit
 import Persistence
 import SRSKit
 import Testing
@@ -140,5 +141,208 @@ struct PersistenceActorTests {
         let storedEvents = try await actor.reviewEvents(forCardKey: cardKey)
         #expect(storedEvents.count == 1)
         #expect(storedEvents[0].contentRevision == 1)
+    }
+
+    @Test("UserSettings 新フィールドの既定値と roundtrip")
+    func settingsHabitDefaultsAndRoundTrip() async throws {
+        let actor = try makeActor()
+        let loaded = try await actor.loadOrCreateSettings()
+        #expect(loaded.dailyGoalItems == 10)
+        #expect(loaded.reminderEnabled == false)
+        #expect(loaded.reminderMinute == 0)
+        #expect(loaded.onboardingCompletedAt == nil)
+        #expect(loaded.lastKnownStreakDays == 0)
+
+        var updated = loaded
+        updated.dailyGoalItems = 20
+        updated.reminderEnabled = true
+        updated.reminderHour = 21
+        updated.reminderMinute = 30
+        let completedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        updated.onboardingCompletedAt = completedAt
+        updated.lastKnownStreakDays = 7
+        let saved = try await actor.saveSettings(updated)
+        #expect(saved.dailyGoalItems == 20)
+        #expect(saved.reminderEnabled == true)
+        #expect(saved.reminderHour == 21)
+        #expect(saved.reminderMinute == 30)
+        #expect(saved.onboardingCompletedAt == completedAt)
+        #expect(saved.lastKnownStreakDays == 7)
+
+        let again = try await actor.loadOrCreateSettings()
+        #expect(again == saved)
+    }
+
+    @Test("SRSCard.relearnGateAt が fold で書かれる")
+    func foldWritesRelearnGateAt() async throws {
+        let actor = try makeActor()
+        let cardKey = CardKey(
+            pairKey: "ja>en",
+            courseId: "course_daily_ja_en",
+            itemId: "crs_daily_ja_en_item_p_001",
+            skill: .shadowing
+        ).raw
+        let reviewedAt = Date(timeIntervalSince1970: 1_700_000_400)
+
+        let failEvent = ReviewEventDTO(
+            id: UUID(),
+            cardKey: cardKey,
+            quality: ReviewQuality.fail.rawValue,
+            reviewedAt: reviewedAt,
+            clientSeq: 1,
+            serverRevision: nil,
+            contentRevision: 1
+        )
+        _ = try await actor.appendReviewEvent(
+            ReviewEventWrite(
+                event: failEvent,
+                courseId: "course_daily_ja_en",
+                itemId: "crs_daily_ja_en_item_p_001",
+                skill: Skill.shadowing.rawValue
+            )
+        )
+        let failed = try await actor.foldSRSCard(foldRequest(cardKey: cardKey, now: reviewedAt))
+        #expect(failed.relearnGateAt != nil)
+        #expect(failed.lastQuality == ReviewQuality.fail.rawValue)
+
+        let passEvent = ReviewEventDTO(
+            id: UUID(),
+            cardKey: cardKey,
+            quality: ReviewQuality.good.rawValue,
+            reviewedAt: reviewedAt.addingTimeInterval(600),
+            clientSeq: 2,
+            serverRevision: nil,
+            contentRevision: 1
+        )
+        _ = try await actor.appendReviewEvent(
+            ReviewEventWrite(
+                event: passEvent,
+                courseId: "course_daily_ja_en",
+                itemId: "crs_daily_ja_en_item_p_001",
+                skill: Skill.shadowing.rawValue
+            )
+        )
+        let passed = try await actor.foldSRSCard(
+            foldRequest(cardKey: cardKey, now: reviewedAt.addingTimeInterval(600))
+        )
+        #expect(passed.relearnGateAt == nil)
+        #expect(passed.lastQuality == ReviewQuality.good.rawValue)
+    }
+
+    @Test("dueCards(now:) のフィルタと昇順")
+    func dueCardsFilterAndOrder() async throws {
+        let actor = try makeActor()
+        let earlyReview = Date(timeIntervalSince1970: 1_700_000_000)
+        let lateReview = Date(timeIntervalSince1970: 1_700_100_000)
+        _ = try await foldNewCard(
+            actor: actor,
+            itemId: "item_late",
+            reviewedAt: lateReview,
+            quality: .good
+        )
+        _ = try await foldNewCard(
+            actor: actor,
+            itemId: "item_early",
+            reviewedAt: earlyReview,
+            quality: .good
+        )
+        let now = Date(timeIntervalSince1970: 1_701_000_000)
+        let due = try await actor.dueCards(now: now)
+        #expect(due.map(\.itemId) == ["item_early", "item_late"])
+        let beforeAny = try await actor.dueCards(now: Date(timeIntervalSince1970: 1_600_000_000))
+        #expect(beforeAny.isEmpty)
+    }
+
+    @Test("attemptCount は半開区間 [start, end)")
+    func attemptCountHalfOpenInterval() async throws {
+        let actor = try makeActor()
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let mid = Date(timeIntervalSince1970: 1_700_000_500)
+        let end = Date(timeIntervalSince1970: 1_700_001_000)
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "a", createdAt: start))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "b", createdAt: mid))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "c", createdAt: end))
+        let count = try await actor.attemptCount(from: start, to: end)
+        #expect(count == 2)
+    }
+
+    @Test("attemptActivityDates と attemptedItemRefs の distinct")
+    func activityDatesAndDistinctItemRefs() async throws {
+        let actor = try makeActor()
+        let first = Date(timeIntervalSince1970: 1_700_000_000)
+        let second = Date(timeIntervalSince1970: 1_700_000_100)
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "item_a", createdAt: first))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "item_a", createdAt: second))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "item_b", createdAt: second))
+        let dates = try await actor.attemptActivityDates()
+        #expect(dates.sorted() == [first, second, second].sorted())
+        let refs = try await actor.attemptedItemRefs()
+        #expect(refs == [
+            ItemRef(courseId: "course_daily_ja_en", itemId: "item_a"),
+            ItemRef(courseId: "course_daily_ja_en", itemId: "item_b"),
+        ])
+    }
+
+    private func foldRequest(cardKey: String, now: Date, itemId: String = "crs_daily_ja_en_item_p_001") -> SRSCardFoldRequest {
+        SRSCardFoldRequest(
+            cardKey: cardKey,
+            sourceLanguage: "ja",
+            targetLanguage: "en",
+            courseId: "course_daily_ja_en",
+            itemId: itemId,
+            skill: Skill.shadowing.rawValue,
+            contentRevision: 1,
+            inheritSRS: true,
+            now: now,
+            timeZoneIdentifier: "UTC",
+            dayBoundaryHour: 4
+        )
+    }
+
+    private func foldNewCard(
+        actor: PersistenceActor,
+        itemId: String,
+        reviewedAt: Date,
+        quality: ReviewQuality
+    ) async throws -> SRSCardDTO {
+        let cardKey = CardKey(
+            pairKey: "ja>en",
+            courseId: "course_daily_ja_en",
+            itemId: itemId,
+            skill: .shadowing
+        ).raw
+        let event = ReviewEventDTO(
+            id: UUID(),
+            cardKey: cardKey,
+            quality: quality.rawValue,
+            reviewedAt: reviewedAt,
+            clientSeq: 1,
+            serverRevision: nil,
+            contentRevision: 1
+        )
+        _ = try await actor.appendReviewEvent(
+            ReviewEventWrite(
+                event: event,
+                courseId: "course_daily_ja_en",
+                itemId: itemId,
+                skill: Skill.shadowing.rawValue
+            )
+        )
+        return try await actor.foldSRSCard(foldRequest(cardKey: cardKey, now: reviewedAt, itemId: itemId))
+    }
+
+    private func attemptWrite(itemId: String, createdAt: Date) -> LessonAttemptWrite {
+        LessonAttemptWrite(
+            courseId: "course_daily_ja_en",
+            lessonId: "lesson_01_shadowing",
+            itemId: itemId,
+            contentRevision: 1,
+            languagePairKey: "ja>en",
+            skill: Skill.shadowing.rawValue,
+            createdAt: createdAt,
+            durationMs: 1_000,
+            payloadSchemaVersion: 1,
+            payloadJSON: Data("{}".utf8)
+        )
     }
 }

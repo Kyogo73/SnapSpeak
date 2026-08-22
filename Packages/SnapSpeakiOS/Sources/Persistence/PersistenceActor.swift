@@ -1,5 +1,6 @@
 import ContentCore
 import Foundation
+import HabitKit
 import SRSKit
 import SwiftData
 
@@ -135,6 +136,7 @@ public actor PersistenceActor {
                 intervalDays: state.intervalDays,
                 repetitions: state.repetitions,
                 dueAt: state.dueAt,
+                relearnGateAt: state.relearnGateAt,
                 lastReviewedAt: state.lastReviewedAt,
                 lastQuality: state.lastQuality,
                 foldedThroughRevision: highestRevision
@@ -152,6 +154,7 @@ public actor PersistenceActor {
         model.intervalDays = state.intervalDays
         model.repetitions = state.repetitions
         model.dueAt = state.dueAt
+        model.relearnGateAt = state.relearnGateAt
         model.lastReviewedAt = state.lastReviewedAt
         model.lastQuality = state.lastQuality
         model.foldedThroughRevision = highestRevision
@@ -198,6 +201,11 @@ public actor PersistenceActor {
             captionsEnabled: defaults.captionsEnabled,
             defaultRate: defaults.defaultRate,
             reminderHour: defaults.reminderHour,
+            reminderMinute: defaults.reminderMinute,
+            reminderEnabled: defaults.reminderEnabled,
+            dailyGoalItems: defaults.dailyGoalItems,
+            onboardingCompletedAt: defaults.onboardingCompletedAt,
+            lastKnownStreakDays: defaults.lastKnownStreakDays,
             fieldRevisionsJSON: defaults.fieldRevisionsJSON,
             deletedAt: defaults.deletedAt
         )
@@ -219,6 +227,11 @@ public actor PersistenceActor {
                 captionsEnabled: dto.captionsEnabled,
                 defaultRate: dto.defaultRate,
                 reminderHour: dto.reminderHour,
+                reminderMinute: dto.reminderMinute,
+                reminderEnabled: dto.reminderEnabled,
+                dailyGoalItems: dto.dailyGoalItems,
+                onboardingCompletedAt: dto.onboardingCompletedAt,
+                lastKnownStreakDays: dto.lastKnownStreakDays,
                 fieldRevisionsJSON: dto.fieldRevisionsJSON,
                 deletedAt: dto.deletedAt
             )
@@ -229,6 +242,11 @@ public actor PersistenceActor {
         model.captionsEnabled = dto.captionsEnabled
         model.defaultRate = dto.defaultRate
         model.reminderHour = dto.reminderHour
+        model.reminderMinute = dto.reminderMinute
+        model.reminderEnabled = dto.reminderEnabled
+        model.dailyGoalItems = dto.dailyGoalItems
+        model.onboardingCompletedAt = dto.onboardingCompletedAt
+        model.lastKnownStreakDays = dto.lastKnownStreakDays
         model.fieldRevisionsJSON = dto.fieldRevisionsJSON
         model.deletedAt = dto.deletedAt
         try modelContext.save()
@@ -277,6 +295,40 @@ public actor PersistenceActor {
 
     public func downloadedCourses() throws -> [DownloadedCourseDTO] {
         try modelContext.fetch(FetchDescriptor<DownloadedCourse>()).map(PersistenceMapping.downloadedDTO)
+    }
+
+    /// dueAt <= now のカードを dueAt 昇順で返す（ゲート判定は SessionPlanner の責務）。
+    public func dueCards(now: Date) throws -> [SRSCardDTO] {
+        let threshold = now
+        let descriptor = FetchDescriptor<SRSCard>(
+            predicate: #Predicate { $0.dueAt <= threshold },
+            sortBy: [SortDescriptor(\.dueAt)]
+        )
+        return try modelContext.fetch(descriptor).map(PersistenceMapping.cardDTO)
+    }
+
+    /// 全 LessonAttempt の createdAt（ストリーク計算の入力。propertiesToFetch で軽量化）。
+    public func attemptActivityDates() throws -> [Date] {
+        var descriptor = FetchDescriptor<LessonAttempt>()
+        descriptor.propertiesToFetch = [\.createdAt]
+        return try modelContext.fetch(descriptor).map(\.createdAt)
+    }
+
+    /// 期間内の LessonAttempt 件数（今日のゴール進捗。半開区間 [start, end)）。
+    public func attemptCount(from start: Date, to end: Date) throws -> Int {
+        let startDate = start
+        let endDate = end
+        let descriptor = FetchDescriptor<LessonAttempt>(
+            predicate: #Predicate { $0.createdAt >= startDate && $0.createdAt < endDate }
+        )
+        return try modelContext.fetchCount(descriptor)
+    }
+
+    /// 試行が 1 件以上ある (courseId, itemId) の集合（次レッスン選定の入力）。
+    public func attemptedItemRefs() throws -> Set<ItemRef> {
+        let descriptor = FetchDescriptor<LessonAttempt>()
+        let attempts = try modelContext.fetch(descriptor)
+        return Set(attempts.map { ItemRef(courseId: $0.courseId, itemId: $0.itemId) })
     }
 
     public func deleteDownloadedCourse(courseId: String) throws {

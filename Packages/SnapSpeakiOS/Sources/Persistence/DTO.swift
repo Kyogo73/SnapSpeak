@@ -123,6 +123,7 @@ public struct SRSCardDTO: Sendable, Equatable {
     public var intervalDays: Int
     public var repetitions: Int
     public var dueAt: Date
+    public var relearnGateAt: Date?
     public var lastReviewedAt: Date?
     public var lastQuality: Int?
     public var foldedThroughRevision: Int64?
@@ -140,6 +141,7 @@ public struct SRSCardDTO: Sendable, Equatable {
         intervalDays: Int,
         repetitions: Int,
         dueAt: Date,
+        relearnGateAt: Date? = nil,
         lastReviewedAt: Date?,
         lastQuality: Int?,
         foldedThroughRevision: Int64?
@@ -156,6 +158,7 @@ public struct SRSCardDTO: Sendable, Equatable {
         self.intervalDays = intervalDays
         self.repetitions = repetitions
         self.dueAt = dueAt
+        self.relearnGateAt = relearnGateAt
         self.lastReviewedAt = lastReviewedAt
         self.lastQuality = lastQuality
         self.foldedThroughRevision = foldedThroughRevision
@@ -168,6 +171,11 @@ public struct UserSettingsDTO: Sendable, Equatable {
     public var captionsEnabled: Bool
     public var defaultRate: Float
     public var reminderHour: Int?
+    public var reminderMinute: Int
+    public var reminderEnabled: Bool
+    public var dailyGoalItems: Int
+    public var onboardingCompletedAt: Date?
+    public var lastKnownStreakDays: Int
     public var fieldRevisionsJSON: Data
     public var deletedAt: Date?
 
@@ -177,6 +185,11 @@ public struct UserSettingsDTO: Sendable, Equatable {
         captionsEnabled: Bool,
         defaultRate: Float,
         reminderHour: Int?,
+        reminderMinute: Int = 0,
+        reminderEnabled: Bool = false,
+        dailyGoalItems: Int = 10,
+        onboardingCompletedAt: Date? = nil,
+        lastKnownStreakDays: Int = 0,
         fieldRevisionsJSON: Data,
         deletedAt: Date?
     ) {
@@ -185,6 +198,11 @@ public struct UserSettingsDTO: Sendable, Equatable {
         self.captionsEnabled = captionsEnabled
         self.defaultRate = defaultRate
         self.reminderHour = reminderHour
+        self.reminderMinute = reminderMinute
+        self.reminderEnabled = reminderEnabled
+        self.dailyGoalItems = dailyGoalItems
+        self.onboardingCompletedAt = onboardingCompletedAt
+        self.lastKnownStreakDays = lastKnownStreakDays
         self.fieldRevisionsJSON = fieldRevisionsJSON
         self.deletedAt = deletedAt
     }
@@ -195,6 +213,11 @@ public struct UserSettingsDTO: Sendable, Equatable {
         captionsEnabled: true,
         defaultRate: 1.0,
         reminderHour: nil,
+        reminderMinute: 0,
+        reminderEnabled: false,
+        dailyGoalItems: 10,
+        onboardingCompletedAt: nil,
+        lastKnownStreakDays: 0,
         fieldRevisionsJSON: Data("{}".utf8),
         deletedAt: nil
     )
@@ -321,6 +344,7 @@ enum PersistenceMapping {
             intervalDays: model.intervalDays,
             repetitions: model.repetitions,
             dueAt: model.dueAt,
+            relearnGateAt: model.relearnGateAt,
             lastReviewedAt: model.lastReviewedAt,
             lastQuality: model.lastQuality,
             foldedThroughRevision: model.foldedThroughRevision
@@ -334,6 +358,11 @@ enum PersistenceMapping {
             captionsEnabled: model.captionsEnabled,
             defaultRate: model.defaultRate,
             reminderHour: model.reminderHour,
+            reminderMinute: model.reminderMinute,
+            reminderEnabled: model.reminderEnabled,
+            dailyGoalItems: model.dailyGoalItems,
+            onboardingCompletedAt: model.onboardingCompletedAt,
+            lastKnownStreakDays: model.lastKnownStreakDays,
             fieldRevisionsJSON: model.fieldRevisionsJSON,
             deletedAt: model.deletedAt
         )

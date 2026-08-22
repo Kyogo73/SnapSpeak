@@ -29,7 +29,8 @@ public struct ReviewSummaryView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
             Text("review.summary.title")
                 .font(Typography.title)
             Text(LocalizedFormat.string("review.summary.completed", completedCount))
@@ -50,7 +51,8 @@ public struct ReviewSummaryView: View {
             }
             PrimaryButton("review.summary.back_home", systemImage: "house", action: onBackHome)
             SecondaryButton("home.today.extra", action: onContinue)
+            }
+            .padding()
         }
-        .padding()
     }
 }

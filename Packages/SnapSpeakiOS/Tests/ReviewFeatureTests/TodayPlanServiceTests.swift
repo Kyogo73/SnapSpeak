@@ -27,6 +27,52 @@ struct ReviewFeatureMappingTests {
         #expect(summaries.map(\.courseId) == ["course_a", "course_a", "course_b"])
     }
 
+    @Test("同一 courseId の seed/downloaded は revision 最大だけ残す")
+    func lessonSummariesUniquesByCourseId() throws {
+        let seed = try makeCourse(id: "course_a", lessons: [("old", ["i1"])])
+        let downloaded = try makeCourse(id: "course_a", lessons: [("new", ["i2"])])
+        let other = try makeCourse(id: "course_b", lessons: [("b1", ["i3"])])
+        let summaries = TodayPlanService.lessonSummaries(from: [
+            stored(downloaded, revision: 5),
+            stored(seed, revision: 1),
+            stored(other, revision: 0),
+        ])
+        #expect(summaries.map(\.courseId) == ["course_a", "course_b"])
+        #expect(summaries.map(\.lessonId) == ["new", "b1"])
+    }
+
+    @Test("新規レッスン区切りは先頭または due から new への境界")
+    func newLessonIntroBoundaries() {
+        let due = ReviewEntry(
+            id: "d",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i1",
+            mode: .shadowing,
+            origin: .due(cardKey: "k")
+        )
+        let firstNew = ReviewEntry(
+            id: "n1",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i2",
+            mode: .shadowing,
+            origin: .newLesson
+        )
+        let secondNew = ReviewEntry(
+            id: "n2",
+            courseId: "c",
+            lessonId: "l",
+            itemId: "i3",
+            mode: .shadowing,
+            origin: .newLesson
+        )
+        #expect(ReviewSessionViewModel.shouldInsertNewLessonIntro(entries: [firstNew, secondNew], at: 0))
+        #expect(ReviewSessionViewModel.shouldInsertNewLessonIntro(entries: [due, firstNew, secondNew], at: 1))
+        #expect(ReviewSessionViewModel.shouldInsertNewLessonIntro(entries: [due, firstNew, secondNew], at: 2) == false)
+        #expect(ReviewSessionViewModel.shouldInsertNewLessonIntro(entries: [due], at: 0) == false)
+    }
+
     @Test("dueCard(from:) の写像")
     func dueCardMapping() {
         let due = Date(timeIntervalSince1970: 1_700_000_000)
@@ -96,12 +142,12 @@ struct ReviewFeatureMappingTests {
         #expect(resolved.skipped == 2)
     }
 
-    private func stored(_ course: Course) -> StoredCourse {
+    private func stored(_ course: Course, revision: Int = 0) -> StoredCourse {
         StoredCourse(
             course: course,
             origin: .seed,
             directory: URL(fileURLWithPath: "/tmp"),
-            revision: 0,
+            revision: revision,
             releaseId: nil
         )
     }

@@ -1,5 +1,6 @@
 import DesignSystem
 import SwiftUI
+import UIKit
 
 public struct ReviewSessionView<ItemContent: View>: View {
     @ObservedObject private var viewModel: ReviewSessionViewModel
@@ -35,6 +36,8 @@ public struct ReviewSessionView<ItemContent: View>: View {
             case .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .newLessonIntro:
+                newLessonIntroBody
             case let .running(index, total):
                 runningBody(index: index, total: total)
             case .summary:
@@ -87,24 +90,35 @@ public struct ReviewSessionView<ItemContent: View>: View {
                 .font(Typography.headline)
                 .monospacedDigit()
                 .frame(maxWidth: .infinity)
-                .accessibilityLabel(LocalizedFormat.string("review.session.progress", index + 1, total))
+                .accessibilityLabel(
+                    LocalizedFormat.string("review.session.progress_a11y", index + 1, total)
+                )
             if let entry = viewModel.current {
-                if shouldShowNewLessonDivider(index: index) {
-                    Text("review.session.new_lesson_divider")
-                        .font(Typography.caption)
-                        .foregroundStyle(Colors.secondaryFill)
-                        .frame(maxWidth: .infinity)
-                }
                 itemContent(entry, viewModel.advance)
             }
         }
         .padding()
+        .onChange(of: index) { _, newIndex in
+            announceItem(index: newIndex, total: total)
+        }
     }
 
-    private func shouldShowNewLessonDivider(index: Int) -> Bool {
-        guard viewModel.entries.indices.contains(index) else { return false }
-        guard viewModel.entries[index].origin == .newLesson else { return false }
-        if index == 0 { return true }
-        return viewModel.entries[index - 1].origin != .newLesson
+    private var newLessonIntroBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("review.session.new_lesson_divider")
+                    .font(Typography.title)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                PrimaryButton("review.session.new_lesson_continue") {
+                    viewModel.advance()
+                }
+            }
+            .padding()
+        }
+    }
+
+    private func announceItem(index: Int, total: Int) {
+        let announcement = LocalizedFormat.string("review.session.progress_a11y", index + 1, total)
+        UIAccessibility.post(notification: .announcement, argument: announcement)
     }
 }

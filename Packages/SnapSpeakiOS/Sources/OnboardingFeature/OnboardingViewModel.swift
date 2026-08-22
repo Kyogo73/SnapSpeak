@@ -15,6 +15,8 @@ public final class OnboardingViewModel: ObservableObject {
     @Published public var selectedGoal: DailyGoal = .standard
     @Published public var reminderEnabled = true
     @Published public var reminderTime = DateComponents(hour: 21, minute: 0)
+    @Published public private(set) var isSaving = false
+    @Published public private(set) var saveFailed = false
 
     private let persistence: PersistenceActor
     private let scheduler: ReminderScheduler
@@ -53,7 +55,11 @@ public final class OnboardingViewModel: ObservableObject {
                 reminderEnabled = false
             }
         }
-        await persist(goal: selectedGoal, reminderEnabled: enabled, skippedGoal: false)
+        do {
+            try await persist(goal: selectedGoal, reminderEnabled: enabled, skippedGoal: false)
+        } catch {
+            return false
+        }
         analytics.track(
             .onboardingCompleted(
                 goalItems: selectedGoal.itemsPerDay,
@@ -68,7 +74,11 @@ public final class OnboardingViewModel: ObservableObject {
     public func skip() async -> Bool {
         let fromWelcome = step == .welcome
         analytics.track(.onboardingSkipped(step: fromWelcome ? "welcome" : "goal"))
-        await persist(goal: .standard, reminderEnabled: false, skippedGoal: true)
+        do {
+            try await persist(goal: .standard, reminderEnabled: false, skippedGoal: true)
+        } catch {
+            return false
+        }
         analytics.track(
             .onboardingCompleted(
                 goalItems: DailyGoal.standard.itemsPerDay,
@@ -79,7 +89,7 @@ public final class OnboardingViewModel: ObservableObject {
         return !fromWelcome
     }
 
-    private func persist(goal: DailyGoal, reminderEnabled: Bool, skippedGoal: Bool) async {
+    private func persist(goal: DailyGoal, reminderEnabled: Bool, skippedGoal: Bool) async throws {
         var dto = (try? await persistence.loadOrCreateSettings()) ?? UserSettingsDTO.phase1Default
         dto.dailyGoalItems = goal.itemsPerDay
         dto.reminderEnabled = reminderEnabled
@@ -88,6 +98,14 @@ public final class OnboardingViewModel: ObservableObject {
             dto.reminderMinute = reminderTime.minute ?? 0
         }
         dto.onboardingCompletedAt = Date()
-        _ = try? await persistence.saveSettings(dto)
+        isSaving = true
+        saveFailed = false
+        defer { isSaving = false }
+        do {
+            _ = try await persistence.saveSettings(dto)
+        } catch {
+            saveFailed = true
+            throw error
+        }
     }
 }

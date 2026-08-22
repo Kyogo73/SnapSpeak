@@ -17,6 +17,8 @@ public struct SettingsView: View {
     @State private var reminderDate = SettingsView.defaultReminderDate
     @State private var reminderDenied = false
     @State private var didLoad = false
+    @State private var saveFailed = false
+    @Environment(\.scenePhase) private var scenePhase
 
     public init(path: Binding<[SettingsDestination]>, today: TodayViewModel? = nil) {
         _path = path
@@ -49,6 +51,11 @@ public struct SettingsView: View {
                         displayedComponents: .hourAndMinute
                     )
                     .frame(minHeight: 44)
+                }
+                if saveFailed {
+                    Text("settings.save_failed")
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.danger)
                 }
                 if reminderDenied {
                     Text("settings.reminder_denied")
@@ -102,6 +109,11 @@ public struct SettingsView: View {
             guard didLoad else { return }
             Task { await persistHabitSettings() }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await reloadAuthorization() }
+            }
+        }
     }
 
     private func loadFromStore() async {
@@ -113,6 +125,10 @@ public struct SettingsView: View {
         components.hour = loaded.reminderHour ?? 21
         components.minute = loaded.reminderMinute
         reminderDate = Calendar.current.date(from: components) ?? Self.defaultReminderDate
+        await reloadAuthorization()
+    }
+
+    private func reloadAuthorization() async {
         let auth = await dependencies.reminderScheduler.authorization()
         reminderDenied = auth == .denied
     }
@@ -137,8 +153,13 @@ public struct SettingsView: View {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: reminderDate)
         dto.reminderHour = parts.hour
         dto.reminderMinute = parts.minute ?? 0
-        _ = try? await dependencies.persistence.saveSettings(dto)
-        await today?.refresh()
+        do {
+            _ = try await dependencies.persistence.saveSettings(dto)
+            saveFailed = false
+            await today?.refresh()
+        } catch {
+            saveFailed = true
+        }
     }
 
     private static var defaultReminderDate: Date {

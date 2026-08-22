@@ -56,16 +56,21 @@ public struct RootView: View {
                 Task { await todayViewModel?.refresh() }
             }
         }
+        .onReceive(dependencies.reminderRouter.$homeRevealToken) { token in
+            guard token > 0 else { return }
+            selectedTab = .home
+            homePath.removeAll()
+            catalogPath.removeAll()
+            settingsPath.removeAll()
+        }
         .onOpenURL { url in
             handleDeepLink(url)
         }
         .fullScreenCover(isPresented: $showOnboarding) {
-            OnboardingFlowView(
-                viewModel: OnboardingViewModel(
-                    persistence: dependencies.persistence,
-                    scheduler: dependencies.reminderScheduler,
-                    analytics: dependencies.analytics
-                ),
+            OnboardingContainerView(
+                persistence: dependencies.persistence,
+                scheduler: dependencies.reminderScheduler,
+                analytics: dependencies.analytics,
                 onFinished: { startFirstLesson in
                     showOnboarding = false
                     Task { await todayViewModel?.refresh() }
@@ -113,6 +118,9 @@ public struct RootView: View {
                         homePath.removeAll { $0 == .review }
                         selectedTab = .catalog
                         Task { await todayViewModel.refresh() }
+                    },
+                    onItemCompleted: {
+                        Task { await todayViewModel.refresh() }
                     }
                 )
             } else {
@@ -123,28 +131,43 @@ public struct RootView: View {
 
     @ViewBuilder
     private func lessonDestination(_ coordinate: LessonCoordinate) -> some View {
-        switch coordinate.mode {
-        case .shadowing:
-            ShadowingLessonView(
-                viewModel: ShadowingLessonViewModel(
-                    courseId: coordinate.courseId,
-                    lessonId: coordinate.lessonId,
-                    itemId: coordinate.itemId,
-                    useCase: dependencies.shadowingUseCase,
-                    courseStore: dependencies.courseStore,
-                    captionsEnabled: dependencies.settings.captionsEnabled,
-                    defaultRate: dependencies.settings.defaultRate
+        let onCompleted = {
+            Task { await todayViewModel?.refresh() }
+        }
+        Group {
+            switch coordinate.mode {
+            case .shadowing:
+                ShadowingLessonView(
+                    viewModel: ShadowingLessonViewModel(
+                        courseId: coordinate.courseId,
+                        lessonId: coordinate.lessonId,
+                        itemId: coordinate.itemId,
+                        useCase: dependencies.shadowingUseCase,
+                        courseStore: dependencies.courseStore,
+                        captionsEnabled: dependencies.settings.captionsEnabled,
+                        defaultRate: dependencies.settings.defaultRate
+                    ),
+                    onCompleted: onCompleted
                 )
-            )
-        case .composition:
-            CompositionCardView(
-                viewModel: CompositionSessionViewModel(
-                    courseId: coordinate.courseId,
-                    lessonId: coordinate.lessonId,
-                    itemId: coordinate.itemId,
-                    useCase: dependencies.compositionUseCase,
-                    courseStore: dependencies.courseStore
+            case .composition:
+                CompositionCardView(
+                    viewModel: CompositionSessionViewModel(
+                        courseId: coordinate.courseId,
+                        lessonId: coordinate.lessonId,
+                        itemId: coordinate.itemId,
+                        useCase: dependencies.compositionUseCase,
+                        courseStore: dependencies.courseStore
+                    ),
+                    onCompleted: onCompleted
                 )
+            }
+        }
+        .task {
+            try? await dependencies.persistence.recordLastOpenedLesson(
+                courseId: coordinate.courseId,
+                lessonId: coordinate.lessonId,
+                itemId: coordinate.itemId,
+                mode: coordinate.mode.rawValue
             )
         }
     }
@@ -200,16 +223,19 @@ private final class TodayViewModelBox: ObservableObject {
 
 private struct ReviewSessionContainer: View {
     @StateObject private var session: ReviewSessionViewModel
+    @State private var afterSnapshot: TodaySnapshot?
     let snapshot: TodaySnapshot
     let dependencies: AppDependencies
     let onClose: () -> Void
     let onContinueLearning: () -> Void
+    let onItemCompleted: () -> Void
 
     init(
         snapshot: TodaySnapshot,
         dependencies: AppDependencies,
         onClose: @escaping () -> Void,
-        onContinueLearning: @escaping () -> Void
+        onContinueLearning: @escaping () -> Void,
+        onItemCompleted: @escaping () -> Void
     ) {
         _session = StateObject(
             wrappedValue: ReviewSessionViewModel(
@@ -222,12 +248,13 @@ private struct ReviewSessionContainer: View {
         self.dependencies = dependencies
         self.onClose = onClose
         self.onContinueLearning = onContinueLearning
+        self.onItemCompleted = onItemCompleted
     }
 
     var body: some View {
-        let streakTo = snapshot.streak.studiedToday
-            ? snapshot.streak.currentStreakDays
-            : snapshot.streak.currentStreakDays + (snapshot.plan.isEmpty ? 0 : 1)
+        let after = afterSnapshot
+        let streakFrom = snapshot.streak.currentStreakDays
+        let streakTo = after?.streak.currentStreakDays ?? streakFrom
         ReviewSessionView(
             viewModel: session,
             itemContent: { entry, onFinished in
@@ -235,9 +262,23 @@ private struct ReviewSessionContainer: View {
             },
             onClose: onClose,
             onContinueLearning: onContinueLearning,
-            didMeetGoal: snapshot.goal.isMet,
-            streakFrom: snapshot.streak.currentStreakDays,
+            didMeetGoal: after?.goal.isMet ?? false,
+            streakFrom: streakFrom,
             streakTo: streakTo
+        )
+        .task(id: session.phase) {
+            guard session.phase == .summary else { return }
+            afterSnapshot = try? await loadAfterSnapshot()
+        }
+    }
+
+    private func loadAfterSnapshot() async throws -> TodaySnapshot {
+        let settings = try await dependencies.persistence.loadOrCreateSettings()
+        return try await dependencies.todayPlanService.makeToday(
+            now: Date(),
+            timeZone: TimeZone.current,
+            goal: DailyGoal(itemsPerDay: settings.dailyGoalItems),
+            policy: .standard
         )
     }
 
@@ -255,7 +296,10 @@ private struct ReviewSessionContainer: View {
                     captionsEnabled: dependencies.settings.captionsEnabled,
                     defaultRate: dependencies.settings.defaultRate
                 ),
-                onCompleted: onFinished
+                onCompleted: {
+                    onItemCompleted()
+                    onFinished()
+                }
             )
         case .composition:
             CompositionCardView(
@@ -266,7 +310,10 @@ private struct ReviewSessionContainer: View {
                     useCase: dependencies.compositionUseCase,
                     courseStore: dependencies.courseStore
                 ),
-                onCompleted: onFinished
+                onCompleted: {
+                    onItemCompleted()
+                    onFinished()
+                }
             )
         }
     }

@@ -3,6 +3,7 @@ import ContentKit
 import DesignSystem
 import HabitKit
 import ReviewFeature
+import ShadowingFeature
 import SwiftUI
 
 public struct HomeView: View {
@@ -10,6 +11,7 @@ public struct HomeView: View {
     public var courses: [StoredCourse]
     @ObservedObject var today: TodayViewModel
     public var onContinueLearning: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(
         path: Binding<[HomeDestination]>,
@@ -26,26 +28,32 @@ public struct HomeView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if today.asrDegraded {
+                    DegradedBanner(titleKey: "degraded.no_asr")
+                }
                 if case let .recovery(totalDays, longest) = today.state {
                     recoveryCard(totalDays: totalDays, longest: longest)
                 } else {
                     habitCard
                 }
                 todayCard
-                if let continueLesson {
+                if let continueLesson = today.continueLesson {
                     continueCard(continueLesson)
                 }
             }
             .padding()
         }
         .navigationTitle("tab.home")
+        .onAppear {
+            Task { await today.refresh() }
+        }
     }
 
     @ViewBuilder
     private var habitCard: some View {
         if let snapshot = today.snapshot {
             CardContainer {
-                HStack(alignment: .center, spacing: 16) {
+                AdaptiveStack {
                     VStack(alignment: .leading, spacing: 4) {
                         StreakBadge(
                             days: snapshot.streak.currentStreakDays,
@@ -68,7 +76,9 @@ public struct HomeView: View {
                                 .foregroundStyle(Colors.warning)
                         }
                     }
-                    Spacer()
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Spacer()
+                    }
                     ProgressRing(
                         progress: snapshot.goal.fraction,
                         accessibilityLabel: "home.goal.ring_label",
@@ -97,7 +107,13 @@ public struct HomeView: View {
         CardContainer {
             Text("home.title")
                 .font(Typography.headline)
-            if courses.isEmpty || today.state == .empty {
+            if today.state == .failed {
+                Text("home.today.load_failed")
+                    .font(Typography.body)
+                SecondaryButton("home.today.retry") {
+                    Task { await today.refresh() }
+                }
+            } else if courses.isEmpty || today.state == .empty {
                 Text("home.today.empty_course")
                     .font(Typography.body)
                 SecondaryButton("catalog.title", action: onContinueLearning)
@@ -118,7 +134,10 @@ public struct HomeView: View {
                         .foregroundStyle(Colors.secondaryFill)
                 }
                 PrimaryButton("home.today.start") {
-                    path.append(.review)
+                    Task {
+                        await today.refresh()
+                        path.append(.review)
+                    }
                 }
             }
         }
@@ -126,19 +145,29 @@ public struct HomeView: View {
 
     private func recoveryCard(totalDays: Int, longest: Int) -> some View {
         CardContainer {
-            Text("streak.broken.title")
-                .font(Typography.headline)
-            Text(LocalizedFormat.string("streak.broken.subtitle", totalDays))
-                .font(Typography.body)
-            Text(LocalizedFormat.string("streak.longest", longest))
-                .font(Typography.caption)
-                .foregroundStyle(Colors.secondaryFill)
-            Text("streak.rule_note")
-                .font(Typography.caption)
-                .foregroundStyle(Colors.secondaryFill)
+            AdaptiveStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("streak.broken.title")
+                        .font(Typography.headline)
+                    Text(LocalizedFormat.string("streak.broken.subtitle", totalDays))
+                        .font(Typography.body)
+                    Text(LocalizedFormat.string("streak.longest", longest))
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                    Text("streak.rule_note")
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
+            }
             PrimaryButton("streak.broken.restart") {
                 today.dismissRecovery()
-                path.append(.review)
+                Task {
+                    await today.refresh()
+                    path.append(.review)
+                }
+            }
+            SecondaryButton("home.recovery.dismiss") {
+                today.dismissRecovery()
             }
         }
     }
@@ -155,33 +184,17 @@ public struct HomeView: View {
     }
 
     private func planSummary(_ plan: SessionPlan) -> String {
-        var parts: [String] = []
-        if !plan.reviews.isEmpty {
-            parts.append(LocalizedFormat.string("home.today.review_count", plan.reviews.count))
+        let hasReviews = !plan.reviews.isEmpty
+        let hasNew = plan.newLesson != nil
+        if hasReviews && hasNew {
+            return LocalizedFormat.string("home.today.plan_review_and_new", plan.reviews.count)
         }
-        if plan.newLesson != nil {
-            parts.append(String(localized: String.LocalizationValue("home.today.new_lesson")))
+        if hasReviews {
+            return LocalizedFormat.string("home.today.plan_review_only", plan.reviews.count)
         }
-        return parts.joined(separator: " · ")
-    }
-
-    private var continueLesson: LessonCoordinate? {
-        guard let snapshot = today.snapshot, snapshot.streak.totalStudyDays > 0 || snapshot.streak.studiedToday else {
-            return nil
+        if hasNew {
+            return String(localized: String.LocalizationValue("home.today.plan_new_only"))
         }
-        return firstLesson
-    }
-
-    private var firstLesson: LessonCoordinate? {
-        guard let stored = courses.first,
-              let lesson = stored.course.units.first?.lessons.first,
-              let item = lesson.items.first
-        else { return nil }
-        return LessonCoordinate(
-            courseId: stored.course.id,
-            lessonId: lesson.id,
-            itemId: item.id,
-            mode: lesson.mode
-        )
+        return ""
     }
 }

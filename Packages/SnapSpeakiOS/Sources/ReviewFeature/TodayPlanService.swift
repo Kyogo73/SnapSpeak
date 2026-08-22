@@ -24,7 +24,11 @@ public struct TodayPlanService: Sendable {
         calendar.timeZone = timeZone
         calendar.locale = Locale(identifier: "en_US_POSIX")
 
-        let courses = await courseStore.allCourses()
+        let courses = CourseCatalog.uniquedActiveReleases(
+            await courseStore.allCourses(),
+            id: { $0.course.id },
+            revision: { $0.revision }
+        )
         let cardDTOs = try await persistence.dueCards(now: now)
         let dueCards = cardDTOs.compactMap(Self.dueCard(from:))
         let activity = try await persistence.attemptActivityDates()
@@ -47,8 +51,13 @@ public struct TodayPlanService: Sendable {
 
     /// StoredCourse 列 → カタログ順 [LessonSummary]（ContentCore → HabitKit の写像）。
     public static func lessonSummaries(from courses: [StoredCourse]) -> [LessonSummary] {
+        let unique = CourseCatalog.uniquedActiveReleases(
+            courses,
+            id: { $0.course.id },
+            revision: { $0.revision }
+        )
         var result: [LessonSummary] = []
-        for stored in courses {
+        for stored in unique {
             for unit in stored.course.units {
                 for lesson in unit.lessons {
                     result.append(

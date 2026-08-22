@@ -45,6 +45,16 @@ public struct OnboardingFlowView: View {
                 )
             }
         }
+        .overlay(alignment: .top) {
+            if viewModel.saveFailed {
+                Text("onboarding.save_failed")
+                    .font(.callout)
+                    .padding(12)
+                    .frame(maxWidth: .infinity)
+                    .background(.red.opacity(0.12))
+            }
+        }
+        .disabled(viewModel.isSaving)
         .onAppear { viewModel.appear() }
     }
 }

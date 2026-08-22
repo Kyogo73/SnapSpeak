@@ -24,7 +24,8 @@ public struct OnboardingGoalView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
             Text("onboarding.goal.title")
                 .font(Typography.title)
             Text("onboarding.goal.subtitle")
@@ -51,8 +52,10 @@ public struct OnboardingGoalView: View {
             PrimaryButton("onboarding.goal.start_lesson", action: onStartLesson)
             Button("onboarding.skip", action: onSkip)
                 .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(24)
     }
 
     private var reminderDateBinding: Binding<Date> {

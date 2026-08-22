@@ -11,7 +11,8 @@ public struct OnboardingWelcomeView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 24) {
+        ScrollView {
+            VStack(spacing: 24) {
             Spacer()
             Image(systemName: "waveform.and.mic")
                 .font(.system(size: 56))
@@ -34,7 +35,9 @@ public struct OnboardingWelcomeView: View {
             PrimaryButton("onboarding.welcome.start", action: onStart)
             Button("onboarding.skip", action: onSkip)
                 .frame(minHeight: 44)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity)
         }
-        .padding(24)
     }
 }

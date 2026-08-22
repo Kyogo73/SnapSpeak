@@ -8,6 +8,7 @@ import HabitKit
 public final class ReviewSessionViewModel: ObservableObject {
     public enum Phase: Equatable {
         case loading
+        case newLessonIntro
         case running(index: Int, total: Int)
         case summary
     }
@@ -21,6 +22,9 @@ public final class ReviewSessionViewModel: ObservableObject {
     private let courseStore: CourseStore
     private let analytics: any AnalyticsClient
     private var startedAt = Date()
+    private var lastAdvancedIndex: Int?
+    private var introConsumed = false
+    private var pendingIndexAfterIntro = 0
 
     public init(plan: SessionPlan, courseStore: CourseStore, analytics: any AnalyticsClient) {
         self.plan = plan
@@ -47,6 +51,10 @@ public final class ReviewSessionViewModel: ObservableObject {
         if entries.isEmpty {
             trackCompleted()
             phase = .summary
+        } else if shouldShowNewLessonIntro(beforeIndex: 0) {
+            pendingIndexAfterIntro = 0
+            introConsumed = false
+            phase = .newLessonIntro
         } else {
             phase = .running(index: 0, total: entries.count)
         }
@@ -54,15 +62,38 @@ public final class ReviewSessionViewModel: ObservableObject {
 
     /// アイテム完了時に AppFeature 側から呼ばれる（既存 UseCase が永続化済み）。
     public func advance() {
+        if case .newLessonIntro = phase {
+            guard !introConsumed else { return }
+            introConsumed = true
+            phase = .running(index: pendingIndexAfterIntro, total: entries.count)
+            return
+        }
         guard case let .running(index, total) = phase else { return }
+        guard lastAdvancedIndex != index else { return }
+        lastAdvancedIndex = index
         completedCount += 1
         let next = index + 1
         if next >= total {
             trackCompleted()
             phase = .summary
+        } else if shouldShowNewLessonIntro(beforeIndex: next) {
+            pendingIndexAfterIntro = next
+            introConsumed = false
+            phase = .newLessonIntro
         } else {
             phase = .running(index: next, total: total)
         }
+    }
+
+    public static func shouldInsertNewLessonIntro(entries: [ReviewEntry], at index: Int) -> Bool {
+        guard entries.indices.contains(index) else { return false }
+        guard entries[index].origin == .newLesson else { return false }
+        if index == 0 { return true }
+        return entries[index - 1].origin != .newLesson
+    }
+
+    private func shouldShowNewLessonIntro(beforeIndex index: Int) -> Bool {
+        Self.shouldInsertNewLessonIntro(entries: entries, at: index)
     }
 
     nonisolated public static func resolveEntries(

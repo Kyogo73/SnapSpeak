@@ -27,6 +27,7 @@ public final class AppDependencies: ObservableObject {
     public let reminderScheduler: ReminderScheduler
     public let todayPlanService: TodayPlanService
     public let reminderDelegate: ReminderDelegate
+    public let reminderRouter: ReminderRouter
 
     public init(
         persistence: PersistenceActor,
@@ -43,7 +44,8 @@ public final class AppDependencies: ObservableObject {
         compositionUseCase: LiveCompositionUseCase,
         reminderScheduler: ReminderScheduler,
         todayPlanService: TodayPlanService,
-        reminderDelegate: ReminderDelegate
+        reminderDelegate: ReminderDelegate,
+        reminderRouter: ReminderRouter
     ) {
         self.persistence = persistence
         self.audio = audio
@@ -60,6 +62,7 @@ public final class AppDependencies: ObservableObject {
         self.reminderScheduler = reminderScheduler
         self.todayPlanService = todayPlanService
         self.reminderDelegate = reminderDelegate
+        self.reminderRouter = reminderRouter
     }
 
     public static func live(resourceBundle: Bundle) throws -> AppDependencies {
@@ -101,7 +104,8 @@ public final class AppDependencies: ObservableObject {
             analytics: analytics,
             recordingsDirectory: recordings
         )
-        let reminderDelegate = ReminderDelegate(analytics: analytics)
+        let reminderRouter = ReminderRouter()
+        let reminderDelegate = ReminderDelegate(analytics: analytics, router: reminderRouter)
         let reminderScheduler = ReminderScheduler(center: LiveReminderCenter(), analytics: analytics)
         let todayPlanService = TodayPlanService(persistence: persistence, courseStore: courseStore)
 
@@ -121,7 +125,8 @@ public final class AppDependencies: ObservableObject {
             compositionUseCase: composition,
             reminderScheduler: reminderScheduler,
             todayPlanService: todayPlanService,
-            reminderDelegate: reminderDelegate
+            reminderDelegate: reminderDelegate,
+            reminderRouter: reminderRouter
         )
     }
 

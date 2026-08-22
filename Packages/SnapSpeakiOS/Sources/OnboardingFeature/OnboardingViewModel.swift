@@ -18,13 +18,13 @@ public final class OnboardingViewModel: ObservableObject {
     @Published public private(set) var isSaving = false
     @Published public private(set) var saveFailed = false
 
-    private let persistence: PersistenceActor
+    private let persistence: any SettingsStoring
     private let scheduler: ReminderScheduler
     private let analytics: any AnalyticsClient
     private var didTrackStart = false
 
     public init(
-        persistence: PersistenceActor,
+        persistence: any SettingsStoring,
         scheduler: ReminderScheduler,
         analytics: any AnalyticsClient
     ) {

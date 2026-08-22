@@ -44,7 +44,7 @@ public protocol CompositionUseCase: Sendable {
 
 public struct LiveCompositionUseCase: CompositionUseCase {
     public var audio: AudioEngineActor
-    public var speech: SpeechClient
+    public var speech: any SpeechRecognizing
     public var persistence: PersistenceActor
     public var analytics: any AnalyticsClient
     public var recordingsDirectory: URL
@@ -53,7 +53,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
 
     public init(
         audio: AudioEngineActor,
-        speech: SpeechClient,
+        speech: any SpeechRecognizing,
         persistence: PersistenceActor,
         analytics: any AnalyticsClient,
         recordingsDirectory: URL,

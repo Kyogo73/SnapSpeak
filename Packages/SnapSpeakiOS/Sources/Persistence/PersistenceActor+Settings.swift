@@ -28,6 +28,9 @@ extension PersistenceActor {
             lastOpenedLessonId: defaults.lastOpenedLessonId,
             lastOpenedItemId: defaults.lastOpenedItemId,
             lastOpenedMode: defaults.lastOpenedMode,
+            driveSessionMinutes: defaults.driveSessionMinutes,
+            drivePausePreset: defaults.drivePausePreset,
+            driveShadowingRepeats: defaults.driveShadowingRepeats,
             fieldRevisionsJSON: defaults.fieldRevisionsJSON,
             deletedAt: defaults.deletedAt
         )
@@ -62,6 +65,9 @@ extension PersistenceActor {
                 lastOpenedLessonId: dto.lastOpenedLessonId,
                 lastOpenedItemId: dto.lastOpenedItemId,
                 lastOpenedMode: dto.lastOpenedMode,
+                driveSessionMinutes: dto.driveSessionMinutes,
+                drivePausePreset: dto.drivePausePreset,
+                driveShadowingRepeats: dto.driveShadowingRepeats,
                 fieldRevisionsJSON: dto.fieldRevisionsJSON,
                 deletedAt: dto.deletedAt
             )
@@ -85,6 +91,9 @@ extension PersistenceActor {
         model.lastOpenedLessonId = dto.lastOpenedLessonId
         model.lastOpenedItemId = dto.lastOpenedItemId
         model.lastOpenedMode = dto.lastOpenedMode
+        model.driveSessionMinutes = dto.driveSessionMinutes
+        model.drivePausePreset = dto.drivePausePreset
+        model.driveShadowingRepeats = dto.driveShadowingRepeats
         model.fieldRevisionsJSON = dto.fieldRevisionsJSON
         model.deletedAt = dto.deletedAt
         try saveOrRollback()

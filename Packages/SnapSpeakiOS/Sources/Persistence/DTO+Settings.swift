@@ -20,6 +20,9 @@ public struct UserSettingsDTO: Sendable, Equatable {
     public var lastOpenedLessonId: String?
     public var lastOpenedItemId: String?
     public var lastOpenedMode: String?
+    public var driveSessionMinutes: Int
+    public var drivePausePreset: String
+    public var driveShadowingRepeats: Int
     public var fieldRevisionsJSON: Data
     public var deletedAt: Date?
 
@@ -42,6 +45,9 @@ public struct UserSettingsDTO: Sendable, Equatable {
         lastOpenedLessonId: String? = nil,
         lastOpenedItemId: String? = nil,
         lastOpenedMode: String? = nil,
+        driveSessionMinutes: Int = 10,
+        drivePausePreset: String = "standard",
+        driveShadowingRepeats: Int = 2,
         fieldRevisionsJSON: Data,
         deletedAt: Date?
     ) {
@@ -63,6 +69,9 @@ public struct UserSettingsDTO: Sendable, Equatable {
         self.lastOpenedLessonId = lastOpenedLessonId
         self.lastOpenedItemId = lastOpenedItemId
         self.lastOpenedMode = lastOpenedMode
+        self.driveSessionMinutes = driveSessionMinutes
+        self.drivePausePreset = drivePausePreset
+        self.driveShadowingRepeats = driveShadowingRepeats
         self.fieldRevisionsJSON = fieldRevisionsJSON
         self.deletedAt = deletedAt
     }
@@ -86,6 +95,9 @@ public struct UserSettingsDTO: Sendable, Equatable {
         dailyGoalItems: 10,
         onboardingCompletedAt: nil,
         lastKnownStreakDays: 0,
+        driveSessionMinutes: 10,
+        drivePausePreset: "standard",
+        driveShadowingRepeats: 2,
         fieldRevisionsJSON: Data("{}".utf8),
         deletedAt: nil
     )

@@ -1108,6 +1108,9 @@ enum SnapSpeakSchemaV1: VersionedSchema {
     var lastOpenedLessonId: String?
     var lastOpenedItemId: String?
     var lastOpenedMode: String?      // "shadowing" | "composition"
+    var driveSessionMinutes: Int     // 5 / 10 / 20 / 0（エンドレス）。既定 10
+    var drivePausePreset: String     // "short" / "standard" / "long"。既定 "standard"
+    var driveShadowingRepeats: Int   // 1...3。既定 2
 
     var fieldRevisionsJSON: Data     // フィールド別 revision
     var deletedAt: Date?             // tombstone（アカウント単位）

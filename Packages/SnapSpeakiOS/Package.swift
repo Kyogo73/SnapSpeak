@@ -19,6 +19,9 @@ let package = Package(
         .library(name: "AudioEngine", targets: ["AudioEngine"]),
         .library(name: "SpeechKit", targets: ["SpeechKit"]),
         .library(name: "ContentKit", targets: ["ContentKit"]),
+        .library(name: "NotificationsKit", targets: ["NotificationsKit"]),
+        .library(name: "ReviewFeature", targets: ["ReviewFeature"]),
+        .library(name: "OnboardingFeature", targets: ["OnboardingFeature"]),
     ],
     dependencies: [
         .package(path: "../SnapSpeakCore"),
@@ -39,6 +42,7 @@ let package = Package(
             name: "Persistence",
             dependencies: [
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
@@ -99,6 +103,38 @@ let package = Package(
             swiftSettings: swift6
         ),
         .target(
+            name: "NotificationsKit",
+            dependencies: [
+                "Analytics",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "ReviewFeature",
+            dependencies: [
+                "Analytics",
+                "ContentKit",
+                "DesignSystem",
+                "Persistence",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "OnboardingFeature",
+            dependencies: [
+                "Analytics",
+                "DesignSystem",
+                "NotificationsKit",
+                "Persistence",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
             name: "AppFeature",
             dependencies: [
                 "Analytics",
@@ -106,10 +142,14 @@ let package = Package(
                 "CompositionFeature",
                 "ContentKit",
                 "DesignSystem",
+                "NotificationsKit",
+                "OnboardingFeature",
                 "Persistence",
+                "ReviewFeature",
                 "ShadowingFeature",
                 "SpeechKit",
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "LanguageKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
@@ -118,6 +158,7 @@ let package = Package(
             name: "PersistenceTests",
             dependencies: [
                 "Persistence",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
@@ -128,6 +169,29 @@ let package = Package(
                 "ContentKit",
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
                 .product(name: "LanguageKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "ReviewFeatureTests",
+            dependencies: [
+                "Analytics",
+                "ContentKit",
+                "Persistence",
+                "ReviewFeature",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "NotificationsKitTests",
+            dependencies: [
+                "Analytics",
+                "NotificationsKit",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
         ),

@@ -19,6 +19,7 @@ public final class CompositionSessionViewModel: ObservableObject {
     @Published public var typedText: String = ""
     @Published public private(set) var l1Text: String = ""
     @Published public private(set) var outcome: CompositionOutcome?
+    @Published public private(set) var microphoneDenied = false
     @Published public var usedHint = false
 
     public let courseId: String
@@ -92,7 +93,11 @@ public final class CompositionSessionViewModel: ObservableObject {
         guard let item else { return }
         do {
             recordingURL = try await useCase.startRecording(item: item)
+            microphoneDenied = false
             phase = .recording
+        } catch CompositionUseCaseError.microphoneDenied {
+            microphoneDenied = true
+            phase = .prompt
         } catch {
             phase = .prompt
         }

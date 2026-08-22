@@ -4,9 +4,17 @@ import SwiftUI
 public struct ShadowingLessonView: View {
     @StateObject private var viewModel: ShadowingLessonViewModel
     @Environment(\.dismiss) private var dismiss
+    public var onCompleted: (() -> Void)?
+    public var onSkipped: (() -> Void)?
 
-    public init(viewModel: ShadowingLessonViewModel) {
+    public init(
+        viewModel: ShadowingLessonViewModel,
+        onCompleted: (() -> Void)? = nil,
+        onSkipped: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.onCompleted = onCompleted
+        self.onSkipped = onSkipped
     }
 
     public var body: some View {
@@ -39,20 +47,46 @@ public struct ShadowingLessonView: View {
                     Text(message)
                         .font(Typography.caption)
                 }
-                if case .scored = viewModel.phase, let score = viewModel.score {
-                    ResultView(
-                        score: score,
-                        onRetry: {
-                            Task { await viewModel.load() }
-                        },
-                        onClose: { dismiss() }
-                    )
+                if case .microphoneDenied = viewModel.phase {
+                    Text("shadowing.mic_denied")
+                        .font(Typography.body)
+                    PrimaryButton("shadowing.play_preview", systemImage: "play.fill") {
+                        Task { await viewModel.replayPreview() }
+                    }
+                    if let onSkipped {
+                        SecondaryButton("shadowing.skip", systemImage: "forward", action: onSkipped)
+                    } else {
+                        SecondaryButton("shadowing.skip") { dismiss() }
+                    }
+                }
+                if isCompletedPhase {
+                    if let score = viewModel.score {
+                        ResultView(
+                            score: score,
+                            onRetry: {
+                                Task { await viewModel.load() }
+                            },
+                            onClose: { dismiss() }
+                        )
+                    }
+                    if let onCompleted {
+                        PrimaryButton("review.session.next", systemImage: "arrow.right", action: onCompleted)
+                    }
                 }
             }
             .padding()
         }
         .navigationTitle("shadowing.title")
         .task { await viewModel.load() }
+    }
+
+    private var isCompletedPhase: Bool {
+        switch viewModel.phase {
+        case .scored, .completed:
+            return true
+        default:
+            return false
+        }
     }
 
     private var ratePicker: some View {

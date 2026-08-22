@@ -1,5 +1,6 @@
 import ContentCore
 import Foundation
+import HabitKit
 import SRSKit
 import SwiftData
 
@@ -27,9 +28,15 @@ public actor PersistenceActor {
     }
 
     public func appendAttempt(_ write: LessonAttemptWrite) throws -> LessonAttemptDTO {
-        let existing = try fetchAttempt(id: write.id)
-        if let existing { return existing }
-        let model = LessonAttempt(
+        if let existing = try fetchAttempt(id: write.id) { return existing }
+        let model = makeAttemptModel(write)
+        modelContext.insert(model)
+        try modelContext.save()
+        return PersistenceMapping.attemptDTO(model)
+    }
+
+    func makeAttemptModel(_ write: LessonAttemptWrite) -> LessonAttempt {
+        LessonAttempt(
             id: write.id,
             courseId: write.courseId,
             lessonId: write.lessonId,
@@ -42,9 +49,6 @@ public actor PersistenceActor {
             payloadSchemaVersion: write.payloadSchemaVersion,
             payloadJSON: write.payloadJSON
         )
-        modelContext.insert(model)
-        try modelContext.save()
-        return PersistenceMapping.attemptDTO(model)
     }
 
     public func fetchAttempt(id: UUID) throws -> LessonAttemptDTO? {
@@ -135,6 +139,7 @@ public actor PersistenceActor {
                 intervalDays: state.intervalDays,
                 repetitions: state.repetitions,
                 dueAt: state.dueAt,
+                relearnGateAt: state.relearnGateAt,
                 lastReviewedAt: state.lastReviewedAt,
                 lastQuality: state.lastQuality,
                 foldedThroughRevision: highestRevision
@@ -152,6 +157,7 @@ public actor PersistenceActor {
         model.intervalDays = state.intervalDays
         model.repetitions = state.repetitions
         model.dueAt = state.dueAt
+        model.relearnGateAt = state.relearnGateAt
         model.lastReviewedAt = state.lastReviewedAt
         model.lastQuality = state.lastQuality
         model.foldedThroughRevision = highestRevision
@@ -198,6 +204,19 @@ public actor PersistenceActor {
             captionsEnabled: defaults.captionsEnabled,
             defaultRate: defaults.defaultRate,
             reminderHour: defaults.reminderHour,
+            reminderMinute: defaults.reminderMinute,
+            reminderEnabled: defaults.reminderEnabled,
+            dailyGoalItems: defaults.dailyGoalItems,
+            onboardingCompletedAt: defaults.onboardingCompletedAt,
+            lastKnownStreakDays: defaults.lastKnownStreakDays,
+            habitStreakRecordedDayStart: defaults.habitStreakRecordedDayStart,
+            habitGoalMetDayStart: defaults.habitGoalMetDayStart,
+            habitBrokenRecordedDayStart: defaults.habitBrokenRecordedDayStart,
+            recoveryDismissedFromStreak: defaults.recoveryDismissedFromStreak,
+            lastOpenedCourseId: defaults.lastOpenedCourseId,
+            lastOpenedLessonId: defaults.lastOpenedLessonId,
+            lastOpenedItemId: defaults.lastOpenedItemId,
+            lastOpenedMode: defaults.lastOpenedMode,
             fieldRevisionsJSON: defaults.fieldRevisionsJSON,
             deletedAt: defaults.deletedAt
         )
@@ -219,6 +238,19 @@ public actor PersistenceActor {
                 captionsEnabled: dto.captionsEnabled,
                 defaultRate: dto.defaultRate,
                 reminderHour: dto.reminderHour,
+                reminderMinute: dto.reminderMinute,
+                reminderEnabled: dto.reminderEnabled,
+                dailyGoalItems: dto.dailyGoalItems,
+                onboardingCompletedAt: dto.onboardingCompletedAt,
+                lastKnownStreakDays: dto.lastKnownStreakDays,
+                habitStreakRecordedDayStart: dto.habitStreakRecordedDayStart,
+                habitGoalMetDayStart: dto.habitGoalMetDayStart,
+                habitBrokenRecordedDayStart: dto.habitBrokenRecordedDayStart,
+                recoveryDismissedFromStreak: dto.recoveryDismissedFromStreak,
+                lastOpenedCourseId: dto.lastOpenedCourseId,
+                lastOpenedLessonId: dto.lastOpenedLessonId,
+                lastOpenedItemId: dto.lastOpenedItemId,
+                lastOpenedMode: dto.lastOpenedMode,
                 fieldRevisionsJSON: dto.fieldRevisionsJSON,
                 deletedAt: dto.deletedAt
             )
@@ -229,10 +261,34 @@ public actor PersistenceActor {
         model.captionsEnabled = dto.captionsEnabled
         model.defaultRate = dto.defaultRate
         model.reminderHour = dto.reminderHour
+        model.reminderMinute = dto.reminderMinute
+        model.reminderEnabled = dto.reminderEnabled
+        model.dailyGoalItems = dto.dailyGoalItems
+        model.onboardingCompletedAt = dto.onboardingCompletedAt
+        model.lastKnownStreakDays = dto.lastKnownStreakDays
+        model.habitStreakRecordedDayStart = dto.habitStreakRecordedDayStart
+        model.habitGoalMetDayStart = dto.habitGoalMetDayStart
+        model.habitBrokenRecordedDayStart = dto.habitBrokenRecordedDayStart
+        model.recoveryDismissedFromStreak = dto.recoveryDismissedFromStreak
+        model.lastOpenedCourseId = dto.lastOpenedCourseId
+        model.lastOpenedLessonId = dto.lastOpenedLessonId
+        model.lastOpenedItemId = dto.lastOpenedItemId
+        model.lastOpenedMode = dto.lastOpenedMode
         model.fieldRevisionsJSON = dto.fieldRevisionsJSON
         model.deletedAt = dto.deletedAt
         try modelContext.save()
         return PersistenceMapping.settingsDTO(model)
+    }
+
+    /// 設定モデル本体を返す（習慣系の部分更新用。extension からも使うため internal）。
+    func requireSettings() throws -> UserSettings {
+        _ = try loadOrCreateSettings()
+        var descriptor = FetchDescriptor<UserSettings>()
+        descriptor.fetchLimit = 1
+        guard let model = try modelContext.fetch(descriptor).first else {
+            throw PersistenceError.missingSettings
+        }
+        return model
     }
 
     public func upsertDownloadedCourse(_ dto: DownloadedCourseDTO) throws -> DownloadedCourseDTO {
@@ -293,4 +349,5 @@ public actor PersistenceActor {
 
 public enum PersistenceError: Error, Sendable, Equatable {
     case unknownContentSchema(Int)
+    case missingSettings
 }

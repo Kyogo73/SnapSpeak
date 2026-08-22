@@ -19,16 +19,27 @@ public struct ShadowingPreparation: Sendable {
     }
 }
 
+public struct ShadowingCompletion: Sendable, Equatable {
+    public var persisted: Bool
+    public var score: ShadowingScore?
+
+    public init(persisted: Bool, score: ShadowingScore?) {
+        self.persisted = persisted
+        self.score = score
+    }
+}
+
 public protocol ShadowingUseCase: Sendable {
     func prepare(targetLanguage: BCP47Language) async -> ShadowingPreparation
     func startPlayback(item: ItemV1, stored: StoredCourse, rate: Float, asrReady: Bool) async throws
+    func startPreviewPlayback(item: ItemV1, stored: StoredCourse, rate: Float) async throws
     func stopAndScore(
         item: ItemV1,
         stored: StoredCourse,
         lessonId: String,
         rate: Float,
         asrReady: Bool
-    ) async throws -> ShadowingScore?
+    ) async throws -> ShadowingCompletion
 }
 
 public struct LiveShadowingUseCase: ShadowingUseCase {
@@ -38,6 +49,7 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
     public var analytics: any AnalyticsClient
     public var recordingsDirectory: URL
     public var localeResolver: any SpeechLocaleResolver
+    public var permissions: any RecordingPermissionClient
 
     public init(
         audio: AudioEngineActor,
@@ -45,7 +57,8 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
         persistence: PersistenceActor,
         analytics: any AnalyticsClient,
         recordingsDirectory: URL,
-        localeResolver: any SpeechLocaleResolver = StaticSpeechLocaleResolver()
+        localeResolver: any SpeechLocaleResolver = StaticSpeechLocaleResolver(),
+        permissions: any RecordingPermissionClient = LiveRecordingPermissionClient()
     ) {
         self.audio = audio
         self.speech = speech
@@ -53,6 +66,7 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
         self.analytics = analytics
         self.recordingsDirectory = recordingsDirectory
         self.localeResolver = localeResolver
+        self.permissions = permissions
     }
 
     public func prepare(targetLanguage: BCP47Language) async -> ShadowingPreparation {
@@ -78,16 +92,25 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
         analytics.track(
             .lessonStarted(languagePair: stored.course.languagePair.pairKey, lessonId: item.id)
         )
-        if asrReady {
-            let recordingURL = try makeRecordingURL(itemId: item.id)
-            try await audio.startShadowingLive(
-                fileURL: fileURL,
-                recordingURL: recordingURL,
-                rate: rate
-            )
-        } else {
+        _ = asrReady
+        let access = await RecordingPermissionCoordinator.prepare(client: permissions)
+        guard access.canRecord else {
             try await audio.startPreview(fileURL: fileURL, rate: rate)
+            throw ShadowingUseCaseError.microphoneDenied
         }
+        let recordingURL = try makeRecordingURL(itemId: item.id)
+        try await audio.startShadowingLive(
+            fileURL: fileURL,
+            recordingURL: recordingURL,
+            rate: rate
+        )
+    }
+
+    public func startPreviewPlayback(item: ItemV1, stored: StoredCourse, rate: Float) async throws {
+        guard let fileURL = audioURL(for: item, stored: stored) else {
+            throw ShadowingUseCaseError.missingAudio
+        }
+        try await audio.startPreview(fileURL: fileURL, rate: rate)
     }
 
     public func stopAndScore(
@@ -96,32 +119,37 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
         lessonId: String,
         rate: Float,
         asrReady: Bool
-    ) async throws -> ShadowingScore? {
+    ) async throws -> ShadowingCompletion {
         let session = await audio.stop()
+        let canTranscribe = asrReady && permissions.speechStatus() == .authorized
         var score: ShadowingScore?
-        if asrReady, let recordingURL = session.recordingURL {
-            let locale = localeResolver.speechLocale(
-                for: stored.course.languagePair.targetLanguage,
-                regionPreference: nil
-            ) ?? Locale(identifier: "en-US")
-            let duration = Double(item.audio?.durationMs ?? 45_000) / 1_000.0
-            let segments = try await speech.recognize(
-                url: recordingURL,
-                locale: locale,
-                timeout: duration + 8
-            )
-            let scorer = ShadowingScorer()
-            score = scorer.score(
-                referenceScript: item.passage?.text ?? "",
-                language: stored.course.languagePair.targetLanguage,
-                asrSegments: ScoreMapping.asrSegments(segments),
-                timeline: session.timeline,
-                wordTimings: ScoreMapping.wordTimings(item.passage?.wordTimings),
-                captionSegments: ScoreMapping.captions(item.passage?.captionSegments),
-                audioRoute: session.route,
-                playbackRate: rate,
-                simultaneousPlayAndRecord: session.simultaneousPlayAndRecord
-            )
+        if canTranscribe, let recordingURL = session.recordingURL {
+            do {
+                let locale = localeResolver.speechLocale(
+                    for: stored.course.languagePair.targetLanguage,
+                    regionPreference: nil
+                ) ?? Locale(identifier: "en-US")
+                let duration = Double(item.audio?.durationMs ?? 45_000) / 1_000.0
+                let segments = try await speech.recognize(
+                    url: recordingURL,
+                    locale: locale,
+                    timeout: duration + 8
+                )
+                let scorer = ShadowingScorer()
+                score = scorer.score(
+                    referenceScript: item.passage?.text ?? "",
+                    language: stored.course.languagePair.targetLanguage,
+                    asrSegments: ScoreMapping.asrSegments(segments),
+                    timeline: session.timeline,
+                    wordTimings: ScoreMapping.wordTimings(item.passage?.wordTimings),
+                    captionSegments: ScoreMapping.captions(item.passage?.captionSegments),
+                    audioRoute: session.route,
+                    playbackRate: rate,
+                    simultaneousPlayAndRecord: session.simultaneousPlayAndRecord
+                )
+            } catch {
+                score = nil
+            }
         }
 
         let payload: Data
@@ -133,7 +161,7 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
             payload = Data("{}".utf8)
             schemaVersion = 1
         }
-        let attempt = try await persistence.appendAttempt(
+        let habit = try await persistence.appendAttemptEvaluatingHabit(
             LessonAttemptWrite(
                 courseId: stored.course.id,
                 lessonId: lessonId,
@@ -147,7 +175,7 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
                 payloadJSON: payload
             )
         )
-        _ = attempt
+        trackHabit(habit)
 
         if let score, let quality = SRSEngine().qualityForShadowing(score: ScoreMapping.snapshot(score)) {
             let seq = try await persistence.nextClientSeq()
@@ -199,7 +227,16 @@ public struct LiveShadowingUseCase: ShadowingUseCase {
                 routeCategory: session.route.outputPortName
             )
         )
-        return score
+        return ShadowingCompletion(persisted: true, score: score)
+    }
+
+    private func trackHabit(_ result: AttemptHabitResult) {
+        if let days = result.recordStreakDays {
+            analytics.track(.streakDayRecorded(streakBand: Quantization.streakBand(days: days)))
+        }
+        if result.metGoalItems != nil {
+            analytics.track(.goalMet(goalItems: result.dailyGoalItems))
+        }
     }
 
     private func audioURL(for item: ItemV1, stored: StoredCourse) -> URL? {
@@ -224,4 +261,5 @@ public enum ShadowingUseCaseError: Error, Sendable {
     case missingAudio
     case missingItem
     case missingCourse
+    case microphoneDenied
 }

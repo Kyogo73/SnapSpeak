@@ -1,55 +1,202 @@
 import ContentCore
 import ContentKit
 import DesignSystem
+import HabitKit
+import ReviewFeature
+import ShadowingFeature
 import SwiftUI
 
 public struct HomeView: View {
-    @Binding var path: [LessonCoordinate]
+    @Binding var path: [HomeDestination]
     public var courses: [StoredCourse]
+    @ObservedObject var today: TodayViewModel
+    public var onContinueLearning: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    public init(path: Binding<[LessonCoordinate]>, courses: [StoredCourse]) {
+    public init(
+        path: Binding<[HomeDestination]>,
+        courses: [StoredCourse],
+        today: TodayViewModel,
+        onContinueLearning: @escaping () -> Void
+    ) {
         _path = path
         self.courses = courses
+        self.today = today
+        self.onContinueLearning = onContinueLearning
     }
 
     public var body: some View {
-        List {
-            Section {
-                Text("home.title")
-                    .font(Typography.title)
-                    .listRowSeparator(.hidden)
-            }
-            if let lesson = firstLesson {
-                Button {
-                    path.append(lesson)
-                } label: {
-                    Label("home.continue", systemImage: "play.circle.fill")
-                        .frame(minHeight: 44)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if today.asrDegraded {
+                    DegradedBanner(titleKey: "degraded.no_asr")
+                }
+                if case let .recovery(totalDays, longest) = today.state {
+                    recoveryCard(totalDays: totalDays, longest: longest)
+                } else {
+                    habitCard
+                }
+                todayCard
+                if let continueLesson = today.continueLesson {
+                    continueCard(continueLesson)
                 }
             }
-            ForEach(courses, id: \.course.id) { stored in
-                let title = LocalizedTitle.resolve(
-                    stored.course.title,
-                    requested: stored.course.languagePair.sourceLanguage,
-                    sourceLanguage: stored.course.languagePair.sourceLanguage
-                ) ?? stored.course.id
-                Text(title)
-                    .font(Typography.headline)
-            }
+            .padding()
         }
         .navigationTitle("tab.home")
+        .onAppear {
+            Task { await today.refresh() }
+        }
     }
 
-    private var firstLesson: LessonCoordinate? {
-        guard let stored = courses.first,
-              let lesson = stored.course.units.first?.lessons.first,
-              let item = lesson.items.first
-        else { return nil }
-        return LessonCoordinate(
-            courseId: stored.course.id,
-            lessonId: lesson.id,
-            itemId: item.id,
-            mode: lesson.mode
-        )
+    @ViewBuilder
+    private var habitCard: some View {
+        if let snapshot = today.snapshot {
+            CardContainer {
+                AdaptiveStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        StreakBadge(
+                            days: snapshot.streak.currentStreakDays,
+                            isAtRisk: snapshot.streak.isAtRisk,
+                            accessibilityLabel: LocalizedStringKey(
+                                LocalizedFormat.string("streak.badge_label", snapshot.streak.currentStreakDays)
+                            ),
+                            accessibilityHint: snapshot.streak.isAtRisk ? "streak.at_risk" : nil
+                        )
+                        Text(LocalizedFormat.string("streak.days", snapshot.streak.currentStreakDays))
+                            .font(Typography.headline)
+                        if snapshot.streak.isAtRisk {
+                            Text("streak.at_risk")
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.warning)
+                        }
+                        if snapshot.streak.isOnLastGraceDay {
+                            Text("streak.last_grace")
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.warning)
+                        }
+                    }
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Spacer()
+                    }
+                    ProgressRing(
+                        progress: snapshot.goal.fraction,
+                        accessibilityLabel: "home.goal.ring_label",
+                        accessibilityValueText: LocalizedFormat.string(
+                            "home.goal.progress",
+                            snapshot.goal.completedItems,
+                            snapshot.goal.goalItems
+                        )
+                    )
+                }
+                Text(
+                    LocalizedFormat.string(
+                        "home.goal.progress",
+                        snapshot.goal.completedItems,
+                        snapshot.goal.goalItems
+                    )
+                )
+                .font(Typography.caption)
+                .foregroundStyle(Colors.secondaryFill)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var todayCard: some View {
+        CardContainer {
+            Text("home.title")
+                .font(Typography.headline)
+            if today.state == .failed {
+                Text("home.today.load_failed")
+                    .font(Typography.body)
+                SecondaryButton("home.today.retry") {
+                    Task { await today.refresh() }
+                }
+            } else if courses.isEmpty || today.state == .empty {
+                Text("home.today.empty_course")
+                    .font(Typography.body)
+                SecondaryButton("catalog.title", action: onContinueLearning)
+            } else if let snapshot = today.snapshot, snapshot.plan.isEmpty {
+                Text("home.today.all_done_title")
+                    .font(Typography.headline)
+                Text("home.today.all_done_subtitle")
+                    .font(Typography.body)
+                    .foregroundStyle(Colors.secondaryFill)
+                SecondaryButton("home.today.extra", action: onContinueLearning)
+            } else if let snapshot = today.snapshot {
+                Text(planSummary(snapshot.plan))
+                    .font(Typography.body)
+                    .foregroundStyle(Colors.secondaryFill)
+                if snapshot.plan.deferredDueCount > 0 {
+                    Text(LocalizedFormat.string("home.today.deferred", snapshot.plan.deferredDueCount))
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
+                PrimaryButton("home.today.start") {
+                    Task {
+                        if await today.regeneratePlanThenStart() {
+                            path.append(.review)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func recoveryCard(totalDays: Int, longest: Int) -> some View {
+        CardContainer {
+            AdaptiveStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("streak.broken.title")
+                        .font(Typography.headline)
+                    Text(LocalizedFormat.string("streak.broken.subtitle", totalDays))
+                        .font(Typography.body)
+                    Text(LocalizedFormat.string("streak.longest", longest))
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                    Text("streak.rule_note")
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
+            }
+            PrimaryButton("streak.broken.restart") {
+                Task {
+                    await today.dismissRecovery()
+                    if await today.regeneratePlanThenStart() {
+                        path.append(.review)
+                    }
+                }
+            }
+            SecondaryButton("home.recovery.dismiss") {
+                Task { await today.dismissRecovery() }
+            }
+        }
+    }
+
+    private func continueCard(_ lesson: LessonCoordinate) -> some View {
+        CardContainer {
+            Button {
+                path.append(.lesson(lesson))
+            } label: {
+                Label("home.continue", systemImage: "play.circle.fill")
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            }
+        }
+    }
+
+    private func planSummary(_ plan: SessionPlan) -> String {
+        let hasReviews = !plan.reviews.isEmpty
+        let hasNew = plan.newLesson != nil
+        if hasReviews && hasNew {
+            return LocalizedFormat.string("home.today.plan_review_and_new", plan.reviews.count)
+        }
+        if hasReviews {
+            return LocalizedFormat.string("home.today.plan_review_only", plan.reviews.count)
+        }
+        if hasNew {
+            return String(localized: String.LocalizationValue("home.today.plan_new_only"))
+        }
+        return ""
     }
 }

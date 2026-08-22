@@ -1,4 +1,5 @@
 import Foundation
+import HabitKit
 import SRSKit
 
 /// Sendable snapshot of a persisted `LessonAttempt`. `payloadJSON` always travels with
@@ -123,6 +124,7 @@ public struct SRSCardDTO: Sendable, Equatable {
     public var intervalDays: Int
     public var repetitions: Int
     public var dueAt: Date
+    public var relearnGateAt: Date?
     public var lastReviewedAt: Date?
     public var lastQuality: Int?
     public var foldedThroughRevision: Int64?
@@ -140,6 +142,7 @@ public struct SRSCardDTO: Sendable, Equatable {
         intervalDays: Int,
         repetitions: Int,
         dueAt: Date,
+        relearnGateAt: Date? = nil,
         lastReviewedAt: Date?,
         lastQuality: Int?,
         foldedThroughRevision: Int64?
@@ -156,6 +159,7 @@ public struct SRSCardDTO: Sendable, Equatable {
         self.intervalDays = intervalDays
         self.repetitions = repetitions
         self.dueAt = dueAt
+        self.relearnGateAt = relearnGateAt
         self.lastReviewedAt = lastReviewedAt
         self.lastQuality = lastQuality
         self.foldedThroughRevision = foldedThroughRevision
@@ -168,6 +172,19 @@ public struct UserSettingsDTO: Sendable, Equatable {
     public var captionsEnabled: Bool
     public var defaultRate: Float
     public var reminderHour: Int?
+    public var reminderMinute: Int
+    public var reminderEnabled: Bool
+    public var dailyGoalItems: Int
+    public var onboardingCompletedAt: Date?
+    public var lastKnownStreakDays: Int
+    public var habitStreakRecordedDayStart: Date?
+    public var habitGoalMetDayStart: Date?
+    public var habitBrokenRecordedDayStart: Date?
+    public var recoveryDismissedFromStreak: Int
+    public var lastOpenedCourseId: String?
+    public var lastOpenedLessonId: String?
+    public var lastOpenedItemId: String?
+    public var lastOpenedMode: String?
     public var fieldRevisionsJSON: Data
     public var deletedAt: Date?
 
@@ -177,6 +194,19 @@ public struct UserSettingsDTO: Sendable, Equatable {
         captionsEnabled: Bool,
         defaultRate: Float,
         reminderHour: Int?,
+        reminderMinute: Int = 0,
+        reminderEnabled: Bool = false,
+        dailyGoalItems: Int = 10,
+        onboardingCompletedAt: Date? = nil,
+        lastKnownStreakDays: Int = 0,
+        habitStreakRecordedDayStart: Date? = nil,
+        habitGoalMetDayStart: Date? = nil,
+        habitBrokenRecordedDayStart: Date? = nil,
+        recoveryDismissedFromStreak: Int = 0,
+        lastOpenedCourseId: String? = nil,
+        lastOpenedLessonId: String? = nil,
+        lastOpenedItemId: String? = nil,
+        lastOpenedMode: String? = nil,
         fieldRevisionsJSON: Data,
         deletedAt: Date?
     ) {
@@ -185,8 +215,29 @@ public struct UserSettingsDTO: Sendable, Equatable {
         self.captionsEnabled = captionsEnabled
         self.defaultRate = defaultRate
         self.reminderHour = reminderHour
+        self.reminderMinute = reminderMinute
+        self.reminderEnabled = reminderEnabled
+        self.dailyGoalItems = dailyGoalItems
+        self.onboardingCompletedAt = onboardingCompletedAt
+        self.lastKnownStreakDays = lastKnownStreakDays
+        self.habitStreakRecordedDayStart = habitStreakRecordedDayStart
+        self.habitGoalMetDayStart = habitGoalMetDayStart
+        self.habitBrokenRecordedDayStart = habitBrokenRecordedDayStart
+        self.recoveryDismissedFromStreak = recoveryDismissedFromStreak
+        self.lastOpenedCourseId = lastOpenedCourseId
+        self.lastOpenedLessonId = lastOpenedLessonId
+        self.lastOpenedItemId = lastOpenedItemId
+        self.lastOpenedMode = lastOpenedMode
         self.fieldRevisionsJSON = fieldRevisionsJSON
         self.deletedAt = deletedAt
+    }
+
+    public var habitMarkers: HabitDayMarkers {
+        HabitDayMarkers(
+            streakRecordedDayStart: habitStreakRecordedDayStart,
+            goalMetDayStart: habitGoalMetDayStart,
+            brokenRecordedDayStart: habitBrokenRecordedDayStart
+        )
     }
 
     public static let phase1Default = UserSettingsDTO(
@@ -195,9 +246,34 @@ public struct UserSettingsDTO: Sendable, Equatable {
         captionsEnabled: true,
         defaultRate: 1.0,
         reminderHour: nil,
+        reminderMinute: 0,
+        reminderEnabled: false,
+        dailyGoalItems: 10,
+        onboardingCompletedAt: nil,
+        lastKnownStreakDays: 0,
         fieldRevisionsJSON: Data("{}".utf8),
         deletedAt: nil
     )
+}
+
+/// Attempt 追記時の習慣イベント（学習日単位の一回性）。
+public struct AttemptHabitResult: Sendable, Equatable {
+    public var attempt: LessonAttemptDTO
+    public var recordStreakDays: Int?
+    public var metGoalItems: Int?
+    public var dailyGoalItems: Int
+
+    public init(
+        attempt: LessonAttemptDTO,
+        recordStreakDays: Int?,
+        metGoalItems: Int?,
+        dailyGoalItems: Int
+    ) {
+        self.attempt = attempt
+        self.recordStreakDays = recordStreakDays
+        self.metGoalItems = metGoalItems
+        self.dailyGoalItems = dailyGoalItems
+    }
 }
 
 public struct DownloadedCourseDTO: Sendable, Equatable, Identifiable {
@@ -275,82 +351,5 @@ public struct SRSCardFoldRequest: Sendable, Equatable {
         self.now = now
         self.timeZoneIdentifier = timeZoneIdentifier
         self.dayBoundaryHour = dayBoundaryHour
-    }
-}
-
-enum PersistenceMapping {
-    static func attemptDTO(_ model: LessonAttempt) -> LessonAttemptDTO {
-        LessonAttemptDTO(
-            id: model.id,
-            courseId: model.courseId,
-            lessonId: model.lessonId,
-            itemId: model.itemId,
-            contentRevision: model.contentRevision,
-            languagePairKey: model.languagePairKey,
-            skill: model.skill,
-            createdAt: model.createdAt,
-            durationMs: model.durationMs,
-            payloadSchemaVersion: model.payloadSchemaVersion,
-            payloadJSON: model.payloadJSON
-        )
-    }
-
-    static func reviewDTO(_ model: ReviewEvent) -> ReviewEventDTO {
-        ReviewEventDTO(
-            id: model.id,
-            cardKey: model.cardKey,
-            quality: model.quality,
-            reviewedAt: model.reviewedAt,
-            clientSeq: model.clientSeq,
-            serverRevision: model.serverRevision,
-            contentRevision: model.contentRevision
-        )
-    }
-
-    static func cardDTO(_ model: SRSCard) -> SRSCardDTO {
-        SRSCardDTO(
-            cardKey: model.cardKey,
-            sourceLanguage: model.sourceLanguage,
-            targetLanguage: model.targetLanguage,
-            courseId: model.courseId,
-            itemId: model.itemId,
-            skill: model.skill,
-            contentRevision: model.contentRevision,
-            inheritSRS: model.inheritSRS,
-            easiness: model.easiness,
-            intervalDays: model.intervalDays,
-            repetitions: model.repetitions,
-            dueAt: model.dueAt,
-            lastReviewedAt: model.lastReviewedAt,
-            lastQuality: model.lastQuality,
-            foldedThroughRevision: model.foldedThroughRevision
-        )
-    }
-
-    static func settingsDTO(_ model: UserSettings) -> UserSettingsDTO {
-        UserSettingsDTO(
-            sourceLanguage: model.sourceLanguage,
-            targetLanguage: model.targetLanguage,
-            captionsEnabled: model.captionsEnabled,
-            defaultRate: model.defaultRate,
-            reminderHour: model.reminderHour,
-            fieldRevisionsJSON: model.fieldRevisionsJSON,
-            deletedAt: model.deletedAt
-        )
-    }
-
-    static func downloadedDTO(_ model: DownloadedCourse) -> DownloadedCourseDTO {
-        DownloadedCourseDTO(
-            courseId: model.courseId,
-            sourceLanguage: model.sourceLanguage,
-            targetLanguage: model.targetLanguage,
-            revision: model.revision,
-            schemaVersion: model.schemaVersion,
-            releaseId: model.releaseId,
-            localPath: model.localPath,
-            downloadedAt: model.downloadedAt,
-            bytes: model.bytes,
-            checksumSha256: model.checksumSha256
-        )
     }
 }

@@ -69,6 +69,12 @@ import Testing
     #expect(grade == .fail)
 }
 
+@Test func unscoredDoesNotWriteReviewEvent() {
+    #expect(CompositionGrade.unscored.shouldAppendReviewEvent == false)
+    #expect(CompositionGrade.fail.shouldAppendReviewEvent == true)
+    #expect(CompositionGrade.pass(kind: .normalizedMatch).shouldAppendReviewEvent == true)
+}
+
 @Test func responseClockClipsUpperBound() {
     let t0 = Date(timeIntervalSince1970: 1_000)
     let clock = ResponseClock(

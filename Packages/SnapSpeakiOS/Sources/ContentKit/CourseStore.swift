@@ -92,7 +92,11 @@ public actor CourseStore {
                 result.append(stored)
             }
         }
-        return result
+        return CourseCatalog.uniquedActiveReleases(
+            result,
+            id: { $0.course.id },
+            revision: { $0.revision }
+        )
     }
 
     public func audioURL(for item: ItemV1, in stored: StoredCourse) -> URL? {

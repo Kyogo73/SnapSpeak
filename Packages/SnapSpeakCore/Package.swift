@@ -19,6 +19,7 @@ let package = Package(
         .library(name: "SRSKit", targets: ["SRSKit"]),
         .library(name: "ContentCore", targets: ["ContentCore"]),
         .library(name: "AnalyticsCore", targets: ["AnalyticsCore"]),
+        .library(name: "HabitKit", targets: ["HabitKit"]),
         .executable(name: "contentlint", targets: ["contentlint"]),
     ],
     dependencies: [
@@ -57,6 +58,11 @@ let package = Package(
             dependencies: ["LanguageKit"],
             swiftSettings: swift6
         ),
+        .target(
+            name: "HabitKit",
+            dependencies: ["SRSKit"],
+            swiftSettings: swift6
+        ),
         .executableTarget(
             name: "contentlint",
             dependencies: ["ContentCore"],
@@ -91,6 +97,11 @@ let package = Package(
         .testTarget(
             name: "AnalyticsCoreTests",
             dependencies: ["AnalyticsCore"],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "HabitKitTests",
+            dependencies: ["HabitKit", "SRSKit"],
             swiftSettings: swift6
         ),
     ]

@@ -9,4 +9,16 @@ public enum CompositionPassKind: String, Sendable, Equatable {
 public enum CompositionGrade: Sendable, Equatable {
     case pass(kind: CompositionPassKind)
     case fail
+    /// Speech 拒否・ASR 不可・認識エラー。不一致ではない。
+    case unscored
+
+    /// `.fail` の ReviewEvent は追記しない。Attempt は別途追記する。
+    public var shouldAppendReviewEvent: Bool {
+        switch self {
+        case .pass, .fail:
+            return true
+        case .unscored:
+            return false
+        }
+    }
 }

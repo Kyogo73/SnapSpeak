@@ -12,7 +12,7 @@
 - 瞬間英作文の MVP 判定は許容パターンとの正規化マッチ。LLM は Phase 3。
 - SRS は SM-2 ベースを SRSKit に独立。同期の正本は immutable な `ReviewEvent`。
 - 言語ペア `(sourceLanguage, targetLanguage)` が第一級。値は正規化済み BCP-47。
-- バックエンドは Phase 1 静的 CDN 配信（アカウントなし）→ **Phase 3 で Supabase Auth / 同期 / Edge Functions** → Phase 4 リージョン対応。Phase 2 はクライアント側の定着と StoreKit 2。
+- バックエンドは Phase 1 静的 CDN 配信（**Cloudflare R2** 採用。アカウントなし）→ **Phase 3 で Supabase Auth / 同期 / Edge Functions** → Phase 4 リージョン対応。Phase 2 はクライアント側の定着と StoreKit 2。
 
 ---
 
@@ -37,7 +37,7 @@ flowchart TB
     Kits --> Seed
   end
 
-  subgraph cdn ["CDN Phase 1 から必須"]
+  subgraph cdn ["CDN: Cloudflare R2 Phase 1 から必須"]
     Man["マニフェスト JSON"]
     Assets["JSON + 音声ファイル"]
   end
@@ -68,7 +68,7 @@ flowchart TB
 | 領域 | 責務 | 置かないもの |
 |------|------|----------------|
 | クライアント | 学習 UX、録音、オンデバイス ASR、採点、SRS 計算、オフライン学習、CDN 取得 | LLM API キー、コンテンツの正本（配信後はキャッシュ）、サーバー ASR への暗黙依存 |
-| CDN | 公開コンテンツの静的配信、コースごとの **複数 immutable release** を含むマニフェスト | 個人学習データ |
+| CDN（Cloudflare R2） | 公開コンテンツの静的配信、コースごとの **複数 immutable release** を含むマニフェスト | 個人学習データ |
 | Supabase（Phase 3） | アカウント、進捗の正本（`ReviewEvent` 等）、Edge の秘匿プロキシ、サーバー側 entitlement、アカウント削除 | クライアントから直接叩く LLM |
 | LLM（Phase 3） | 意味評価と短いフィードバック文 | 音声バイナリ、無関係な個人プロファイル |
 
@@ -89,34 +89,56 @@ flowchart TB
 | モジュール | 種別 | 責務 |
 |------------|------|------|
 | **AppFeature** | アプリシェル | タブ/ナビ、セッション開始、依存の組み立て、ディープリンク |
+| **OnboardingFeature** | 機能 | オンボーディング 2 画面と目標・リマインダーの初回保存 |
+| **ReviewFeature** | 機能 | 今日のプラン組立、復習セッションのコンテナ UI（アイテム UI は注入。Feature 間 import はしない） |
 | **ShadowingFeature** | 機能 | シャドーイング画面、結果、プレイヤー状態機械、劣化モード UI |
 | **CompositionFeature** | 機能 | 瞬間英作文画面、入力モード、判定結果表示 |
 | **AudioEngine** | インフラ | AVAudioEngine、セッション状態遷移、経路ポリシー、Voice Processing、再生速度、録音、割り込み / ルート変更 |
 | **ContentKit** | ドメイン | 言語ペア、JSON スキーマ、デコーダ / マイグレーター、ダウンロード、シード、エンタイトルメント解決 |
+| **HabitKit** | ドメイン | ストリーク、デイリーゴール、セッションプラン、次レッスン選定、通知予定。全て純関数。UI を持たない |
 | **SRSKit** | ドメイン | SM-2 カスタム、品質算出、`ReviewEvent` からのカード再計算。UI を持たない |
-| **DesignSystem** | UI | 色、タイポ、ボタン、カード。機能知識を持たない |
+| **NotificationsKit** | インフラ | `UNUserNotificationCenter` ラッパ。権限要求、予約の冪等同期、通知タップの委譲 |
+| **DesignSystem** | UI | 色、タイポ、ボタン、カード、進捗リング、ストリーク表示。機能知識を持たない |
 | **Analytics** | インフラ | イベント送信のプロトコルと実装。個人データ・音声を受け取らない |
 
-実装上のパッケージ分割（Phase 1）: Linux では Apple フレームワークをビルドできないため、上表のモジュールは 2 つの Swift パッケージにグルーピングする。Foundation のみの `Packages/SnapSpeakCore`（LanguageKit / ScoringKit / CompositionKit / SRSKit / ContentCore / AnalyticsCore）と、Apple 専用の `Packages/SnapSpeakiOS`（AppFeature / ShadowingFeature / CompositionFeature / AudioEngine / SpeechKit / ContentKit / Persistence / DesignSystem / Analytics）。各モジュールはパッケージ内の target として実現し、本節の依存方向は維持する。`ScoringKit` は採点コア（UI / Audio 非依存）。`SpeechKit` は `SFSpeechRecognizer` のオンデバイス専用ラッパである。
+実装上のパッケージ分割（Phase 1）: Linux では Apple フレームワークをビルドできないため、上表のモジュールは 2 つの Swift パッケージにグルーピングする。Foundation のみの `Packages/SnapSpeakCore`（LanguageKit / ScoringKit / CompositionKit / SRSKit / ContentCore / AnalyticsCore / HabitKit）と、Apple 専用の `Packages/SnapSpeakiOS`（AppFeature / OnboardingFeature / ReviewFeature / ShadowingFeature / CompositionFeature / AudioEngine / SpeechKit / ContentKit / Persistence / DesignSystem / Analytics / NotificationsKit）。各モジュールはパッケージ内の target として実現し、本節の依存方向は維持する。`ScoringKit` は採点コア（UI / Audio 非依存）。`SpeechKit` は `SFSpeechRecognizer` のオンデバイス専用ラッパである。`HabitKit` は `SRSKit`（学習日境界）のみに依存する。
 
 依存方向は一方向にする。
 
 ```mermaid
 flowchart TB
   App["AppFeature"]
+  OB["OnboardingFeature"]
+  RV["ReviewFeature"]
   SH["ShadowingFeature"]
   CP["CompositionFeature"]
+  NK["NotificationsKit"]
   AE["AudioEngine"]
   CK["ContentKit"]
+  PS["Persistence"]
+  HK["HabitKit"]
   SRS["SRSKit"]
   DS["DesignSystem"]
   AN["Analytics"]
 
+  App --> OB
+  App --> RV
   App --> SH
   App --> CP
+  App --> NK
+  App --> HK
   App --> CK
   App --> DS
   App --> AN
+  OB --> PS
+  OB --> NK
+  OB --> DS
+  OB --> AN
+  RV --> PS
+  RV --> CK
+  RV --> DS
+  RV --> AN
+  RV --> HK
   SH --> AE
   SH --> CK
   SH --> SRS
@@ -127,8 +149,13 @@ flowchart TB
   CP --> SRS
   CP --> DS
   CP --> AN
+  NK --> HK
+  NK --> AN
+  PS --> HK
+  PS --> SRS
   AE --> AN
   CK --> SRS
+  HK --> SRS
 ```
 
 禁止:
@@ -614,6 +641,7 @@ SRS には `tEnd - t0` を使う。極端な値（アプリを裏に出した）
 - キーは Edge 側。JWT 必須。レート制限。同一 `idempotencyKey` はキャッシュ。
 - 失敗時は MVP 判定のまま。
 - 回数制限は Edge が App Store Server Notifications / API 由来の entitlement を見て強制する。クライアントの `EntitlementCache` だけに頼らない。
+- **プロバイダ方針**: 本タスクは定型の添削処理であり、軽量モデル（Gemini Flash 級）を前提にコスト・レイテンシを優先する。Edge Function 内にプロバイダ抽象を 1 枚挟んで差し替え可能にし、正式選定は Phase 3 着手時に最新の価格・品質で行う。
 
 ---
 
@@ -696,7 +724,7 @@ struct SRSState: Codable, Equatable, Sendable {
 |------|--------|
 | 学習日の境界 | **ローカル時刻 04:00**。4:00 未満は前日の学習日。Anki と同様の「夜更かしを同日にする」ため |
 | 成功時の `dueAt` | 境界合わせした「翌々…学習日の 04:00」 |
-| 失敗時（q < 3） | **最小再学習間隔 10 分**（同一セッションで即再提示しない）。学習日としては **次の学習日 04:00** も due に残し、キューは「10 分後以降かつ due 済み」で取る |
+| 失敗時（q < 3） | **最小再学習間隔 10 分**（同一セッションで即再提示しない）。学習日としては **次の学習日 04:00** を `dueAt` に残す。同日再挑戦は `relearnGateAt` 到達で許可し、`dueAt` が未来でもキューに含める |
 | カレンダー | 端末の現在タイムゾーン。`dueAt` は UTC 絶対時刻で保存 |
 | タイムゾーン変更 | 過去の `ReviewEvent` は書き換えない。「今日」の判定だけ新タイムゾーンの 04:00 境界で行う。大きなジャンプで due が一斉到来しても 1 セッション上限 n 件で削る |
 | 時計改ざん | 未来へ飛ばした `reviewedAt` は同期時にサーバー時刻でクリップ（Phase 3） |
@@ -705,7 +733,7 @@ struct SRSState: Codable, Equatable, Sendable {
 
 Phase 1: レッスン内で、confidence が十分なときだけ `ReviewEvent` を追記しカードを再計算。専用キュー UI は任意。
 
-Phase 2: `dueAt <= now` を skill 混在で取り、1 セッション上限 n 件。新規未学習は Course 順のレッスンが担当。
+Phase 2: 通常カードは `dueAt <= now`、失敗カードは `relearnGateAt <= now` を skill 混在で取り、1 セッション上限 n 件（`HabitKit.SessionPlanner`、既定 20）。新規未学習は Course 順のレッスンが担当（`HabitKit.NextLessonSelector`）。
 
 ### 6.6 純関数インタフェース
 
@@ -955,6 +983,8 @@ struct WordTiming: Codable, Sendable {
 
 **v1 から `VersionedSchema` を定義する**（Phase 2 に延期しない）。
 
+未リリース期間に限り、`SnapSpeakSchemaV1`（`versionIdentifier` 1.0.0）へフィールドを直接追加してよい（既存インストールが無いため後方互換が不要。`SnapSpeakMigrationPlan` のステージは増やさない）。**リリース後のスキーマ変更は VersionedSchema の増分と `SchemaMigrationPlan` ステージ追加を必須とする。** この「V1 直接拡張」をリリース後に繰り返してはならない。
+
 ```swift
 enum SnapSpeakSchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { .init(1, 0, 0) }
@@ -1018,6 +1048,7 @@ enum SnapSpeakSchemaV1: VersionedSchema {
     var intervalDays: Int
     var repetitions: Int
     var dueAt: Date
+    var relearnGateAt: Date?         // 失敗後 10 分ゲート（SRSState.relearnGateAt）
     var lastReviewedAt: Date?
     var lastQuality: Int?
     var foldedThroughRevision: Int64?
@@ -1029,6 +1060,11 @@ enum SnapSpeakSchemaV1: VersionedSchema {
     var captionsEnabled: Bool
     var defaultRate: Float
     var reminderHour: Int?
+    var reminderMinute: Int          // リマインド分。時は reminderHour。OFF でも時刻は保持
+    var reminderEnabled: Bool        // 既定 false（オンボーディングで opt-in）
+    var dailyGoalItems: Int          // 1 日の目標アイテム数。既定 10
+    var onboardingCompletedAt: Date? // nil = 未完了
+    var lastKnownStreakDays: Int     // 最後に提示したストリーク。正本ではない
     var fieldRevisionsJSON: Data     // フィールド別 revision
     var deletedAt: Date?             // tombstone（アカウント単位）
 }
@@ -1080,7 +1116,10 @@ flowchart LR
 ```
 
 - アカウントなし。匿名。学習データは端末。
-- **CDN 配信は必須**（CloudFront/S3 相当）。シードは障害時・初回オフラインの保証。
+- **CDN 配信は必須**。採用は **Cloudflare R2**（S3 互換オブジェクトストレージ + Cloudflare CDN）。選定理由: (1) egress 無料で、同じ音声を多数ユーザーが反復ダウンロードするワークロードに強い、(2) 無料枠（ストレージ 10GB・読み取り月 1,000 万回）で Phase 1〜2 のコンテンツ量が収まる、(3) S3 互換 API のため本書の設計（immutable release / checksum / キャッシュ戦略）が無変更で載る。シードは障害時・初回オフラインの保証。
+  - バケットは公開読み取り + 独自ドメイン（例 `cdn.snapspeak.app`）。パスは `manifest/index.json` と `courses/<courseId>/<releaseId>/...`（§7.3 のマニフェスト構造に対応）。release 配下は immutable として上書きしない。
+  - キャッシュヘッダ: release 配下（JSON・音声）は `Cache-Control: public, max-age=31536000, immutable`。マニフェストのみ短命（例 `max-age=300`）にして更新を伝播する。
+  - アップロードは S3 互換 API（aws cli / rclone）またはダッシュボード。払い出し・運用手順の確立は Phase 1 後半（phase1 計画 §6.2）。個人データ・認証情報は置かない（それらは Phase 3 でも Supabase 側）。
 - DoD としてマニフェストから 1 コースを取得、チェックサム、オフライン再生、更新、削除。
 - 分析を送る場合もリセット可能なインストール ID に留める。
 

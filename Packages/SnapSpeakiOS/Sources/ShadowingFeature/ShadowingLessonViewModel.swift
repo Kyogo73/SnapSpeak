@@ -14,7 +14,9 @@ public final class ShadowingLessonViewModel: ObservableObject {
         case playing
         case scoring
         case scored
+        case completed
         case degradedNoASR
+        case microphoneDenied
         case failed(String)
     }
 
@@ -96,6 +98,19 @@ public final class ShadowingLessonViewModel: ObservableObject {
                 asrReady: asrReady && !(decision?.isDegraded ?? false)
             )
             phase = .playing
+        } catch ShadowingUseCaseError.microphoneDenied {
+            phase = .microphoneDenied
+        } catch {
+            phase = .failed(String(describing: error))
+        }
+    }
+
+    /// マイク拒否時のお手本再生（録音しない）。
+    public func replayPreview() async {
+        guard let item, let stored else { return }
+        do {
+            try await useCase.startPreviewPlayback(item: item, stored: stored, rate: rate)
+            phase = .microphoneDenied
         } catch {
             phase = .failed(String(describing: error))
         }
@@ -106,14 +121,17 @@ public final class ShadowingLessonViewModel: ObservableObject {
         phase = .scoring
         do {
             let liveASR = asrReady && !(decision?.isDegraded ?? false)
-            score = try await useCase.stopAndScore(
+            let completion = try await useCase.stopAndScore(
                 item: item,
                 stored: stored,
                 lessonId: lessonId,
                 rate: rate,
                 asrReady: liveASR
             )
-            if score == nil {
+            score = completion.score
+            if completion.persisted {
+                phase = completion.score == nil ? .completed : .scored
+            } else if completion.score == nil {
                 phase = .degradedNoASR
             } else {
                 phase = .scored

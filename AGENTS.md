@@ -1,6 +1,6 @@
 # AGENTS.md
 
-SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の開発ガイド。設計正本は `docs/`（`architecture.md` / `roadmap.md` / `product-overview.md`、オンボーディング・継続体験の UX 正本は `ux-design.md`）。実装計画・記録は `docs/phase1-implementation-plan.md`（Phase 1 初期実装）と `docs/phase2-retention-implementation-plan.md`（前倒しした継続機能。実装完了後の記録）、品質改善の実行計画は `docs/quality-pass-plan.md`。
+SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運転中の語学学習＝ドライブモードを主要ユースケースの第一級とする）の開発ガイド。設計正本は `docs/`（`architecture.md` / `roadmap.md` / `product-overview.md`、オンボーディング・継続体験・ドライブモードの UX 正本は `ux-design.md`）。実装計画・記録は `docs/phase1-implementation-plan.md`（Phase 1 初期実装）と `docs/phase2-retention-implementation-plan.md`（前倒しした継続機能。実装完了後の記録）、品質改善の実行計画は `docs/quality-pass-plan.md`、ドライブモード MVP の実装計画は `docs/drive-mode-implementation-plan.md`。
 
 ## Cursor Cloud specific instructions
 
@@ -42,7 +42,7 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の�
 - iOS のユニットテスト（`PersistenceTests` / `ContentKitTests` / `ReviewFeatureTests` / `NotificationsKitTests` / `OnboardingFeatureTests` / `AppFeatureTests` / `CompositionFeatureTests`）は **ホストアプリを使わないロジックテスト**にしてある。SwiftPM の静的ライブラリ製品を bundle_loader 経由で解決するとリンクに失敗するため、テストターゲットは必要な製品を直接リンクする（`App/project.yml` 参照）。
 - `Packages/SnapSpeakCore/Package.swift` は `platforms` を明示している（swift-crypto の `SHA256` が macOS 10.15+ を要求するため。未指定だと macOS ビルドが落ちる）。
 - Bluetooth 系オーディオオプションは Xcode 16.4 SDK 準拠で `.allowBluetooth` を使用（`.allowBluetoothHFP` は新しい SDK 専用）。SDK 更新時に見直す。
-- シードの音声ファイル（`Resources/Seed/.../audio/*.m4a`）は現状 checksum 整合のための**ダミーバイト**で、実再生できない。`AVAudioFile` を使う実機フローは本番収録音声に差し替えてから。差し替え時は checksum / durationMs / captionSegments を再生成し `contentlint` で再検証する。
+- シードの音声ファイル（`Resources/Seed/.../audio/*.m4a`）は現状 checksum 整合のための**ダミーバイト**で、実再生できない。`AVAudioFile` を使う実機フローは本番収録音声に差し替えてから。差し替え時は checksum / durationMs / captionSegments を再生成し `contentlint` で再検証する。このためドライブモードの初期経路は **TTS（`AVSpeechSynthesizer`）フォールバックが実質の本線**になる（`docs/drive-mode-implementation-plan.md` §0 参照）。
 
 ### 不変条件（`docs/roadmap.md`「フェーズ横断の不変条件」より、コード変更時に厳守）
 

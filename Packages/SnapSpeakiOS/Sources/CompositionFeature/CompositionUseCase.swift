@@ -12,10 +12,12 @@ import SRSKit
 public struct CompositionOutcome: Sendable, Equatable {
     public var grade: CompositionGrade
     public var quality: ReviewQuality?
+    public var persisted: Bool
 
-    public init(grade: CompositionGrade, quality: ReviewQuality?) {
+    public init(grade: CompositionGrade, quality: ReviewQuality?, persisted: Bool = false) {
         self.grade = grade
         self.quality = quality
+        self.persisted = persisted
     }
 }
 
@@ -47,6 +49,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
     public var analytics: any AnalyticsClient
     public var recordingsDirectory: URL
     public var localeResolver: any SpeechLocaleResolver
+    public var permissions: any RecordingPermissionClient
 
     public init(
         audio: AudioEngineActor,
@@ -54,7 +57,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         persistence: PersistenceActor,
         analytics: any AnalyticsClient,
         recordingsDirectory: URL,
-        localeResolver: any SpeechLocaleResolver = StaticSpeechLocaleResolver()
+        localeResolver: any SpeechLocaleResolver = StaticSpeechLocaleResolver(),
+        permissions: any RecordingPermissionClient = LiveRecordingPermissionClient()
     ) {
         self.audio = audio
         self.speech = speech
@@ -62,6 +66,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         self.analytics = analytics
         self.recordingsDirectory = recordingsDirectory
         self.localeResolver = localeResolver
+        self.permissions = permissions
     }
 
     public func gradeTyped(
@@ -75,12 +80,17 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         analytics.track(
             .lessonStarted(languagePair: stored.course.languagePair.pairKey, lessonId: lessonId)
         )
-        let outcome = grade(input: input, item: item, latencyMs: latencyMs, usedHint: usedHint, confidence: nil)
+        var outcome = grade(input: input, item: item, latencyMs: latencyMs, usedHint: usedHint, confidence: nil)
         try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+        outcome.persisted = true
         return outcome
     }
 
     public func startRecording(item: ItemV1) async throws -> URL {
+        let access = await RecordingPermissionCoordinator.prepare(client: permissions)
+        guard access.canRecord else {
+            throw CompositionUseCaseError.microphoneDenied
+        }
         try FileManager.default.createDirectory(
             at: recordingsDirectory,
             withIntermediateDirectories: true
@@ -104,23 +114,35 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             regionPreference: nil
         ) ?? Locale(identifier: "en-US")
         let availability = await SpeechAvailability.inspect(locale: locale)
-        guard availability.isOnDeviceReady else {
-            return CompositionOutcome(grade: .fail, quality: nil)
+        let canTranscribe = availability.isOnDeviceReady && permissions.speechStatus() == .authorized
+        guard canTranscribe else {
+            var outcome = CompositionOutcome(grade: .fail, quality: nil)
+            try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+            outcome.persisted = true
+            return outcome
         }
-        let segments = try await speech.recognize(url: recordingURL, locale: locale, timeout: 20)
-        let hypothesis = segments.map(\.text).joined(separator: " ")
-        let mean = segments.isEmpty
-            ? nil
-            : segments.map(\.confidence).reduce(0, +) / Double(segments.count)
-        let outcome = grade(
-            input: hypothesis,
-            item: item,
-            latencyMs: latencyMs,
-            usedHint: usedHint,
-            confidence: mean
-        )
-        try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
-        return outcome
+        do {
+            let segments = try await speech.recognize(url: recordingURL, locale: locale, timeout: 20)
+            let hypothesis = segments.map(\.text).joined(separator: " ")
+            let mean = segments.isEmpty
+                ? nil
+                : segments.map(\.confidence).reduce(0, +) / Double(segments.count)
+            var outcome = grade(
+                input: hypothesis,
+                item: item,
+                latencyMs: latencyMs,
+                usedHint: usedHint,
+                confidence: mean
+            )
+            try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+            outcome.persisted = true
+            return outcome
+        } catch {
+            var outcome = CompositionOutcome(grade: .fail, quality: nil)
+            try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+            outcome.persisted = true
+            return outcome
+        }
     }
 
     private func grade(
@@ -164,7 +186,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 "passed": outcome.grade == .fail ? "false" : "true",
             ]
         )
-        _ = try await persistence.appendAttempt(
+        let habit = try await persistence.appendAttemptEvaluatingHabit(
             LessonAttemptWrite(
                 courseId: stored.course.id,
                 lessonId: lessonId,
@@ -178,6 +200,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 payloadJSON: payload
             )
         )
+        trackHabit(habit)
         if let quality = outcome.quality {
             let seq = try await persistence.nextClientSeq()
             let cardKey = CardKey(
@@ -228,4 +251,17 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             )
         )
     }
+
+    private func trackHabit(_ result: AttemptHabitResult) {
+        if let days = result.recordStreakDays {
+            analytics.track(.streakDayRecorded(streakBand: Quantization.streakBand(days: days)))
+        }
+        if result.metGoalItems != nil {
+            analytics.track(.goalMet(goalItems: result.dailyGoalItems))
+        }
+    }
+}
+
+public enum CompositionUseCaseError: Error, Sendable {
+    case microphoneDenied
 }

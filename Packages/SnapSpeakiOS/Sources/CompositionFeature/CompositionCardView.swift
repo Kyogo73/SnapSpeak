@@ -25,6 +25,11 @@ public struct CompositionCardView: View {
                     .background(Colors.background, in: RoundedRectangle(cornerRadius: 12))
                 switch viewModel.phase {
                 case .prompt:
+                    if viewModel.microphoneDenied {
+                        Text("composition.mic_denied")
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.secondaryFill)
+                    }
                     PrimaryButton("composition.speak", systemImage: "mic.fill") {
                         Task { await viewModel.startSpeaking() }
                     }

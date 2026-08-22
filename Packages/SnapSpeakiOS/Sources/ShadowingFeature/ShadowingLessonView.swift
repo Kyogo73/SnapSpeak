@@ -41,14 +41,25 @@ public struct ShadowingLessonView: View {
                     Text(message)
                         .font(Typography.caption)
                 }
-                if case .scored = viewModel.phase, let score = viewModel.score {
-                    ResultView(
-                        score: score,
-                        onRetry: {
-                            Task { await viewModel.load() }
-                        },
-                        onClose: { dismiss() }
-                    )
+                if case .microphoneDenied = viewModel.phase {
+                    Text("shadowing.mic_denied")
+                        .font(Typography.body)
+                    if let onCompleted {
+                        PrimaryButton("shadowing.skip", systemImage: "forward", action: onCompleted)
+                    } else {
+                        SecondaryButton("shadowing.skip") { dismiss() }
+                    }
+                }
+                if isCompletedPhase {
+                    if let score = viewModel.score {
+                        ResultView(
+                            score: score,
+                            onRetry: {
+                                Task { await viewModel.load() }
+                            },
+                            onClose: { dismiss() }
+                        )
+                    }
                     if let onCompleted {
                         PrimaryButton("review.session.next", systemImage: "arrow.right", action: onCompleted)
                     }
@@ -58,6 +69,15 @@ public struct ShadowingLessonView: View {
         }
         .navigationTitle("shadowing.title")
         .task { await viewModel.load() }
+    }
+
+    private var isCompletedPhase: Bool {
+        switch viewModel.phase {
+        case .scored, .completed:
+            return true
+        default:
+            return false
+        }
     }
 
     private var ratePicker: some View {

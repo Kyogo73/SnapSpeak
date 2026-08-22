@@ -43,7 +43,9 @@ public struct HomeView: View {
                     habitCard
                 }
                 todayCard
-                driveCard
+                if !courses.isEmpty {
+                    driveCard
+                }
                 if let continueLesson = today.continueLesson {
                     continueCard(continueLesson)
                 }

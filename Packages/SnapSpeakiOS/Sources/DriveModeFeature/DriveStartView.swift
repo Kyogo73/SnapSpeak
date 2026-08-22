@@ -7,6 +7,7 @@ public struct DriveStartView: View {
     public var newCount: Int
     public var isRepeatFill: Bool
     public var loadFailed: Bool
+    public var canStart: Bool
     @Binding public var length: DriveScriptSettings.SessionLength
     public var onStart: () -> Void
     public var onRetry: () -> Void
@@ -17,6 +18,7 @@ public struct DriveStartView: View {
         newCount: Int,
         isRepeatFill: Bool,
         loadFailed: Bool,
+        canStart: Bool,
         length: Binding<DriveScriptSettings.SessionLength>,
         onStart: @escaping () -> Void,
         onRetry: @escaping () -> Void,
@@ -26,6 +28,7 @@ public struct DriveStartView: View {
         self.newCount = newCount
         self.isRepeatFill = isRepeatFill
         self.loadFailed = loadFailed
+        self.canStart = canStart
         _length = length
         self.onStart = onStart
         self.onRetry = onRetry
@@ -59,6 +62,7 @@ public struct DriveStartView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Colors.accent)
+                .disabled(!canStart)
                 .accessibilityLabel("drive.start.start")
                 Text("drive.start.safety_note")
                     .font(Typography.caption)
@@ -85,7 +89,7 @@ public struct DriveStartView: View {
             Text("settings.drive_length")
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryFill)
-            HStack(spacing: 8) {
+            AdaptiveStack(spacing: 8) {
                 lengthChip(.minutes5, titleKey: "drive.start.length_5")
                 lengthChip(.minutes10, titleKey: "drive.start.length_10")
                 lengthChip(.minutes20, titleKey: "drive.start.length_20")
@@ -98,14 +102,23 @@ public struct DriveStartView: View {
         _ value: DriveScriptSettings.SessionLength,
         titleKey: LocalizedStringKey
     ) -> some View {
-        Button {
+        let selected = length == value
+        return Button {
             length = value
         } label: {
-            Text(titleKey)
-                .font(Typography.callout)
-                .frame(maxWidth: .infinity, minHeight: 44)
+            HStack(spacing: 6) {
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(Typography.headline)
+                        .accessibilityHidden(true)
+                }
+                Text(titleKey)
+                    .font(Typography.callout)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.bordered)
-        .tint(length == value ? Colors.accent : Colors.secondaryFill)
+        .tint(selected ? Colors.accent : Colors.secondaryFill)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

@@ -93,8 +93,11 @@ struct DriveSessionContainer: View {
             dependencies.driveRemoteBridge.attach(sequencer: dependencies.driveSequencer)
             refreshNowPlaying()
         }
-        .onChange(of: viewModel.phase) { _, _ in
+        .onChange(of: viewModel.phase) { _, newPhase in
             refreshNowPlaying()
+            if case .finished = newPhase {
+                Task { await today?.refresh() }
+            }
         }
         .onChange(of: viewModel.completedCount) { _, _ in
             refreshNowPlaying()
@@ -115,7 +118,7 @@ struct DriveSessionContainer: View {
             paused = isPaused
         case .starting:
             paused = false
-        case .idle, .finished:
+        case .idle, .finished, .reviewing:
             paused = true
         }
         dependencies.driveRemoteBridge.updateNowPlaying(

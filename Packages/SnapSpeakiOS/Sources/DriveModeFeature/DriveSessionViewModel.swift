@@ -13,7 +13,8 @@ public final class DriveSessionViewModel: ObservableObject {
         case idle
         case starting
         case running(phaseKind: DrivePhaseKind, itemIndex: Int, paused: Bool)
-        case finished(note: DriveNote)
+        case finished
+        case reviewing(note: DriveNote)
     }
 
     public struct DriveNote: Sendable, Equatable {
@@ -22,6 +23,9 @@ public final class DriveSessionViewModel: ObservableObject {
         public var usedTTSFallback: Bool
         public var missingCount: Int
         public var endReason: String
+        public var goalCompletedBefore: Int
+        public var goalCompletedAfter: Int
+        public var goalItems: Int
     }
 
     public struct DriveNoteRow: Sendable, Equatable, Identifiable {
@@ -47,6 +51,8 @@ public final class DriveSessionViewModel: ObservableObject {
     @Published public private(set) var newCount = 0
     @Published public private(set) var currentCourseTitle = ""
 
+    public var canStart: Bool { !loadFailed && !resolution.items.isEmpty }
+
     private let sequencer: any DriveSequencing
     private let recorder: DriveAttemptRecorder
     private let analytics: any AnalyticsClient
@@ -59,6 +65,13 @@ public final class DriveSessionViewModel: ObservableObject {
     private var listenTask: Task<Void, Never>?
     private var startedAt = Date()
     private var itemOrder: [String] = []
+    private var persistTail = Task<Void, Never> {}
+    private var persistGeneration = 0
+    private var inflightPersists = 0
+    private var pendingFinish: (endedByUser: Bool, usedTTS: Bool)?
+    private var finishedNote: DriveNote?
+    private var goalCompletedBefore = 0
+    private var goalItems = 0
     public var onOpenLesson: ((String, String, String, Skill) -> Void)?
 
     public init(
@@ -100,6 +113,7 @@ public final class DriveSessionViewModel: ObservableObject {
     }
 
     public func start(courses: [StoredCourse]) async {
+        guard canStart else { return }
         phase = .starting
         startedAt = Date()
         noteRows = []
@@ -107,7 +121,17 @@ public final class DriveSessionViewModel: ObservableObject {
         sessionUsedTTS = false
         skippedMissing = resolution.skipped
         itemOrder = []
+        finishedNote = nil
+        pendingFinish = nil
+        persistGeneration += 1
+        persistTail = Task {}
+        inflightPersists = 0
+        await captureGoalBaseline()
         let script = DriveScriptBuilder.build(items: resolution.items, settings: settings)
+        guard !script.phases.isEmpty else {
+            phase = .idle
+            return
+        }
         plannedCount = script.itemPassCount
         analytics.track(
             .driveSessionStarted(
@@ -116,8 +140,9 @@ public final class DriveSessionViewModel: ObservableObject {
                 lengthCode: settings.lengthCode
             )
         )
+        let stream = await sequencer.events()
         listenTask?.cancel()
-        listenTask = Task { await self.listen() }
+        listenTask = Task { await self.listen(to: stream) }
         await sequencer.start(
             script: script,
             announcementTexts: DriveAnnouncementText.texts(for: script),
@@ -132,6 +157,11 @@ public final class DriveSessionViewModel: ObservableObject {
     public func pause() async { await sequencer.pause() }
     public func resume() async { await sequencer.resume() }
     public func stop() async { await sequencer.stop() }
+
+    public func openNote() {
+        guard case .finished = phase, let note = finishedNote else { return }
+        phase = .reviewing(note: note)
+    }
 
     public func replay(row: DriveNoteRow, speech: any SpeechSynthesizing, files: any PhaseFilePlaying) async {
         if let path = row.audioRelativePath,
@@ -152,13 +182,12 @@ public final class DriveSessionViewModel: ObservableObject {
     }
 
     public func noteOpened() {
-        if case let .finished(note) = phase {
-            analytics.track(.driveNoteOpened(completedCount: note.completedCount))
-        }
+        let count = finishedNote?.completedCount ?? 0
+        analytics.track(.driveNoteOpened(completedCount: count))
     }
 
-    private func listen() async {
-        for await event in await sequencer.events() {
+    private func listen(to stream: AsyncStream<DriveSequencerEvent>) async {
+        for await event in stream {
             handle(event)
         }
     }
@@ -174,13 +203,14 @@ public final class DriveSessionViewModel: ObservableObject {
             }
             phase = .running(phaseKind: kind, itemIndex: index, paused: paused)
         case let .itemCompleted(ref, usedTTS, elapsed):
+            let createdAt = Date()
             sessionUsedTTS = sessionUsedTTS || usedTTS
             completedCount += 1
             let key = DrivePlanResolver.itemKey(courseId: ref.courseId, itemId: ref.itemId)
             if let item = itemsByKey[key], let lookup = resolution.lookups[key] {
                 appendNote(item: item, lookup: lookup)
             }
-            Task { await self.persist(ref: ref, usedTTS: usedTTS, elapsed: elapsed) }
+            enqueuePersist(ref: ref, usedTTS: usedTTS, elapsed: elapsed, createdAt: createdAt)
         case .itemSkipped:
             skippedMissing += 1
         case .paused:
@@ -191,13 +221,37 @@ public final class DriveSessionViewModel: ObservableObject {
             if case let .running(kind, index, _) = phase {
                 phase = .running(phaseKind: kind, itemIndex: index, paused: false)
             }
-        case let .finished(endedByUser, count):
+        case let .finished(endedByUser, count, usedTTSFallback):
             completedCount = count
-            finish(endedByUser: endedByUser)
+            sessionUsedTTS = sessionUsedTTS || usedTTSFallback
+            pendingFinish = (endedByUser, sessionUsedTTS)
+            enqueueFinishIfReady()
         }
     }
 
-    private func persist(ref: DriveItemRef, usedTTS: Bool, elapsed: Int) async {
+    private func enqueuePersist(ref: DriveItemRef, usedTTS: Bool, elapsed: Int, createdAt: Date) {
+        inflightPersists += 1
+        let generation = persistGeneration
+        persistTail = Task { [persistTail] in
+            await persistTail.value
+            guard generation == self.persistGeneration else { return }
+            await self.persist(ref: ref, usedTTS: usedTTS, elapsed: elapsed, createdAt: createdAt)
+            self.inflightPersists = max(0, self.inflightPersists - 1)
+            self.enqueueFinishIfReady()
+        }
+    }
+
+    private func enqueueFinishIfReady() {
+        guard pendingFinish != nil, inflightPersists == 0 else { return }
+        let generation = persistGeneration
+        persistTail = Task { [persistTail] in
+            await persistTail.value
+            guard generation == self.persistGeneration else { return }
+            await self.confirmFinish()
+        }
+    }
+
+    private func persist(ref: DriveItemRef, usedTTS: Bool, elapsed: Int, createdAt: Date) async {
         let key = DrivePlanResolver.itemKey(courseId: ref.courseId, itemId: ref.itemId)
         guard let item = itemsByKey[key], let lookup = resolution.lookups[key] else { return }
         _ = try? await recorder.record(
@@ -206,8 +260,37 @@ public final class DriveSessionViewModel: ObservableObject {
             passIndex: ref.passIndex,
             usedTTSFallback: usedTTS,
             elapsedMs: elapsed,
+            createdAt: createdAt,
             settings: settings
         )
+    }
+
+    private func confirmFinish() async {
+        guard let pending = pendingFinish else { return }
+        pendingFinish = nil
+        let after = await currentGoalCompleted()
+        let durationMs = Int(Date().timeIntervalSince(startedAt) * 1_000)
+        let reason = pending.endedByUser ? "stopped" : "finished"
+        analytics.track(
+            .driveSessionCompleted(
+                completedCount: completedCount,
+                durationBand: Quantization.durationBand(ms: durationMs),
+                endReason: reason,
+                usedTTSFallback: pending.usedTTS
+            )
+        )
+        let note = DriveNote(
+            rows: noteRows,
+            completedCount: completedCount,
+            usedTTSFallback: pending.usedTTS,
+            missingCount: skippedMissing,
+            endReason: reason,
+            goalCompletedBefore: goalCompletedBefore,
+            goalCompletedAfter: after,
+            goalItems: goalItems
+        )
+        finishedNote = note
+        phase = .finished
     }
 
     private func appendNote(item: DriveItem, lookup: DrivePlanResolver.Lookup) {
@@ -232,26 +315,16 @@ public final class DriveSessionViewModel: ObservableObject {
         )
     }
 
-    private func finish(endedByUser: Bool) {
-        let durationMs = Int(Date().timeIntervalSince(startedAt) * 1_000)
-        let reason = endedByUser ? "stopped" : "finished"
-        analytics.track(
-            .driveSessionCompleted(
-                completedCount: completedCount,
-                durationBand: Quantization.durationBand(ms: durationMs),
-                endReason: reason,
-                usedTTSFallback: sessionUsedTTS
-            )
-        )
-        phase = .finished(
-            note: DriveNote(
-                rows: noteRows,
-                completedCount: completedCount,
-                usedTTSFallback: sessionUsedTTS,
-                missingCount: skippedMissing,
-                endReason: reason
-            )
-        )
+    private func captureGoalBaseline() async {
+        goalItems = ((try? await recorder.persistence.loadOrCreateSettings()) ?? .phase1Default).dailyGoalItems
+        goalCompletedBefore = await currentGoalCompleted()
+    }
+
+    private func currentGoalCompleted() async -> Int {
+        let calendar = Calendar.current
+        let start = StudyDay.studyDay(of: Date(), calendar: calendar)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(86_400)
+        return (try? await recorder.persistence.attemptCount(from: start, to: end)) ?? 0
     }
 
     private func itemIndex(for ref: DriveItemRef?) -> Int {

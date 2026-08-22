@@ -68,6 +68,25 @@ struct DriveAttemptRecorderTests {
         #expect(payload.speakPauseMs != nil)
     }
 
+    @Test("createdAt は呼び出し側のイベント時刻を保存する")
+    func recordsProvidedCreatedAt() async throws {
+        let persistence = try makeDrivePersistence()
+        let recorder = DriveAttemptRecorder(persistence: persistence, analytics: RecordingAnalytics())
+        let createdAt = Date(timeIntervalSince1970: 1_700_000_123)
+        let result = try await recorder.record(
+            item: driveItem(id: "item_ok", skill: .shadowing),
+            lookup: driveLookup(),
+            passIndex: 0,
+            usedTTSFallback: false,
+            elapsedMs: 1_000,
+            createdAt: createdAt,
+            settings: DriveScriptSettings.standard
+        )
+        #expect(result.attempt.createdAt == createdAt)
+        let stored = try await persistence.latestAttempt()
+        #expect(stored?.createdAt == createdAt)
+    }
+
     @Test("habit イベントは学習日あたり一度だけ")
     func habitEventsFireOnce() async throws {
         let persistence = try makeDrivePersistence()

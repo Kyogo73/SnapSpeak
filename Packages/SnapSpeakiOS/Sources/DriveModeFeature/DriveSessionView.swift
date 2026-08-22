@@ -46,6 +46,7 @@ public struct DriveSessionView: View {
                     isRepeatFill: viewModel.isRepeatFill,
                     loadFailed: viewModel.loadFailed,
                     length: $length,
+                    canStart: viewModel.canStart,
                     onStart: {
                         viewModel.applyLength(length)
                         Task { await viewModel.start(courses: courses) }
@@ -79,7 +80,13 @@ public struct DriveSessionView: View {
                     },
                     onStop: { Task { await viewModel.stop() } }
                 )
-            case let .finished(note):
+            case .finished:
+                DriveCompletedView(
+                    completedCount: viewModel.completedCount,
+                    onOpenNote: { viewModel.openNote() },
+                    onClose: onClose
+                )
+            case let .reviewing(note):
                 DriveNoteView(
                     note: note,
                     onReplay: { row in
@@ -96,7 +103,7 @@ public struct DriveSessionView: View {
             onLengthChanged(newValue)
         }
         .task {
-            guard startImmediately, !viewModel.loadFailed else { return }
+            guard startImmediately, viewModel.canStart else { return }
             viewModel.applyLength(length)
             await viewModel.start(courses: courses)
         }

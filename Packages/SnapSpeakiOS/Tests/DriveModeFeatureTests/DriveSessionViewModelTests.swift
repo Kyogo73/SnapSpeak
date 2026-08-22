@@ -9,8 +9,8 @@ import Testing
 @Suite("DriveSessionViewModel")
 @MainActor
 struct DriveSessionViewModelTests {
-    @Test("開始で drive_session_started、完了で Attempt とノートと completed イベント")
-    func startAndFinishRecordAttemptAndAnalytics() async throws {
+    @Test("開始で drive_session_started、完了後は安全画面。ノートは明示タップ。Attempt は finish 確定前")
+    func startAndFinishRecordAttemptThenOpenNote() async throws {
         let sequencer = FakeDriveSequencer()
         let persistence = try makeViewModelPersistence()
         let analytics = RecordingAnalytics()
@@ -28,6 +28,7 @@ struct DriveSessionViewModelTests {
             newLesson: nil
         )
         viewModel.prepare(plan: plan, courses: [stored], settings: DriveScriptSettings.standard)
+        #expect(viewModel.canStart)
 
         await viewModel.start(courses: [stored])
         #expect(analytics.events.contains {
@@ -40,20 +41,30 @@ struct DriveSessionViewModelTests {
         let ref = DriveItemRef(courseId: "course_a", itemId: "item_ok", skill: .shadowing, passIndex: 0)
         sequencer.emit(.phaseChanged(kind: .shadowTrack, itemRef: ref))
         sequencer.emit(.itemCompleted(ref, usedTTSFallback: true, elapsedMs: 2_500))
-        sequencer.emit(.finished(endedByUser: false, completedCount: 1))
+        sequencer.emit(.finished(endedByUser: false, completedCount: 1, usedTTSFallback: true))
 
         await waitUntil {
             if case .finished = viewModel.phase { return true }
             return false
         }
         #expect(viewModel.completedCount == 1)
-        if case let .finished(note) = viewModel.phase {
+        if case .reviewing = viewModel.phase {
+            Issue.record("must stay on finished glance, not auto-open note")
+        }
+
+        let attempt = try await persistence.latestAttempt()
+        #expect(attempt?.itemId == "item_ok")
+        #expect(attempt?.payloadSchemaVersion == 2)
+
+        viewModel.openNote()
+        if case let .reviewing(note) = viewModel.phase {
             #expect(note.rows.count == 1)
             #expect(note.rows[0].itemId == "item_ok")
             #expect(note.usedTTSFallback == true)
             #expect(note.endReason == "finished")
+            #expect(note.goalCompletedAfter >= note.goalCompletedBefore)
         } else {
-            Issue.record("expected finished phase")
+            Issue.record("expected reviewing after explicit openNote")
         }
 
         await waitUntil { analytics.events.contains { event in
@@ -62,11 +73,6 @@ struct DriveSessionViewModelTests {
             }
             return false
         }}
-
-        await waitUntil { (try? await persistence.latestAttempt()) != nil }
-        let attempt = try await persistence.latestAttempt()
-        #expect(attempt?.itemId == "item_ok")
-        #expect(attempt?.payloadSchemaVersion == 2)
     }
 
     @Test("pause / resume が running の paused を切り替える")
@@ -108,6 +114,60 @@ struct DriveSessionViewModelTests {
         }
     }
 
+    @Test("途中停止でも finished の usedTTSFallback を分析に載せる")
+    func stopStillReportsSessionTTS() async throws {
+        let sequencer = FakeDriveSequencer()
+        let persistence = try makeViewModelPersistence()
+        let analytics = RecordingAnalytics()
+        let viewModel = DriveSessionViewModel(
+            sequencer: sequencer,
+            recorder: DriveAttemptRecorder(persistence: persistence, analytics: analytics),
+            analytics: analytics
+        )
+        let course = try DriveTestSupport.shadowingCourse()
+        viewModel.prepare(
+            plan: SessionPlan(
+                reviews: [DriveTestSupport.due(courseId: "course_a", itemId: "item_ok")],
+                deferredDueCount: 0,
+                newLesson: nil
+            ),
+            courses: [DriveTestSupport.stored(course)],
+            settings: DriveScriptSettings.standard
+        )
+        await viewModel.start(courses: [DriveTestSupport.stored(course)])
+        sequencer.emit(.finished(endedByUser: true, completedCount: 0, usedTTSFallback: true))
+        await waitUntil {
+            if case .finished = viewModel.phase { return true }
+            return false
+        }
+        #expect(analytics.events.contains {
+            if case let .driveSessionCompleted(_, _, reason, tts) = $0 {
+                return reason == "stopped" && tts
+            }
+            return false
+        })
+    }
+
+    @Test("空 script では開始しない。購読後に start する")
+    func emptyItemsDoNotStart() async throws {
+        let sequencer = FakeDriveSequencer()
+        let persistence = try makeViewModelPersistence()
+        let viewModel = DriveSessionViewModel(
+            sequencer: sequencer,
+            recorder: DriveAttemptRecorder(persistence: persistence, analytics: RecordingAnalytics()),
+            analytics: RecordingAnalytics()
+        )
+        viewModel.prepare(
+            plan: SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil),
+            courses: [],
+            settings: DriveScriptSettings.standard
+        )
+        #expect(viewModel.canStart == false)
+        await viewModel.start(courses: [])
+        #expect(sequencer.didStart == false)
+        #expect(viewModel.phase == .idle)
+    }
+
     @Test("noteOpened は drive_note_opened を送る")
     func noteOpenedTracksEvent() async throws {
         let sequencer = FakeDriveSequencer()
@@ -120,23 +180,30 @@ struct DriveSessionViewModelTests {
         )
         let course = try DriveTestSupport.shadowingCourse()
         viewModel.prepare(
-            plan: SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil),
+            plan: SessionPlan(
+                reviews: [DriveTestSupport.due(courseId: "course_a", itemId: "item_ok")],
+                deferredDueCount: 0,
+                newLesson: nil
+            ),
             courses: [DriveTestSupport.stored(course)],
             settings: DriveScriptSettings.standard
         )
         await viewModel.start(courses: [DriveTestSupport.stored(course)])
-        sequencer.emit(.finished(endedByUser: true, completedCount: 0))
+        sequencer.emit(.finished(endedByUser: true, completedCount: 0, usedTTSFallback: false))
         await waitUntil {
             if case .finished = viewModel.phase { return true }
             return false
         }
+        viewModel.openNote()
         viewModel.noteOpened()
         #expect(analytics.events.contains {
             if case let .driveNoteOpened(count) = $0 { return count == 0 }
             return false
         })
-        if case let .finished(note) = viewModel.phase {
+        if case let .reviewing(note) = viewModel.phase {
             #expect(note.endReason == "stopped")
+        } else {
+            Issue.record("expected reviewing after openNote")
         }
     }
 }
@@ -154,7 +221,7 @@ final class FakeDriveSequencer: DriveSequencing, @unchecked Sendable {
         continuation = pair.continuation
     }
 
-    func events() -> AsyncStream<DriveSequencerEvent> { stream }
+    func events() async -> AsyncStream<DriveSequencerEvent> { stream }
 
     func start(
         script: DriveScript,

@@ -26,6 +26,16 @@ public struct DriveNoteView: View {
                     .font(Typography.title)
                 Text(LocalizedFormat.string("drive.note.summary", note.completedCount))
                     .font(Typography.headline)
+                Text(
+                    LocalizedFormat.string(
+                        "drive.note.goal_progress",
+                        note.goalCompletedBefore,
+                        note.goalCompletedAfter,
+                        note.goalItems
+                    )
+                )
+                .font(Typography.caption)
+                .foregroundStyle(Colors.secondaryFill)
                 Text("drive.note.review_hint")
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryFill)
@@ -37,7 +47,7 @@ public struct DriveNoteView: View {
                 ForEach(note.rows) { row in
                     rowCard(row)
                 }
-                PrimaryButton("drive.note.open_lesson") {
+                SecondaryButton("drive.note.open_lesson") {
                     if let first = note.rows.first { onOpenLesson(first) }
                 }
                 SecondaryButton("drive.note.close", action: onClose)

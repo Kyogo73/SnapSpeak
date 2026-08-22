@@ -184,6 +184,7 @@ public struct RootView: View {
     }
 
     private func presentDrive(immediate: Bool) async {
+        guard !courses.isEmpty else { return }
         await dependencies.audio.stop()
         let prepared: (plan: SessionPlan, loadFailed: Bool)
         if let todayViewModel {

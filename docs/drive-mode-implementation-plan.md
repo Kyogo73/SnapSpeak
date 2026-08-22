@@ -199,7 +199,7 @@ public struct DriveCursor: Sendable, Equatable {
 | B2 | composition 1 件の標準フェーズ列（kind / audio / item 参照の完全一致。intro と outro を含む） |
 | B3 | shadowing repeats = 1 / 2 / 3 のフェーズ数と trackGap の位置 |
 | B4 | `audioDurationMs` あり → `answerMs` に採用 / なし → TTS 推定式（L1 / L2 係数の別） |
-| B5 | speakPause のクランプ下限（極端に短い正解）と上限（長い正解）、`pauseMultiplier` 0.8 / 1.3 の反映 |
+| B5 | speakPause / repeatPause のクランプ下限（極端に短い正解）と上限（長い正解）、`pauseMultiplier` 0.8 / 1.3 の反映 |
 | B6 | 切り詰め: 予算ちょうど / 1ms 不足で次 Item が落ちる / 先頭 Item が予算超過でも 1 件は残る |
 | B7 | 反復充填: 合計が予算未満 → 2 周目が入り `passIndex` が増える。`sectionAnnounce` は 1 周目のみ。`maxUnrolledItemPasses` の上限 |
 | B8 | endless: `loops == true`・1 周のみ・outro なし |
@@ -217,7 +217,7 @@ public struct DriveCursor: Sendable, Equatable {
 | C4 | `pause` 中の `phaseFinished` 無視 → `resume` で現在 Item の頭から |
 | C5 | `stop` → `finished(endedByUser: true)`、以後のイベント無視・出力なし |
 | C6 | endless: 末尾到達で先頭 Item へ巻き戻り `passIndex` 加算・`completedPassCount` 累積 |
-| C7 | 完了の一回性: resume による Item 頭からのやり直しで同一 pass の `itemCompleted` が重複しない |
+| C7 | 完了の一回性: resume による Item 頭からのやり直し、および完了後の同 pass 再走で `itemCompleted` / `completedPassCount` が重複しない |
 
 ---
 
@@ -229,10 +229,10 @@ public struct DriveCursor: Sendable, Equatable {
 
 | 追加物 | 内容 |
 |--------|------|
-| `SpeechSynthesizing`（protocol） | `func speak(text: String, languageTag: String) async throws` / `func stopSpeaking()`。Sendable。テスト用フェイクのシーム |
+| `SpeechSynthesizing`（protocol） | `func speak(text: String, languageTag: String) async throws` / `func stopSpeaking()` / `func resetEngine()`。Sendable。テスト用フェイクのシーム。発話 continuation は utterance ID と照合する |
 | `SpeechSynthesisClient` | `AVSpeechSynthesizer` ラッパ（`AVSpeechSynthesizerDelegate.didFinish` を continuation で async 化）。ボイスは `AVSpeechSynthesisVoice(language:)` で解決し、解決不能は `SpeechSynthesisError.voiceUnavailable` を投げる（シーケンサが Item スキップに写像）。レートは既定値。キャンセル対応（`stopSpeaking()` → continuation resume） |
-| `PhaseFilePlaying`（protocol）+ `SequenceFilePlayer` | 単発ファイル再生の async 版（`play(url:) async throws`、完了で return、`stop()`）。実装は `AVAudioPlayerNode` + 完了コールバック（`.dataPlayedBack`）。既存 `PlayerGraph` とは独立の小さなグラフ（速度変更・録音タップ不要のため `AVAudioUnitTimePitch` なし）。`AVAudioFile` オープン失敗（**ダミーバイトを含む**）は throw し、シーケンサが TTS フォールバックする |
-| `DriveSequencer`（actor） | `DriveScript` を実行する。内部に `DriveCursor` を保持し、`play(phaseIndex:)` 出力を「file → `PhaseFilePlaying`（失敗時は同梱 fallbackText で `SpeechSynthesizing`）/ contentTTS・announcement → `SpeechSynthesizing` / silence → `Task.sleep`（クロック注入可）」に写像する。公開 API: `start(script:announcementTexts:)` / `pause()` / `resume()` / `skipForward()` / `skipBackward()` / `stop()`、イベントは `AsyncStream<DriveSequencerEvent>`（`phaseChanged(kind:itemRef:)` / `itemCompleted(DriveItemRef, usedTTSFallback: Bool, elapsedMs: Int)` / `paused(reason:)` / `resumed` / `finished(endedByUser:completedCount:)`） |
+| `PhaseFilePlaying`（protocol）+ `SequenceFilePlayer` | 単発ファイル再生の async 版（`play(url:) async throws`、完了で return、`stop()` / `resetEngine()`）。実装は `AVAudioPlayerNode` + 完了コールバック（`.dataPlayedBack`）。schedule callback は play 要求 ID と照合する。既存 `PlayerGraph` とは独立の小さなグラフ（速度変更・録音タップ不要のため `AVAudioUnitTimePitch` なし）。`AVAudioFile` オープン失敗（**ダミーバイトを含む**）は throw し、シーケンサが TTS フォールバックする。**cancellation は破損扱いせず fallback しない** |
+| `DriveSequencer`（actor） | `DriveScript` を実行する。内部に `DriveCursor` を保持し、`play(phaseIndex:)` 出力を「file → `PhaseFilePlaying`（失敗時は同梱 fallbackText で `SpeechSynthesizing`）/ contentTTS・announcement → `SpeechSynthesizing` / silence → `Task.sleep`（クロック注入可）」に写像する。公開 API: `start(script:announcementTexts:)` / `pause()` / `resume()` / `skipForward()` / `skipBackward()` / `stop()` / `events() async`、イベントは `AsyncStream<DriveSequencerEvent>`（`phaseChanged(kind:itemRef:)` / `itemCompleted(DriveItemRef, usedTTSFallback: Bool, elapsedMs: Int)` / `paused(reason:)` / `resumed` / `finished(endedByUser:completedCount:usedTTSFallback:)`）。audio session 起動失敗は cursor を pause し `.paused(.audioSessionFailure)`。終了時は session を deactivate する |
 | 割り込み処理 | `DriveSequencer` が既存 `RecoveryObserver` を購読し、ドライブ用ポリシーで処理する: interruptionBegan → `pause(reason: .interruption)` / interruptionEnded(shouldResume) → **自動 `resume()`**（shouldResume なしは pause 維持）/ routeChange（oldDeviceUnavailable）→ pause 維持（自動再開しない）/ mediaServicesReset → グラフ・シンセ再構築して pause 維持（ux-design §10.6 と 1:1） |
 | セッション構成 | `AudioSessionConfigurator` の既存 `activatePreview()`（`.playback + .spokenAudio`）を再利用する。録音カテゴリは使わない |
 | `DriveRemoteCommandBridge`（@MainActor） | `MPRemoteCommandCenter`（play / pause / togglePlayPause / nextTrack / previousTrack を有効化、seek / skipInterval / changePlaybackRate を無効化）→ `DriveSequencer` へ転送。`MPNowPlayingInfoCenter` を `phaseChanged` / pause / resume で更新（タイトル・コース名 + 進捗・playbackState のみ。**学習テキストは載せない** — ux-design §10.7）。`import MediaPlayer` は本ファイルに閉じる。ロジックを持たない薄い橋（hostless テスト対象外） |
@@ -246,11 +246,12 @@ public struct DriveCursor: Sendable, Equatable {
 | ファイル | 内容 |
 |----------|------|
 | `DrivePlanResolver.swift` | `static func resolve(plan: SessionPlan, courses: [StoredCourse]) -> [DriveItem]` — `ReviewSessionViewModel.resolveEntries` と同じ規則（due → new、courseId + itemId で解決、重複除外、欠損スキップ）で `DriveItem` に写像する純関数。composition は `l1Text = sentencePair.l1`、`l2Text = acceptable.first`、shadowing は `l2Text = passage.text`。言語タグは `stored.course.languagePair` から。加えて `static func repeatFillItems(courses:limit:) -> [DriveItem]` — プラン空のときのカタログ順反復素材（ux-design §10.3） |
-| `DriveSessionViewModel.swift` | `@MainActor`。状態 `idle / starting / running(phaseKind:itemIndex:paused:) / finished(note:)`。`start(settings:plan:courses:)` → resolver → `DriveScriptBuilder.build` → シーケンサ開始 → イベント購読。`itemCompleted` ごとに `DriveAttemptRecorder.record`（下記）とノート行の蓄積。`finished` で `drive_session_completed` を track しノート状態へ。シーケンサはプロトコル（`DriveSequencing`）越しに注入（hostless テスト用フェイク） |
-| `DriveAttemptRecorder.swift` | `itemCompleted` → `appendAttemptEvaluatingHabit(LessonAttemptWrite(...))`。skill は本来の値、`durationMs` = シーケンサ実測 `elapsedMs`、payload は §2.3。返り値 `AttemptHabitResult` から `streak_day_recorded` / `goal_met` を track（`LiveShadowingUseCase.trackHabit` と同型の 8 行。共有化は Feature 間 import になるため**意図的に重複**させ、コメントで相互参照する） |
+| `DriveSessionViewModel.swift` | `@MainActor`。状態 `idle / starting / running(phaseKind:itemIndex:paused:) / finished / reviewing(note:)`。イベント購読を開始してから `start`。空 script では開始しない。`itemCompleted` ごとに `createdAt` 固定で Attempt を直列保存。全 pending write 完了後に `finished` を確定し、ノートは `openNote()` の明示タップでのみ `reviewing` へ |
+| `DriveAttemptRecorder.swift` | `itemCompleted` → `appendAttemptEvaluatingHabit(LessonAttemptWrite(...))`。`createdAt` は完了イベント時刻。skill は本来の値、`durationMs` = シーケンサ実測 `elapsedMs`、payload は §2.3。返り値 `AttemptHabitResult` から `streak_day_recorded` / `goal_met` を track（`LiveShadowingUseCase.trackHabit` と同型の 8 行。共有化は Feature 間 import になるため**意図的に重複**させ、コメントで相互参照する） |
 | `DriveStartView.swift` | ux-design §10.5.1。プラン内訳・長さ 4 択（保存値を読み書き）・巨大開始ボタン・安全注意。プラン読み込み失敗時は再試行（`home.today.load_failed` 再利用） |
 | `DriveGlanceView.swift` | ux-design §10.5.2。状態語（きく / はなす / こたえ / 一時停止中）・進捗・下半分の一時停止 ⇄ 再開・左上終了。学習テキストを表示しない |
-| `DriveNoteView.swift` | ux-design §10.5.3。完了 Item の L1 / L2 一覧（反復は 1 行に回数）・聞き直し（`SpeechSynthesizing` / `PhaseFilePlaying` で 1 回再生）・「通常レッスンで採点つきで練習する」（クロージャで AppFeature に委譲）・閉じる。表示時に `drive_note_opened` |
+| `DriveCompletedView.swift` | ux-design §10.5.2a。大きな「完了」＋完了数のみ。「ドライブノートを開く」は明示タップ |
+| `DriveNoteView.swift` | ux-design §10.5.3。完了 Item の L1 / L2 一覧（反復は 1 行に回数）・ゴール進捗の前後・聞き直し（`SpeechSynthesizing` / `PhaseFilePlaying` で 1 回再生）・「通常レッスンで採点つきで練習する」（副 CTA）・閉じる。表示時に `drive_note_opened` |
 
 ### 2.3 Persistence（`Packages/SnapSpeakiOS/Sources/Persistence/`）
 
@@ -342,7 +343,10 @@ ux-design §9 の表と 1:1。生テキスト・座標・速度など運転関�
 | `drive.announce.intro_repeat_fill` | ドライブモードを開始します。これまでに練習した表現を反復します。音声のあとに続けて話してください。 |
 | `drive.announce.intro_endless` | ドライブモードを開始します。停止するまで練習を続けます。音声のあとに続けて話してください。 |
 | `drive.announce.new_section` | ここからは新しいレッスンです。 |
-| `drive.announce.outro` | セッション終了です。%lld 問練習しました。おつかれさまでした。 |
+| `drive.announce.outro` | セッション終了です。%lld 問練習しました。停車してからドライブノートを開けます。おつかれさまでした。 |
+| `drive.glance.done` | 完了 |
+| `drive.completed.open_note` | ドライブノートを開く |
+| `drive.note.goal_progress` | 今日 %1$lld → %2$lld / %3$lld 問 |
 | `drive.note.title` | ドライブノート |
 | `drive.note.summary` | %lld 問練習しました |
 | `drive.note.repeat_count` | %lld 回反復 |
@@ -390,7 +394,8 @@ ux-design §9 の表と 1:1。生テキスト・座標・速度など運転関�
 | 対象 | ケース |
 |------|--------|
 | `DrivePlanResolver` | due / new の順序保存・courseId + itemId 解決・欠損スキップ・重複除外・`l1Text` / `l2Text` / 言語タグの写像・プラン空の `repeatFillItems` |
-| `DriveSessionViewModel`（`DriveSequencing` フェイク注入） | itemCompleted → Attempt 記録呼び出しとノート行蓄積 / finished → `drive_session_completed`（endReason・usedTTSFallback）/ 開始時 `drive_session_started` / pause・resume の状態反映 |
+| `DriveSessionViewModel`（`DriveSequencing` フェイク注入） | itemCompleted → Attempt 記録呼び出しとノート行蓄積 / finished 確定は pending write 完了後 / 完了画面のあと明示 `openNote` で reviewing / `drive_session_completed`（endReason・usedTTSFallback。途中停止も含む）/ 開始時 `drive_session_started` / 空 items では start しない / pause・resume の状態反映 |
+| `DriveSequencer`（`AudioEngineTests`、注入フェイク） | cancellation 中に TTS fallback しない / route 切断（oldDeviceUnavailable）でのみ pause / audio session 失敗で pause / 要求 ID 照合の一回性 / 完了時 deactivate |
 | `DriveAttemptRecorder`（in-memory `PersistenceActor`） | 未採点 Attempt が追記される（payload roundtrip: 外側バージョン 2 / 3・`context == "drive"`）/ `ReviewEvent` が 0 件 / `AttemptHabitResult` 経由で `streak_day_recorded` / `goal_met` が一回性を保って発火 / due カードの `dueAt` が不変 |
 | `SettingsView` 系（既存パターン） | ドライブ設定 3 項目の読み書き |
 

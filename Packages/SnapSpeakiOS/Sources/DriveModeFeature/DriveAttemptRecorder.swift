@@ -20,6 +20,7 @@ public struct DriveAttemptRecorder: Sendable {
         passIndex: Int,
         usedTTSFallback: Bool,
         elapsedMs: Int,
+        createdAt: Date = Date(),
         settings: DriveScriptSettings
     ) async throws -> AttemptHabitResult {
         let payload = try makePayload(
@@ -39,7 +40,7 @@ public struct DriveAttemptRecorder: Sendable {
                 contentRevision: lookup.contentRevision,
                 languagePairKey: lookup.languagePairKey,
                 skill: item.skill.rawValue,
-                createdAt: Date(),
+                createdAt: createdAt,
                 durationMs: elapsedMs,
                 payloadSchemaVersion: schemaVersion,
                 payloadJSON: payload

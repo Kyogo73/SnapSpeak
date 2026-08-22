@@ -53,7 +53,7 @@ public struct RootView: View {
         .task { await bootstrap() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                Task { await todayViewModel.refresh() }
+                Task { await todayViewModel?.refresh() }
             }
         }
         .onOpenURL { url in
@@ -68,7 +68,7 @@ public struct RootView: View {
                 ),
                 onFinished: { startFirstLesson in
                     showOnboarding = false
-                    Task { await todayViewModel.refresh() }
+                    Task { await todayViewModel?.refresh() }
                     if startFirstLesson, let lesson = firstLesson {
                         homePath.append(.lesson(lesson))
                     }

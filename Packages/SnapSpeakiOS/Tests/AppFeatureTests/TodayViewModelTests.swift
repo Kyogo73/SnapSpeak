@@ -15,7 +15,7 @@ struct TodayViewModelTests {
     func staleRefreshDoesNotOverwriteNewerSnapshot() async throws {
         let planning = FakeTodayPlanning()
         await planning.configure(
-            delayFirstNanoseconds: 80_000_000,
+            holdFirst: true,
             results: [
                 .success(Self.snapshot(itemId: "slow")),
                 .success(Self.snapshot(itemId: "fast")),
@@ -24,8 +24,9 @@ struct TodayViewModelTests {
         let viewModel = try makeViewModel(planning: planning)
 
         async let first: Void = viewModel.refresh()
-        try await Task.sleep(nanoseconds: 10_000_000)
+        await planning.waitUntilFirstStarted()
         await viewModel.refresh()
+        await planning.releaseFirst()
         await first
 
         #expect(viewModel.snapshot?.plan.reviews.map(\.itemId) == ["fast"])
@@ -105,17 +106,39 @@ struct TodayViewModelTests {
 }
 
 actor FakeTodayPlanning: TodayPlanning {
-    private var delayFirstNanoseconds: UInt64 = 0
+    private var holdFirst = false
     private var results: [Result<TodaySnapshot, FakePlanError>] = []
     private var index = 0
+    private var firstHasStarted = false
+    private var firstStarted: CheckedContinuation<Void, Never>?
+    private var firstHold: CheckedContinuation<Void, Never>?
 
     func configure(
-        delayFirstNanoseconds: UInt64 = 0,
+        holdFirst: Bool = false,
         results: [Result<TodaySnapshot, FakePlanError>]
     ) {
-        self.delayFirstNanoseconds = delayFirstNanoseconds
+        self.holdFirst = holdFirst
         self.results = results
         index = 0
+        firstHasStarted = false
+        firstStarted = nil
+        firstHold = nil
+    }
+
+    func waitUntilFirstStarted() async {
+        if firstHasStarted { return }
+        await withCheckedContinuation { continuation in
+            if firstHasStarted {
+                continuation.resume()
+            } else {
+                firstStarted = continuation
+            }
+        }
+    }
+
+    func releaseFirst() {
+        firstHold?.resume()
+        firstHold = nil
     }
 
     func makeToday(
@@ -130,8 +153,13 @@ actor FakeTodayPlanning: TodayPlanning {
         _ = policy
         let current = index
         index += 1
-        if current == 0, delayFirstNanoseconds > 0 {
-            try await Task.sleep(nanoseconds: delayFirstNanoseconds)
+        if current == 0, holdFirst {
+            firstHasStarted = true
+            firstStarted?.resume()
+            firstStarted = nil
+            await withCheckedContinuation { continuation in
+                firstHold = continuation
+            }
         }
         guard results.indices.contains(current) else {
             throw FakePlanError.makeTodayFailed

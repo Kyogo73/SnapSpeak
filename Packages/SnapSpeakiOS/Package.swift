@@ -195,5 +195,45 @@ let package = Package(
             ],
             swiftSettings: swift6
         ),
+        .testTarget(
+            name: "OnboardingFeatureTests",
+            dependencies: [
+                "Analytics",
+                "NotificationsKit",
+                "OnboardingFeature",
+                "Persistence",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "CompositionFeatureTests",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "CompositionFeature",
+                "ContentKit",
+                "Persistence",
+                "SpeechKit",
+                .product(name: "CompositionKit", package: "SnapSpeakCore"),
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "AppFeatureTests",
+            dependencies: [
+                "Analytics",
+                "AppFeature",
+                "NotificationsKit",
+                "Persistence",
+                "ReviewFeature",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
     ]
 )

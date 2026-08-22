@@ -25,14 +25,14 @@ public final class TodayViewModel: ObservableObject {
     @Published public private(set) var continueLesson: LessonCoordinate?
 
     private let persistence: PersistenceActor
-    private let todayPlanService: TodayPlanService
+    private let todayPlanService: any TodayPlanning
     private let scheduler: ReminderScheduler
     private let analytics: any AnalyticsClient
     private var refreshGeneration = 0
 
     public init(
         persistence: PersistenceActor,
-        todayPlanService: TodayPlanService,
+        todayPlanService: any TodayPlanning,
         scheduler: ReminderScheduler,
         analytics: any AnalyticsClient
     ) {

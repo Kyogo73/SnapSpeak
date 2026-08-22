@@ -95,7 +95,8 @@ public actor CourseStore {
         return CourseCatalog.uniquedActiveReleases(
             result,
             id: { $0.course.id },
-            revision: { $0.revision }
+            revision: { $0.revision },
+            releaseId: { $0.releaseId }
         )
     }
 
@@ -116,18 +117,21 @@ public actor CourseStore {
             let decoded = try ContentDecoder.decodeCourse(from: data)
             let metaURL = directory.appendingPathComponent(ReleaseMeta.fileName)
             let inheritSRS: Bool
+            let resolvedReleaseId: String?
             if let metaData = try? Data(contentsOf: metaURL),
                let meta = try? JSONDecoder().decode(ReleaseMeta.self, from: metaData) {
                 inheritSRS = meta.inheritSRS
+                resolvedReleaseId = meta.releaseId
             } else {
                 inheritSRS = true
+                resolvedReleaseId = releaseId
             }
             return StoredCourse(
                 course: CourseMigrator.migrate(decoded),
                 origin: origin,
                 directory: directory,
                 revision: revision,
-                releaseId: releaseId,
+                releaseId: resolvedReleaseId,
                 inheritSRS: inheritSRS
             )
         } catch {

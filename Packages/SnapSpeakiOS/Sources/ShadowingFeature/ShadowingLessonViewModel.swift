@@ -94,8 +94,7 @@ public final class ShadowingLessonViewModel: ObservableObject {
             try await useCase.startPlayback(
                 item: item,
                 stored: stored,
-                rate: rate,
-                asrReady: asrReady && !(decision?.isDegraded ?? false)
+                rate: rate
             )
             phase = .playing
         } catch ShadowingUseCaseError.microphoneDenied {

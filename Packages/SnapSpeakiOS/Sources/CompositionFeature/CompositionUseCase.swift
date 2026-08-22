@@ -44,21 +44,23 @@ public protocol CompositionUseCase: Sendable {
 
 public struct LiveCompositionUseCase: CompositionUseCase {
     public var audio: AudioEngineActor
-    public var speech: SpeechClient
+    public var speech: any SpeechRecognizing
     public var persistence: PersistenceActor
     public var analytics: any AnalyticsClient
     public var recordingsDirectory: URL
     public var localeResolver: any SpeechLocaleResolver
     public var permissions: any RecordingPermissionClient
+    public var availability: any SpeechAvailabilityInspecting
 
     public init(
         audio: AudioEngineActor,
-        speech: SpeechClient,
+        speech: any SpeechRecognizing,
         persistence: PersistenceActor,
         analytics: any AnalyticsClient,
         recordingsDirectory: URL,
         localeResolver: any SpeechLocaleResolver = StaticSpeechLocaleResolver(),
-        permissions: any RecordingPermissionClient = LiveRecordingPermissionClient()
+        permissions: any RecordingPermissionClient = LiveRecordingPermissionClient(),
+        availability: any SpeechAvailabilityInspecting = LiveSpeechAvailabilityInspector()
     ) {
         self.audio = audio
         self.speech = speech
@@ -67,6 +69,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         self.recordingsDirectory = recordingsDirectory
         self.localeResolver = localeResolver
         self.permissions = permissions
+        self.availability = availability
     }
 
     public func gradeTyped(
@@ -81,7 +84,14 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             .lessonStarted(languagePair: stored.course.languagePair.pairKey, lessonId: lessonId)
         )
         var outcome = grade(input: input, item: item, latencyMs: latencyMs, usedHint: usedHint, confidence: nil)
-        try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+        try await persist(
+            outcome: outcome,
+            item: item,
+            stored: stored,
+            lessonId: lessonId,
+            latencyMs: latencyMs,
+            usedHint: usedHint
+        )
         outcome.persisted = true
         return outcome
     }
@@ -113,14 +123,15 @@ public struct LiveCompositionUseCase: CompositionUseCase {
             for: stored.course.languagePair.targetLanguage,
             regionPreference: nil
         ) ?? Locale(identifier: "en-US")
-        let availability = await SpeechAvailability.inspect(locale: locale)
-        let canTranscribe = availability.isOnDeviceReady && permissions.speechStatus() == .authorized
+        let inspected = await availability.inspect(locale: locale)
+        let canTranscribe = inspected.isOnDeviceReady && permissions.speechStatus() == .authorized
         guard canTranscribe else {
             return try await persistUnscored(
                 item: item,
                 stored: stored,
                 lessonId: lessonId,
-                latencyMs: latencyMs
+                latencyMs: latencyMs,
+                usedHint: usedHint
             )
         }
         do {
@@ -132,7 +143,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                     item: item,
                     stored: stored,
                     lessonId: lessonId,
-                    latencyMs: latencyMs
+                    latencyMs: latencyMs,
+                    usedHint: usedHint
                 )
             }
             let mean = segments.isEmpty
@@ -145,7 +157,14 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 usedHint: usedHint,
                 confidence: mean
             )
-            try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+            try await persist(
+                outcome: outcome,
+                item: item,
+                stored: stored,
+                lessonId: lessonId,
+                latencyMs: latencyMs,
+                usedHint: usedHint
+            )
             outcome.persisted = true
             return outcome
         } catch {
@@ -153,7 +172,8 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 item: item,
                 stored: stored,
                 lessonId: lessonId,
-                latencyMs: latencyMs
+                latencyMs: latencyMs,
+                usedHint: usedHint
             )
         }
     }
@@ -191,22 +211,16 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         item: ItemV1,
         stored: StoredCourse,
         lessonId: String,
-        latencyMs: Int
+        latencyMs: Int,
+        usedHint: Bool
     ) async throws {
-        let passedLabel: String
-        switch outcome.grade {
-        case .pass:
-            passedLabel = "true"
-        case .fail:
-            passedLabel = "false"
-        case .unscored:
-            passedLabel = "unscored"
-        }
         let payload = try JSONEncoder().encode(
-            [
-                "payloadSchemaVersion": "1",
-                "passed": passedLabel,
-            ]
+            CompositionAttemptPayload(
+                payloadSchemaVersion: CompositionAttemptPayload.currentSchemaVersion,
+                result: CompositionAttemptPayload.resultLabel(for: outcome.grade),
+                usedHint: usedHint,
+                latencyMs: latencyMs
+            )
         )
         let habit = try await persistence.appendAttemptEvaluatingHabit(
             LessonAttemptWrite(
@@ -218,7 +232,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 skill: Skill.composition.rawValue,
                 createdAt: Date(),
                 durationMs: latencyMs,
-                payloadSchemaVersion: 1,
+                payloadSchemaVersion: CompositionAttemptPayload.currentSchemaVersion,
                 payloadJSON: payload
             )
         )
@@ -278,10 +292,18 @@ public struct LiveCompositionUseCase: CompositionUseCase {
         item: ItemV1,
         stored: StoredCourse,
         lessonId: String,
-        latencyMs: Int
+        latencyMs: Int,
+        usedHint: Bool
     ) async throws -> CompositionOutcome {
         var outcome = CompositionOutcome(grade: .unscored, quality: nil)
-        try await persist(outcome: outcome, item: item, stored: stored, lessonId: lessonId, latencyMs: latencyMs)
+        try await persist(
+            outcome: outcome,
+            item: item,
+            stored: stored,
+            lessonId: lessonId,
+            latencyMs: latencyMs,
+            usedHint: usedHint
+        )
         outcome.persisted = true
         return outcome
     }

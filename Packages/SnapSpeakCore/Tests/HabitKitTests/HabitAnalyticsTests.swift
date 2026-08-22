@@ -102,4 +102,18 @@ struct HabitAnalyticsTests {
             ) == false
         )
     }
+
+    @Test("目標を当日中に下げても itemsTodayBefore >= 新 goal なら goal_met は発火しない")
+    func loweringGoalAfterAlreadyMeetingDoesNotFire() {
+        let events = HabitAnalytics.eventsAfterAttempt(
+            studyDayStart: day,
+            streakDaysAfter: 3,
+            itemsTodayBefore: 10,
+            itemsTodayAfter: 11,
+            dailyGoal: 5,
+            markers: HabitDayMarkers(streakRecordedDayStart: day)
+        )
+        #expect(events.metGoalItems == nil)
+        #expect(events.nextMarkers.goalMetDayStart == nil)
+    }
 }

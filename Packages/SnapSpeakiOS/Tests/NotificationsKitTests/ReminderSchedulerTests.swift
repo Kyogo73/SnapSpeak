@@ -52,6 +52,20 @@ struct ReminderSchedulerTests {
         #expect(analytics.events.isEmpty)
     }
 
+    @Test("reminder- prefix 以外の pending は消さない")
+    func syncDoesNotRemoveNonReminderPending() async {
+        let center = FakeReminderCenter()
+        await center.seedPending(["other-note", "reminder-legacy"])
+        let analytics = RecordingAnalytics()
+        let scheduler = ReminderScheduler(center: center, analytics: analytics)
+        await scheduler.sync(plan: [Self.sampleReminder()], goalItems: 10)
+        let pending = await center.pending
+        #expect(pending.contains("other-note"))
+        #expect(pending.contains("reminder-2026-08-21"))
+        #expect(pending.contains("reminder-legacy") == false)
+        #expect(await center.removed == [["reminder-legacy"]])
+    }
+
     @Test("古い ON 同期は OFF の後に通知を足さない")
     func staleSyncDoesNotReaddAfterOff() async {
         let center = FakeReminderCenter()
@@ -99,6 +113,10 @@ actor FakeReminderCenter: ReminderCenter {
 
     func setAddDelayNanoseconds(_ value: UInt64) {
         addDelayNanoseconds = value
+    }
+
+    func seedPending(_ ids: [String]) {
+        pending = ids
     }
 
     func authorization() async -> ReminderAuthorization {

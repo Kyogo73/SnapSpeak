@@ -2,6 +2,7 @@ import Foundation
 import HabitKit
 import Persistence
 import SRSKit
+import SwiftData
 import Testing
 
 @Suite("Persistence VersionedSchema v1")
@@ -136,5 +137,28 @@ struct PersistenceActorTests {
         let storedEvents = try await actor.reviewEvents(forCardKey: cardKey)
         #expect(storedEvents.count == 1)
         #expect(storedEvents[0].contentRevision == 1)
+    }
+
+    @Test("rollback は未保存 insert を消す")
+    func rollbackDiscardsUnsavedInsert() throws {
+        let container = try PersistenceActor.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        let write = attemptWrite(itemId: "unsaved", createdAt: Date(timeIntervalSince1970: 1_700_000_000))
+        let model = LessonAttempt(
+            id: write.id,
+            courseId: write.courseId,
+            lessonId: write.lessonId,
+            itemId: write.itemId,
+            contentRevision: write.contentRevision,
+            languagePairKey: write.languagePairKey,
+            skill: write.skill,
+            createdAt: write.createdAt,
+            durationMs: write.durationMs,
+            payloadSchemaVersion: write.payloadSchemaVersion,
+            payloadJSON: write.payloadJSON
+        )
+        context.insert(model)
+        context.rollback()
+        #expect(try context.fetch(FetchDescriptor<LessonAttempt>()).isEmpty)
     }
 }

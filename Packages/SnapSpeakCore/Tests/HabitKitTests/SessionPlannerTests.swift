@@ -128,6 +128,35 @@ struct SessionPlannerTests {
         #expect(forward.reviews.map(\.cardKey) == reversed.reviews.map(\.cardKey))
     }
 
+    @Test("maxReviews = 0 は全件 deferred、newLesson は方針どおり残る")
+    func maxReviewsZeroDefersAllAndKeepsNewLesson() {
+        let cards = [
+            card(itemId: "a", skill: .shadowing, dueOffset: -10),
+            card(itemId: "b", skill: .composition, dueOffset: -5),
+        ]
+        let withNew = SessionPlanner.plan(
+            dueCards: cards,
+            newLesson: sampleLesson,
+            now: now,
+            policy: SessionPlanPolicy(maxReviews: 0, includeNewLesson: true)
+        )
+        #expect(withNew.reviews.isEmpty)
+        #expect(withNew.deferredDueCount == 2)
+        #expect(withNew.newLesson == sampleLesson)
+        #expect(withNew.isEmpty == false)
+
+        let withoutNew = SessionPlanner.plan(
+            dueCards: cards,
+            newLesson: sampleLesson,
+            now: now,
+            policy: SessionPlanPolicy(maxReviews: 0, includeNewLesson: false)
+        )
+        #expect(withoutNew.reviews.isEmpty)
+        #expect(withoutNew.deferredDueCount == 2)
+        #expect(withoutNew.newLesson == nil)
+        #expect(withoutNew.isEmpty)
+    }
+
     @Test("due 21 件 + 新規ありの合成")
     func twentyOneDuePlusNewLesson() {
         let cards = (0..<21).map { index in

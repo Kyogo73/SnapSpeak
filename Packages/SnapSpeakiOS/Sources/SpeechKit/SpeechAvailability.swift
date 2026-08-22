@@ -58,3 +58,16 @@ public struct SpeechAvailability: Sendable, Equatable {
         return inspect(locale: locale)
     }
 }
+
+/// オンデバイス ASR 可否の検査シーム。実 OS に依存しないテスト用。
+public protocol SpeechAvailabilityInspecting: Sendable {
+    func inspect(locale: Locale) async -> SpeechAvailability
+}
+
+public struct LiveSpeechAvailabilityInspector: SpeechAvailabilityInspecting {
+    public init() {}
+
+    public func inspect(locale: Locale) async -> SpeechAvailability {
+        await SpeechAvailability.inspect(locale: locale)
+    }
+}

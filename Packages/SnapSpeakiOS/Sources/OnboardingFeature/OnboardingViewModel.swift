@@ -18,13 +18,13 @@ public final class OnboardingViewModel: ObservableObject {
     @Published public private(set) var isSaving = false
     @Published public private(set) var saveFailed = false
 
-    private let persistence: PersistenceActor
+    private let persistence: any SettingsStoring
     private let scheduler: ReminderScheduler
     private let analytics: any AnalyticsClient
     private var didTrackStart = false
 
     public init(
-        persistence: PersistenceActor,
+        persistence: any SettingsStoring,
         scheduler: ReminderScheduler,
         analytics: any AnalyticsClient
     ) {
@@ -48,6 +48,9 @@ public final class OnboardingViewModel: ObservableObject {
     /// onboarding_completed を track。
     /// 保存成功時のみ `startFirstLesson` を返す。失敗時は `nil`（cover は閉じない）。
     public func completeGoalStep() async -> Bool? {
+        guard !isSaving else { return nil }
+        isSaving = true
+        defer { isSaving = false }
         var enabled = reminderEnabled
         if enabled {
             let granted = await scheduler.requestAuthorizationIfNeeded()
@@ -73,13 +76,16 @@ public final class OnboardingViewModel: ObservableObject {
 
     /// 保存成功時のみ `startFirstLesson` を返す。失敗時は `nil`。
     public func skip() async -> Bool? {
+        guard !isSaving else { return nil }
+        isSaving = true
+        defer { isSaving = false }
         let fromWelcome = step == .welcome
-        analytics.track(.onboardingSkipped(step: fromWelcome ? "welcome" : "goal"))
         do {
             try await persist(goal: .standard, reminderEnabled: false, skippedGoal: true)
         } catch {
             return nil
         }
+        analytics.track(.onboardingSkipped(step: fromWelcome ? "welcome" : "goal"))
         analytics.track(
             .onboardingCompleted(
                 goalItems: DailyGoal.standard.itemsPerDay,
@@ -99,9 +105,7 @@ public final class OnboardingViewModel: ObservableObject {
             dto.reminderMinute = reminderTime.minute ?? 0
         }
         dto.onboardingCompletedAt = Date()
-        isSaving = true
         saveFailed = false
-        defer { isSaving = false }
         do {
             _ = try await persistence.saveSettings(dto)
         } catch {

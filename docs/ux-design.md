@@ -174,7 +174,7 @@ flowchart TD
 ```
 
 - 各アイテムの学習 UI は既存のシャドーイング / 瞬間英作文の 1 Item フローをそのまま使う（採点・`ReviewEvent` 追記・fold は既存ユースケースの責務。二重実装しない）。
-- セッション側が足すのは: 進捗ヘッダ（3/12）、結果画面の「次へ」、欠損コンテンツのスキップ、マイク拒否時の `onSkipped`（完了数に入れない）、サマリ。
+- セッション側が足すのは: 進捗ヘッダ（3/12）、結果画面の「次へ」、欠損コンテンツのスキップ、マイク拒否時の `onSkipped`（完了数に入れない）、サマリ。サマリの欠損行とユーザースキップ行は分ける（`review.summary.skipped` / `review.summary.skipped_user`）。
 - 単発レッスンの完了はセッションの「次へ」と分離し、完了またはスキップ後に画面を閉じる。
 - 途中離脱は確認ダイアログ 1 回（「完了した分は保存されています」）。
 
@@ -283,7 +283,7 @@ flowchart TD
 
 | 領域 | 要素 | 仕様 |
 |------|------|------|
-| ヘッダカード | StreakBadge | 炎シンボル＋「n 日連続」。`isAtRisk` で「今日まだ学習していません」を添える。喪失直後は回復カード（§3.4）に置き換わる |
+| ヘッダカード | StreakBadge | 炎シンボル＋「n 日連続」。`isAtRisk` で「今日まだ学習していません」を添える。`currentStreakDays == 1` のとき `streak.rule_note` をキャプション表示する（初回獲得時。2 日目以降は消える）。喪失直後は回復カード（§3.4）に置き換わる |
 | | ProgressRing | 今日の完了数 / 目標。達成でリングが閉じチェックに変化 |
 | 今日の学習カード | 内訳行 | 「復習 n 件 ・ 新しいレッスン」。復習 0 なら新規のみ、新規なしなら復習のみを表示 |
 | | 主 CTA | 「今日の学習を始める」。プランが空（復習 0・新規なし）のときは達成状態表示に切替 |
@@ -291,7 +291,7 @@ flowchart TD
 | 続きから | | 最後に開いたレッスン（単発・復習セッションで提示した Item を含む。`recordLastOpenedLesson`）。初回起動直後は非表示 |
 | 状態バナー | | §5 の状態マトリクスに従う。学習を止めない情報提示に留める |
 
-**状態遷移**: `loading → ready(プランあり) / goalMet(達成) / empty(コースなし) / recovery(喪失直後)`。いずれの状態でもタブ・設定への導線は生きている。
+**状態遷移**: `loading → ready(プランあり / 達成) / empty(コースなし) / failed(読み込み失敗) / recovery(喪失直後)`（実装は `TodayViewModel.TodayState` と 1:1）。達成は独立状態ではなく、`ready` でプランが空のときの表示切替。`failed` はプラン読み込み失敗時で、「今日の学習を読み込めませんでした」＋再読み込み導線を出し学習を止めない。いずれの状態でもタブ・設定への導線は生きている。
 
 ### 4.4 復習セッション（コンテナ）
 
@@ -317,7 +317,7 @@ flowchart TD
 | 進捗ヘッダ | 「3 / 12」形式。VoiceOver は「12 問中 3 問目」と読む |
 | ✕（離脱） | 確認ダイアログ「セッションを終了しますか？ 完了した分は保存されています」。破壊的操作ではない色 |
 | 次へ | 各アイテムの結果表示後に出現。復習では「もう一度」より「次へ」を優位に置く（同日再挑戦は 10 分ゲートの管轄） |
-| 欠損コンテンツ | コース削除等でアイテムを解決できない場合は自動スキップし、サマリに「教材が見つからないためスキップしました」を出す |
+| 欠損コンテンツ | コース削除等でアイテムを解決できない場合は自動スキップし、サマリに「教材が見つからないためスキップしました」を出す。ユーザースキップ（マイク拒否等）は別行（`review.summary.skipped_user`） |
 | 新規レッスン部 | 復習消化後に「新しいレッスン」区切りを 1 画面挟んで開始（心理的な切れ目を作る） |
 
 ### 4.5 セッションサマリ
@@ -402,6 +402,7 @@ flowchart TD
 | 通知権限拒否 | オンボーディングはトグル OFF で続行。Settings は `settings.reminder_denied` ＋ 設定アプリ導線 |
 | ストリーク喪失直後 | `TodayViewModel` が `lastKnownStreakDays > 0 && current == 0` で回復カード。1 回閉じたら通常 |
 | タイムゾーン大移動 | `SessionPlanPolicy.maxReviews = 20` と `home.today.deferred` |
+| プラン読み込み失敗 | `TodayState.failed` → `home.today.load_failed` ＋ `home.today.retry`（再読み込み）。既存 snapshot があっても古い plan で開始しない（`regeneratePlanThenStart` は `ready` のみ true） |
 
 ---
 
@@ -444,7 +445,7 @@ architecture §9 に従う。継続機能で追加するキーの規約:
 | 規約 | 内容 |
 |------|------|
 | 命名 | `<画面/ドメイン>.<要素>[.<状態>]` の英語ドット区切り。単語内は snake_case（既存の `settings.reset_install_id` と同型）。例: `home.today.start`、`streak.broken.title` |
-| 名前空間 | `onboarding.*` / `home.today.*` / `home.goal.*` / `streak.*` / `review.session.*` / `review.summary.*` / `notification.*` / `settings.*`（既存に追加） |
+| 名前空間 | `onboarding.*` / `home.today.*` / `home.goal.*` / `home.recovery.*` / `streak.*` / `review.session.*` / `review.summary.*` / `notification.*` / `settings.*`（既存に追加） |
 | 変数 | 件数は `%lld`、複数変数は位置指定（`%1$lld / %2$lld`）。将来の英語 UI で複数形が必要になるキー（件数系）は最初から変数化しておき、`.xcstrings` の plural variation を英語追加時に付与する |
 | 値 | Phase 2 時点は `ja` のみ。キー名から意味が推測できること（翻訳者がコード無しで訳せる） |
 | 禁止 | 文字列連結による文生成、コード内日本語リテラル（SwiftLint カスタムルールで強制）、`AppleLanguages` 書換え |
@@ -463,7 +464,7 @@ AnalyticsCore の原則（生テキスト・音声・個人データを送らな
 |-------------|--------|------------------------------|
 | `onboarding_started` | 価値提案画面の表示 | — |
 | `onboarding_completed` | 目標画面の完了（スキップ経由含む） | goalItems、reminderEnabled、skippedGoal |
-| `onboarding_skipped` | 各画面のスキップ | step（`welcome` / `goal`） |
+| `onboarding_skipped` | 各画面のスキップ（保存成功時に 1 回） | step（`welcome` / `goal`） |
 | `review_session_started` | 今日の学習セッション開始 | dueCount、newCount |
 | `review_session_completed` | セッションサマリ表示 | completedCount、durationBand |
 | `goal_met` | 当日初の目標達成 | goalItems |

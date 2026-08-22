@@ -16,7 +16,8 @@ public final class ReviewSessionViewModel: ObservableObject {
     @Published public private(set) var phase: Phase = .loading
     @Published public private(set) var entries: [ReviewEntry] = []
     @Published public private(set) var completedCount: Int = 0
-    @Published public private(set) var skippedCount: Int = 0
+    @Published public private(set) var skippedMissingCount: Int = 0
+    @Published public private(set) var skippedByUserCount: Int = 0
 
     private let plan: SessionPlan
     private let courseStore: CourseStore
@@ -45,19 +46,11 @@ public final class ReviewSessionViewModel: ObservableObject {
         let courses = await courseStore.allCourses()
         let resolved = Self.resolveEntries(plan: plan, courses: courses)
         entries = resolved.entries
-        skippedCount = resolved.skipped
+        skippedMissingCount = resolved.skipped
+        skippedByUserCount = 0
         let newCount = plan.newLesson == nil ? 0 : 1
         analytics.track(.reviewSessionStarted(dueCount: plan.reviews.count, newCount: newCount))
-        if entries.isEmpty {
-            trackCompleted()
-            phase = .summary
-        } else if shouldShowNewLessonIntro(beforeIndex: 0) {
-            pendingIndexAfterIntro = 0
-            introConsumed = false
-            phase = .newLessonIntro
-        } else {
-            phase = .running(index: 0, total: entries.count)
-        }
+        begin(at: 0)
     }
 
     /// 新規レッスン区切りの続行。Item 完了とは別経路（二重タップで未実施 Item を飛ばさない）。
@@ -81,19 +74,25 @@ public final class ReviewSessionViewModel: ObservableObject {
     /// 解決済み entries から intro / running を開始する（hostless テスト用）。
     public func startResolved(entries: [ReviewEntry], skipped: Int = 0) {
         self.entries = entries
-        skippedCount = skipped
+        skippedMissingCount = skipped
+        skippedByUserCount = 0
         completedCount = 0
         lastAdvancedIndex = nil
         introConsumed = false
         startedAt = Date()
+        begin(at: 0)
+    }
+
+    private func begin(at index: Int) {
         if entries.isEmpty {
             trackCompleted()
             phase = .summary
-        } else if shouldShowNewLessonIntro(beforeIndex: 0) {
-            pendingIndexAfterIntro = 0
+        } else if shouldShowNewLessonIntro(beforeIndex: index) {
+            pendingIndexAfterIntro = index
+            introConsumed = false
             phase = .newLessonIntro
         } else {
-            phase = .running(index: 0, total: entries.count)
+            phase = .running(index: index, total: entries.count)
         }
     }
 
@@ -104,7 +103,7 @@ public final class ReviewSessionViewModel: ObservableObject {
         if countingAsCompleted {
             completedCount += 1
         } else {
-            skippedCount += 1
+            skippedByUserCount += 1
         }
         moveForward(from: index, total: total)
     }
@@ -172,7 +171,6 @@ public final class ReviewSessionViewModel: ObservableObject {
         }
 
         if let lesson = plan.newLesson {
-            let fallbackMode = LessonMode(rawValue: lesson.mode) ?? .shadowing
             for itemId in lesson.itemIds {
                 let key = "\(lesson.courseId)|\(itemId)"
                 if seenItemKeys.contains(key) {
@@ -192,7 +190,6 @@ public final class ReviewSessionViewModel: ObservableObject {
                     )
                 } else {
                     skipped += 1
-                    _ = fallbackMode
                 }
             }
         }

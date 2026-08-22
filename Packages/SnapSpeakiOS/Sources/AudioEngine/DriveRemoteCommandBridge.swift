@@ -63,13 +63,12 @@ public final class DriveRemoteCommandBridge {
         self.isPaused = isPaused
         let center = MPNowPlayingInfoCenter.default()
         center.playbackState = isPaused ? .paused : .playing
+        // iOS には MPNowPlayingInfoPropertyPlaybackState キーは存在しない
+        // （再生状態は playbackRate と center.playbackState で伝わる）。
         let info: [String: Any] = [
             MPMediaItemPropertyTitle: title,
             MPMediaItemPropertyArtist: artist,
             MPNowPlayingInfoPropertyPlaybackRate: isPaused ? 0.0 : 1.0,
-            MPNowPlayingInfoPropertyPlaybackState: isPaused
-                ? MPNowPlayingPlaybackState.paused.rawValue
-                : MPNowPlayingPlaybackState.playing.rawValue
         ]
         center.nowPlayingInfo = info
     }

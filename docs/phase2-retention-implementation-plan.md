@@ -607,7 +607,7 @@ public struct ReviewSessionView<ItemContent: View>: View {
 
 // ReviewSummaryView.swift — 完了数 / スキップ数 / ゴール達成 / ストリーク更新表示、
 // 「ホームへ戻る」「続けて学習する」。
-// init(completedCount:skippedMissingCount:skippedByUserCount:completedItems:goalItems:didMeetGoal:streakFrom:streakTo:onBackHome:onContinue:)
+// init(completedCount:skippedMissingCount:skippedByUserCount:completedItemsBefore:completedItemsAfter:goalItems:didMeetGoal:streakFrom:streakTo:onBackHome:onContinue:)
 ```
 
 **既存 Feature への最小変更**: `ShadowingLessonView` と `CompositionCardView` に完了 / スキップのコールバックを分離する。
@@ -758,6 +758,7 @@ public struct CardContainer<Content: View>: View {
 | `review.summary.completed` | %lld 問 完了 |
 | `review.summary.skipped` | 教材が見つからないため %lld 問スキップしました |
 | `review.summary.skipped_user` | %lld 問スキップしました |
+| `review.summary.goal_progress` | 今日 %1$lld → %2$lld / %3$lld 問 |
 | `review.summary.goal_met` | 今日の目標を達成しました！ |
 | `review.summary.streak_extended` | %1$lld → %2$lld 日連続 |
 | `review.summary.back_home` | ホームへ戻る |

@@ -48,7 +48,8 @@ struct ReviewSessionContainer: View {
             didMeetGoal: after?.goal.isMet ?? false,
             streakFrom: streakFrom,
             streakTo: streakTo,
-            completedItems: after?.goal.completedItems,
+            completedItemsBefore: after == nil ? nil : snapshot.goal.completedItems,
+            completedItemsAfter: after?.goal.completedItems,
             goalItems: after?.goal.goalItems
         )
         .task(id: session.phase) {

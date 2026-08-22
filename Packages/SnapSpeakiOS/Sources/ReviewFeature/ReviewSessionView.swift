@@ -10,7 +10,8 @@ public struct ReviewSessionView<ItemContent: View>: View {
     private let didMeetGoal: Bool
     private let streakFrom: Int
     private let streakTo: Int
-    private let completedItems: Int?
+    private let completedItemsBefore: Int?
+    private let completedItemsAfter: Int?
     private let goalItems: Int?
     @State private var confirmLeave = false
 
@@ -22,7 +23,8 @@ public struct ReviewSessionView<ItemContent: View>: View {
         didMeetGoal: Bool = false,
         streakFrom: Int = 0,
         streakTo: Int = 0,
-        completedItems: Int? = nil,
+        completedItemsBefore: Int? = nil,
+        completedItemsAfter: Int? = nil,
         goalItems: Int? = nil
     ) {
         _viewModel = ObservedObject(wrappedValue: viewModel)
@@ -32,7 +34,8 @@ public struct ReviewSessionView<ItemContent: View>: View {
         self.didMeetGoal = didMeetGoal
         self.streakFrom = streakFrom
         self.streakTo = streakTo
-        self.completedItems = completedItems
+        self.completedItemsBefore = completedItemsBefore
+        self.completedItemsAfter = completedItemsAfter
         self.goalItems = goalItems
     }
 
@@ -51,7 +54,8 @@ public struct ReviewSessionView<ItemContent: View>: View {
                     completedCount: viewModel.completedCount,
                     skippedMissingCount: viewModel.skippedMissingCount,
                     skippedByUserCount: viewModel.skippedByUserCount,
-                    completedItems: completedItems,
+                    completedItemsBefore: completedItemsBefore,
+                    completedItemsAfter: completedItemsAfter,
                     goalItems: goalItems,
                     didMeetGoal: didMeetGoal,
                     streakFrom: streakFrom,

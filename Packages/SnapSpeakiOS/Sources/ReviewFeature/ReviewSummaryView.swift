@@ -5,7 +5,8 @@ public struct ReviewSummaryView: View {
     public var completedCount: Int
     public var skippedMissingCount: Int
     public var skippedByUserCount: Int
-    public var completedItems: Int?
+    public var completedItemsBefore: Int?
+    public var completedItemsAfter: Int?
     public var goalItems: Int?
     public var didMeetGoal: Bool
     public var streakFrom: Int
@@ -17,7 +18,8 @@ public struct ReviewSummaryView: View {
         completedCount: Int,
         skippedMissingCount: Int,
         skippedByUserCount: Int,
-        completedItems: Int? = nil,
+        completedItemsBefore: Int? = nil,
+        completedItemsAfter: Int? = nil,
         goalItems: Int? = nil,
         didMeetGoal: Bool,
         streakFrom: Int,
@@ -28,7 +30,8 @@ public struct ReviewSummaryView: View {
         self.completedCount = completedCount
         self.skippedMissingCount = skippedMissingCount
         self.skippedByUserCount = skippedByUserCount
-        self.completedItems = completedItems
+        self.completedItemsBefore = completedItemsBefore
+        self.completedItemsAfter = completedItemsAfter
         self.goalItems = goalItems
         self.didMeetGoal = didMeetGoal
         self.streakFrom = streakFrom
@@ -54,8 +57,15 @@ public struct ReviewSummaryView: View {
                     .font(Typography.body)
                     .foregroundStyle(Colors.secondaryFill)
             }
-            if let completedItems, let goalItems {
-                Text(LocalizedFormat.string("home.goal.progress", completedItems, goalItems))
+            if let completedItemsBefore, let completedItemsAfter, let goalItems {
+                Text(
+                    LocalizedFormat.string(
+                        "review.summary.goal_progress",
+                        completedItemsBefore,
+                        completedItemsAfter,
+                        goalItems
+                    )
+                )
                     .font(Typography.body)
             }
             if didMeetGoal {

@@ -115,7 +115,7 @@ public static func uniquedActiveReleases<T>(
 ### U2. セッションサマリにゴール進捗を表示（ux-design §4.5）
 
 - **現状**: サマリは完了数・スキップ・`goal_met`・ストリーク更新のみで、§4.5 ワイヤーフレームの「今日 12/10 問」（ゴール進捗）が出ない。
-- **方針**: `ReviewSessionContainer` が `afterSnapshot?.goal` から `completedItems` / `goalItems` を `ReviewSummaryView` に渡し、既存キー `home.goal.progress`（今日 %1$lld / %2$lld 問）で 1 行表示する（`afterSnapshot` 未取得時は非表示）。新キー不要。
+- **方針**: `ReviewSessionContainer` が開始時（`snapshot.goal`）と終了時（`afterSnapshot?.goal`）の進捗を `ReviewSummaryView` に渡し、`review.summary.goal_progress`（今日 %1$lld → %2$lld / %3$lld 問）で前後表示する（`afterSnapshot` 未取得時は非表示）。
 
 ### U3. ホームのナビゲーションタイトルを仕様に合わせる（ux-design §4.3）
 
@@ -318,7 +318,7 @@ PR は 1 本（`develop` 向け）。タイトルは Conventional Commits（例 
 | R6 | `fallbackMode` 削除、`begin(at:)` 抽出、`LocalizedFormat` 統一、未参照 2 キー削除 |
 | R7 | `SettingsStoring` / `TodayPlanning` / `SpeechRecognizing` を導入。`AppDependencies` は具象のまま |
 | U1 / T6 | `skippedMissingCount` / `skippedByUserCount` 分離。`review.summary.skipped_user` 追加 |
-| U2 | サマリに `home.goal.progress`（`afterSnapshot` があるとき） |
+| U2 | サマリに `review.summary.goal_progress`（開始時 → 終了時。`afterSnapshot` があるとき） |
 | U3 | `HomeView.navigationTitle` を `home.title` |
 | U4 | ストリーク 1 日目に `streak.rule_note` |
 | B1 / T9 | 全 `save` を `saveOrRollback` に集約。rollback で未保存 insert が消えることをテスト |

@@ -7,7 +7,7 @@ struct CourseCatalogTests {
         var courseId: String
         var revision: Int
         var label: String
-        var releaseId: String? = nil
+        var releaseId: String?
     }
 
     private func uniqued(_ items: [Release]) -> [Release] {

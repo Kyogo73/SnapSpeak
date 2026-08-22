@@ -712,7 +712,7 @@ public struct CardContainer<Content: View>: View {
 
 ## 5. String Catalog 追加キー一覧（`Resources/Localizable.xcstrings`、ja 値）
 
-既存キーに以下を追加する（本節＋レビュー反映分を合わせた最終カタログは 122 キー）。命名規約は ux-design §8。
+既存キーに以下を追加する（本節＋レビュー反映分＋ `review.summary.goal_progress` を合わせた最終カタログは 122 キー）。命名規約は ux-design §8。
 
 | キー | ja 値 |
 |------|-------|

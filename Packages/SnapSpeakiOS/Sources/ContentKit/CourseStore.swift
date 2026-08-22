@@ -95,7 +95,8 @@ public actor CourseStore {
         return CourseCatalog.uniquedActiveReleases(
             result,
             id: { $0.course.id },
-            revision: { $0.revision }
+            revision: { $0.revision },
+            releaseId: { $0.releaseId }
         )
     }
 

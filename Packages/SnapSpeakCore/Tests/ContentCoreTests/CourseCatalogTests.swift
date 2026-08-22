@@ -7,6 +7,16 @@ struct CourseCatalogTests {
         var courseId: String
         var revision: Int
         var label: String
+        var releaseId: String? = nil
+    }
+
+    private func uniqued(_ items: [Release]) -> [Release] {
+        CourseCatalog.uniquedActiveReleases(
+            items,
+            id: { $0.courseId },
+            revision: { $0.revision },
+            releaseId: { $0.releaseId }
+        )
     }
 
     @Test("同一 courseId は revision 最大を残し courseId 昇順")
@@ -38,5 +48,56 @@ struct CourseCatalogTests {
         let left = CourseCatalog.uniquedActiveReleases(forward, id: { $0.courseId }, revision: { $0.revision })
         let right = CourseCatalog.uniquedActiveReleases(reversed, id: { $0.courseId }, revision: { $0.revision })
         #expect(left == right)
+    }
+
+    @Test("同一 courseId・同一 revision は releaseId 非 nil が勝つ")
+    func sameRevisionPrefersNonNilReleaseId() {
+        let seedFirst = uniqued([
+            Release(courseId: "course_a", revision: 2, label: "seed", releaseId: nil),
+            Release(courseId: "course_a", revision: 2, label: "downloaded", releaseId: "rel_b"),
+        ])
+        let downloadedFirst = uniqued([
+            Release(courseId: "course_a", revision: 2, label: "downloaded", releaseId: "rel_b"),
+            Release(courseId: "course_a", revision: 2, label: "seed", releaseId: nil),
+        ])
+        #expect(seedFirst.map(\.label) == ["downloaded"])
+        #expect(downloadedFirst.map(\.label) == ["downloaded"])
+    }
+
+    @Test("同一 courseId・同一 revision の双方非 nil は releaseId 辞書順で大きい方")
+    func sameRevisionPrefersLexicographicallyGreaterReleaseId() {
+        let smallerFirst = uniqued([
+            Release(courseId: "course_a", revision: 3, label: "smaller", releaseId: "rel_a"),
+            Release(courseId: "course_a", revision: 3, label: "larger", releaseId: "rel_b"),
+        ])
+        let largerFirst = uniqued([
+            Release(courseId: "course_a", revision: 3, label: "larger", releaseId: "rel_b"),
+            Release(courseId: "course_a", revision: 3, label: "smaller", releaseId: "rel_a"),
+        ])
+        #expect(smallerFirst.map(\.label) == ["larger"])
+        #expect(largerFirst.map(\.label) == ["larger"])
+    }
+
+    @Test("同一 courseId・同一 revision で双方 nil は先勝ち")
+    func sameRevisionBothNilKeepsFirst() {
+        let items = [
+            Release(courseId: "course_a", revision: 1, label: "first", releaseId: nil),
+            Release(courseId: "course_a", revision: 1, label: "second", releaseId: nil),
+        ]
+        #expect(uniqued(items).map(\.label) == ["first"])
+    }
+
+    @Test("同一 revision の tie-break は入力逆順でも結果一致")
+    func sameRevisionTieBreakIsIndependentOfInputOrder() {
+        let forward = [
+            Release(courseId: "course_z", revision: 1, label: "z-seed", releaseId: nil),
+            Release(courseId: "course_a", revision: 4, label: "a-small", releaseId: "rel_a"),
+            Release(courseId: "course_a", revision: 4, label: "a-large", releaseId: "rel_c"),
+            Release(courseId: "course_z", revision: 1, label: "z-dl", releaseId: "rel_z"),
+        ]
+        let left = uniqued(forward)
+        let right = uniqued(Array(forward.reversed()))
+        #expect(left == right)
+        #expect(left.map(\.label) == ["a-large", "z-dl"])
     }
 }

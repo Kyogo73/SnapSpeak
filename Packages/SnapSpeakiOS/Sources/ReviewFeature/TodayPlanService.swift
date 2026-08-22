@@ -54,7 +54,8 @@ public struct TodayPlanService: Sendable {
         let unique = CourseCatalog.uniquedActiveReleases(
             courses,
             id: { $0.course.id },
-            revision: { $0.revision }
+            revision: { $0.revision },
+            releaseId: { $0.releaseId }
         )
         var result: [LessonSummary] = []
         for stored in unique {

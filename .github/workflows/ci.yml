@@ -23,7 +23,7 @@ jobs:
     defaults: { run: { working-directory: Packages/SnapSpeakCore } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: Packages/SnapSpeakCore/.build
           key: spm-linux-${{ hashFiles('Packages/SnapSpeakCore/Package.resolved', '.swift-version') }}
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo xcode-select -s /Applications/Xcode_16.4.app
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             Packages/SnapSpeakCore/.build

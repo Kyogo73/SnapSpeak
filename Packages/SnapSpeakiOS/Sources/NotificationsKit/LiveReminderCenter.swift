@@ -33,7 +33,7 @@ public struct LiveReminderCenter: ReminderCenter {
         return pending.map(\.identifier)
     }
 
-    public func add(_ request: ReminderRequest) async {
+    public func add(_ request: ReminderRequest) async throws {
         let content = UNMutableNotificationContent()
         content.title = request.title
         content.body = request.body
@@ -48,7 +48,7 @@ public struct LiveReminderCenter: ReminderCenter {
             content: content,
             trigger: trigger
         )
-        try? await UNUserNotificationCenter.current().add(notification)
+        try await UNUserNotificationCenter.current().add(notification)
     }
 
     public func remove(ids: [String]) async {

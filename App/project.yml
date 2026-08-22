@@ -118,6 +118,23 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.ReviewFeatureTests
+  NotificationsKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/NotificationsKitTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: NotificationsKit
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakCore
+        product: HabitKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.NotificationsKitTests
 schemes:
   SnapSpeak:
     build:
@@ -130,9 +147,11 @@ schemes:
         PersistenceTests: [test]
         ContentKitTests: [test]
         ReviewFeatureTests: [test]
+        NotificationsKitTests: [test]
     test:
       config: Debug
       targets:
         - PersistenceTests
         - ContentKitTests
         - ReviewFeatureTests
+        - NotificationsKitTests

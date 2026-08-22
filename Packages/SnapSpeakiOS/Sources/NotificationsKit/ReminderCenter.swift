@@ -27,6 +27,6 @@ public protocol ReminderCenter: Sendable {
     func authorization() async -> ReminderAuthorization
     func requestAuthorization() async -> Bool
     func pendingIds() async -> [String]
-    func add(_ request: ReminderRequest) async
+    func add(_ request: ReminderRequest) async throws
     func remove(ids: [String]) async
 }

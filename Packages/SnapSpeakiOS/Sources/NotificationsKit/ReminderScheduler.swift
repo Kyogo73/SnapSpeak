@@ -5,6 +5,7 @@ import HabitKit
 public actor ReminderScheduler {
     private let center: any ReminderCenter
     private let analytics: any AnalyticsClient
+    private var syncGeneration = 0
 
     public init(center: any ReminderCenter, analytics: any AnalyticsClient) {
         self.center = center
@@ -28,15 +29,22 @@ public actor ReminderScheduler {
     }
 
     /// "reminder-" prefix の pending を全消しして plan を登録する冪等同期。
-    /// 認可がない場合は何もしない。登録成功ごとに reminder_scheduled を track。
+    /// 各 await 後に最新 generation か確認し、古い ON 同期が OFF 後に通知を足さない。
+    /// 認可がない場合は何もしない。`add` 成功時のみ reminder_scheduled を track。
     public func sync(plan: [PlannedReminder], goalItems: Int) async {
+        syncGeneration += 1
+        let generation = syncGeneration
         guard await center.authorization() == .authorized else { return }
+        guard generation == syncGeneration else { return }
         let pending = await center.pendingIds()
+        guard generation == syncGeneration else { return }
         let reminderIds = pending.filter { $0.hasPrefix("reminder-") }
         if !reminderIds.isEmpty {
             await center.remove(ids: reminderIds)
         }
+        guard generation == syncGeneration else { return }
         for item in plan {
+            guard generation == syncGeneration else { return }
             let request = ReminderRequest(
                 id: item.id,
                 fireAt: item.fireAt,
@@ -48,8 +56,16 @@ public actor ReminderScheduler {
                 ),
                 kindRawValue: item.kind.rawValue
             )
-            await center.add(request)
-            analytics.track(.reminderScheduled(kind: item.kind.rawValue))
+            do {
+                try await center.add(request)
+                guard generation == syncGeneration else {
+                    await center.remove(ids: [request.id])
+                    return
+                }
+                analytics.track(.reminderScheduled(kind: item.kind.rawValue))
+            } catch {
+                continue
+            }
         }
     }
 }

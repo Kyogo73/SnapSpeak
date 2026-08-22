@@ -110,6 +110,19 @@ let package = Package(
             swiftSettings: swift6
         ),
         .target(
+            name: "ReviewFeature",
+            dependencies: [
+                "Analytics",
+                "ContentKit",
+                "DesignSystem",
+                "Persistence",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
             name: "AppFeature",
             dependencies: [
                 "Analytics",
@@ -140,6 +153,19 @@ let package = Package(
                 "ContentKit",
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
                 .product(name: "LanguageKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "ReviewFeatureTests",
+            dependencies: [
+                "ContentKit",
+                "Persistence",
+                "ReviewFeature",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
         ),

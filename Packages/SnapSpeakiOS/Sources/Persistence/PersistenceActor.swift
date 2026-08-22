@@ -28,9 +28,15 @@ public actor PersistenceActor {
     }
 
     public func appendAttempt(_ write: LessonAttemptWrite) throws -> LessonAttemptDTO {
-        let existing = try fetchAttempt(id: write.id)
-        if let existing { return existing }
-        let model = LessonAttempt(
+        if let existing = try fetchAttempt(id: write.id) { return existing }
+        let model = makeAttemptModel(write)
+        modelContext.insert(model)
+        try modelContext.save()
+        return PersistenceMapping.attemptDTO(model)
+    }
+
+    func makeAttemptModel(_ write: LessonAttemptWrite) -> LessonAttempt {
+        LessonAttempt(
             id: write.id,
             courseId: write.courseId,
             lessonId: write.lessonId,
@@ -43,9 +49,6 @@ public actor PersistenceActor {
             payloadSchemaVersion: write.payloadSchemaVersion,
             payloadJSON: write.payloadJSON
         )
-        modelContext.insert(model)
-        try modelContext.save()
-        return PersistenceMapping.attemptDTO(model)
     }
 
     public func fetchAttempt(id: UUID) throws -> LessonAttemptDTO? {

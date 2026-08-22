@@ -57,8 +57,21 @@ func foldNewCard(
     return try await actor.foldSRSCard(foldRequest(cardKey: cardKey, now: reviewedAt, itemId: itemId))
 }
 
-func attemptWrite(itemId: String, createdAt: Date) -> LessonAttemptWrite {
+func utcCalendar() -> Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? TimeZone(identifier: "GMT") ?? .current
+    calendar.locale = Locale(identifier: "en_US_POSIX")
+    return calendar
+}
+
+func utcDate(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int) -> Date {
+    let parts = DateComponents(year: year, month: month, day: day, hour: hour, minute: minute)
+    return utcCalendar().date(from: parts) ?? Date(timeIntervalSince1970: 0)
+}
+
+func attemptWrite(itemId: String, createdAt: Date, id: UUID = UUID()) -> LessonAttemptWrite {
     LessonAttemptWrite(
+        id: id,
         courseId: "course_daily_ja_en",
         lessonId: "lesson_01_shadowing",
         itemId: itemId,

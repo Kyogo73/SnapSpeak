@@ -48,24 +48,40 @@ extension PersistenceActor {
         return try modelContext.fetch(descriptor).first.map(PersistenceMapping.attemptDTO)
     }
 
-    /// Attempt を追記し、学習日前後から当日初の習慣イベントを原子的に判定する。
+    /// Attempt・markers・lastKnownStreakDays を単一 `save()` で追記する。
+    /// 学習日は `write.createdAt`（`now` は互換のため残すが判定に使わない）。
     public func appendAttemptEvaluatingHabit(
         _ write: LessonAttemptWrite,
         now: Date = Date(),
         timeZoneIdentifier: String = TimeZone.autoupdatingCurrent.identifier
     ) throws -> AttemptHabitResult {
+        _ = now
+        let settings = try loadOrCreateSettings()
+        if let existing = try fetchAttempt(id: write.id) {
+            return AttemptHabitResult(
+                attempt: existing,
+                recordStreakDays: nil,
+                metGoalItems: nil,
+                dailyGoalItems: settings.dailyGoalItems
+            )
+        }
+
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: timeZoneIdentifier)
             ?? TimeZone(secondsFromGMT: 0)
             ?? TimeZone.current
-        let dayStart = StudyDay.studyDay(of: now, calendar: calendar)
+        let studyAt = write.createdAt
+        let dayStart = StudyDay.studyDay(of: studyAt, calendar: calendar)
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
         let itemsBefore = try attemptCount(from: dayStart, to: dayEnd)
-        let attempt = try appendAttempt(write)
-        let itemsAfter = try attemptCount(from: dayStart, to: dayEnd)
-        let activity = try attemptActivityDates()
-        let streak = StreakCalculator.snapshot(activity: activity, now: now, calendar: calendar)
-        let settings = try loadOrCreateSettings()
+        let model = makeAttemptModel(write)
+        modelContext.insert(model)
+        let itemsAfter = itemsBefore + 1
+        var activity = try attemptActivityDates()
+        if !activity.contains(studyAt) {
+            activity.append(studyAt)
+        }
+        let streak = StreakCalculator.snapshot(activity: activity, now: studyAt, calendar: calendar)
         let events = HabitAnalytics.eventsAfterAttempt(
             studyDayStart: dayStart,
             streakDaysAfter: streak.currentStreakDays,
@@ -74,14 +90,25 @@ extension PersistenceActor {
             dailyGoal: settings.dailyGoalItems,
             markers: settings.habitMarkers
         )
-        try updateHabitMarkers(events.nextMarkers)
-        try updateLastKnownStreakDays(streak.currentStreakDays)
+        try applyHabitFieldsInMemory(
+            markers: events.nextMarkers,
+            lastKnownStreakDays: streak.currentStreakDays
+        )
+        try modelContext.save()
         return AttemptHabitResult(
-            attempt: attempt,
+            attempt: PersistenceMapping.attemptDTO(model),
             recordStreakDays: events.recordStreakDays,
             metGoalItems: events.metGoalItems,
             dailyGoalItems: settings.dailyGoalItems
         )
+    }
+
+    func applyHabitFieldsInMemory(markers: HabitDayMarkers, lastKnownStreakDays: Int) throws {
+        let model = try requireSettings()
+        model.habitStreakRecordedDayStart = markers.streakRecordedDayStart
+        model.habitGoalMetDayStart = markers.goalMetDayStart
+        model.habitBrokenRecordedDayStart = markers.brokenRecordedDayStart
+        model.lastKnownStreakDays = lastKnownStreakDays
     }
 
     /// `dueAt <= now` に加え、失敗カードは `relearnGateAt <= now` でも候補に含める。

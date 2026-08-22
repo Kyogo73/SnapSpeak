@@ -213,4 +213,84 @@ struct PersistenceHabitTests {
             ItemRef(courseId: "course_daily_ja_en", itemId: "item_b"),
         ])
     }
+
+    @Test("appendAttemptEvaluatingHabit は Attempt と markers と lastKnown を同時に残す")
+    func habitEvaluationPersistsAttemptMarkersAndStreakTogether() async throws {
+        let actor = try makeActor()
+        let createdAt = utcDate(2026, 4, 6, 10, 0)
+        let result = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "atomic", createdAt: createdAt),
+            now: utcDate(2026, 4, 7, 10, 0),
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(result.recordStreakDays != nil)
+        let stored = try await actor.fetchAttempt(id: result.attempt.id)
+        #expect(stored?.itemId == "atomic")
+        let settings = try await actor.loadOrCreateSettings()
+        #expect(settings.habitStreakRecordedDayStart != nil)
+        #expect(settings.lastKnownStreakDays == result.recordStreakDays)
+    }
+
+    @Test("同一 Attempt id の再評価はイベントを再発火せず件数も増えない")
+    func habitEvaluationIsIdempotentForSameAttemptId() async throws {
+        let actor = try makeActor()
+        let createdAt = utcDate(2026, 4, 6, 10, 0)
+        let write = attemptWrite(itemId: "same", createdAt: createdAt)
+        let first = try await actor.appendAttemptEvaluatingHabit(
+            write,
+            now: createdAt,
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(first.recordStreakDays != nil)
+        let second = try await actor.appendAttemptEvaluatingHabit(
+            write,
+            now: createdAt,
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(second.recordStreakDays == nil)
+        #expect(second.attempt.id == first.attempt.id)
+        let start = utcDate(2026, 4, 6, 4, 0)
+        let end = utcDate(2026, 4, 7, 4, 0)
+        #expect(try await actor.attemptCount(from: start, to: end) == 1)
+    }
+
+    @Test("学習日は write.createdAt。04:00 跨ぎは別学習日")
+    func habitEvaluationUsesCreatedAtAcross0400() async throws {
+        let actor = try makeActor()
+        let before = utcDate(2026, 4, 6, 3, 59)
+        let onBoundary = utcDate(2026, 4, 6, 4, 0)
+        let misleadingNow = utcDate(2026, 4, 6, 10, 0)
+        let first = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "before_boundary", createdAt: before),
+            now: misleadingNow,
+            timeZoneIdentifier: "UTC"
+        )
+        let second = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "on_boundary", createdAt: onBoundary),
+            now: misleadingNow,
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(first.recordStreakDays != nil)
+        #expect(second.recordStreakDays != nil)
+    }
+
+    @Test("now が翌学習日でも createdAt が同日なら streak は再発火しない")
+    func habitEvaluationIgnoresNowWhenCreatedAtSameStudyDay() async throws {
+        let actor = try makeActor()
+        let firstAt = utcDate(2026, 4, 6, 4, 0)
+        let secondAt = utcDate(2026, 4, 6, 10, 0)
+        let nextStudyDayNow = utcDate(2026, 4, 7, 5, 0)
+        let first = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "morning", createdAt: firstAt),
+            now: nextStudyDayNow,
+            timeZoneIdentifier: "UTC"
+        )
+        let second = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "afternoon", createdAt: secondAt),
+            now: nextStudyDayNow,
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(first.recordStreakDays != nil)
+        #expect(second.recordStreakDays == nil)
+    }
 }

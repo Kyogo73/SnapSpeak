@@ -35,14 +35,6 @@ public actor PersistenceActor {
         }
     }
 
-    /// テスト用。未保存 insert を rollback すると 0 件になることを固定する。
-    public func countAttemptsAfterUnsavedInsertRollback(_ write: LessonAttemptWrite) throws -> Int {
-        let model = makeAttemptModel(write)
-        modelContext.insert(model)
-        modelContext.rollback()
-        return try modelContext.fetch(FetchDescriptor<LessonAttempt>()).count
-    }
-
     public func appendAttempt(_ write: LessonAttemptWrite) throws -> LessonAttemptDTO {
         if let existing = try fetchAttempt(id: write.id) { return existing }
         let model = makeAttemptModel(write)

@@ -1,0 +1,31 @@
+name: PR Title
+# PR タイトルの Conventional Commits 検証。
+# feature → develop は Squash マージで PR タイトルがコミット subject になり、
+# scripts/next-version.sh のバージョン計算（feat=minor, `!`=major）の入力になるため必須チェックとする。
+# 規約の正本: docs/development-workflow.md §4。
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  conventional-title:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate title
+        env:
+          # スクリプトインジェクション対策: タイトルは必ず env 経由で受け取る
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          pattern='^(feat|fix|docs|refactor|test|chore|ci|build|perf|style|revert|release)(\([^)]+\))?!?: .+'
+          if printf '%s' "$TITLE" | grep -Eq "$pattern"; then
+            echo "OK: $TITLE"
+          else
+            echo "::error::PR タイトルが Conventional Commits 形式ではありません: '$TITLE'"
+            echo "例: 'feat(home): 今日の学習カードを追加' / 'fix: ストリーク計算の日境界を修正'"
+            echo "使用可能 type: feat fix docs refactor test chore ci build perf style revert release"
+            echo "破壊的変更は type の直後に '!'（例 'feat!: ...'）。正本: docs/development-workflow.md §4"
+            exit 1
+          fi

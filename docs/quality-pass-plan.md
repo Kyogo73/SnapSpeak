@@ -197,7 +197,7 @@ struct CompositionAttemptPayload: Codable, Sendable {
 | # | 対象（target） | ケース | 紐づく変更 |
 |---|----------------|--------|-----------|
 | T4 | `OnboardingFeatureTests`（新規 target） | B2 の失敗経路一式 / `saveFailed` フラグの立ち下がり / リマインダー拒否時に `reminderEnabled=false` で保存される | R7・B2 |
-| T5 | `AppFeatureTests`（新規 target。`TodayViewModel` 用） | refresh 競合: 遅い `TodayPlanning` フェイク（`Task.sleep`）の第 1 世代が、後続 refresh の結果を上書きしない / `makeToday` throw → `state == .failed` / `regeneratePlanThenStart` は failed のとき false（古い snapshot の plan で開始しない） | R7 |
+| T5 | `AppFeatureTests`（新規 target。`TodayViewModel` 用） | refresh 競合: 遅い `TodayPlanning` フェイク（開始通知 + continuation gate による決定的同期）の第 1 世代が、後続 refresh の結果を上書きしない / `makeToday` throw → `state == .failed` / `regeneratePlanThenStart` は failed のとき false（古い snapshot の plan で開始しない） | R7 |
 | T6 | `ReviewFeatureTests` 追記 | Item identity: `ReviewEntry.id` が due / new 判別子込みで一意 / 別コースの同名 itemId を混同しない / U1 分離後の欠損・ユーザースキップが独立に数えられる | U1 |
 | T7 | `CompositionFeatureTests`（新規 target） | 空 ASR: `SpeechRecognizing` フェイクが空 transcript を返す → `finishRecording` が `.unscored`・Attempt 追記・`ReviewEvent` 0 件 / 認識 throw → 同様に unscored / B3 payload の roundtrip | R7・B3 |
 | T8 | `NotificationsKitTests` 追記 | `"reminder-"` prefix 以外の pending 通知を消さない（`FakeReminderCenter` に pending 種まき setter を追加） | なし（仕様固定） |

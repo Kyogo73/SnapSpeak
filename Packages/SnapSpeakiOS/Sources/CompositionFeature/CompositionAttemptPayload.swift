@@ -46,20 +46,28 @@ public struct CompositionAttemptPayload: Codable, Sendable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let version = try Self.decodeVersion(from: container)
         payloadSchemaVersion = version
-        if version >= Self.currentSchemaVersion {
+        switch version {
+        case Self.currentSchemaVersion:
             result = try container.decode(String.self, forKey: .result)
             usedHint = try container.decode(Bool.self, forKey: .usedHint)
             latencyMs = try container.decode(Int.self, forKey: .latencyMs)
-            return
+        case 1:
+            if let labeled = try container.decodeIfPresent(String.self, forKey: .result) {
+                result = labeled
+            } else {
+                let passed = try container.decodeIfPresent(String.self, forKey: .passed) ?? "unscored"
+                result = Self.result(fromPassed: passed)
+            }
+            usedHint = try container.decodeIfPresent(Bool.self, forKey: .usedHint) ?? false
+            latencyMs = try container.decodeIfPresent(Int.self, forKey: .latencyMs) ?? 0
+        default:
+            // 未知の将来版数を v2 と誤解釈しない（ContentCore の schemaVersion 拒否と同じ方針）
+            throw DecodingError.dataCorruptedError(
+                forKey: .payloadSchemaVersion,
+                in: container,
+                debugDescription: "unknown payloadSchemaVersion \(version)"
+            )
         }
-        if let labeled = try container.decodeIfPresent(String.self, forKey: .result) {
-            result = labeled
-        } else {
-            let passed = try container.decodeIfPresent(String.self, forKey: .passed) ?? "unscored"
-            result = Self.result(fromPassed: passed)
-        }
-        usedHint = try container.decodeIfPresent(Bool.self, forKey: .usedHint) ?? false
-        latencyMs = try container.decodeIfPresent(Int.self, forKey: .latencyMs) ?? 0
     }
 
     public func encode(to encoder: Encoder) throws {

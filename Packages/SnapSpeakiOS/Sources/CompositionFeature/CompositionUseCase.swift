@@ -213,7 +213,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
     ) async throws {
         let payload = try JSONEncoder().encode(
             CompositionAttemptPayload(
-                payloadSchemaVersion: 1,
+                payloadSchemaVersion: CompositionAttemptPayload.currentSchemaVersion,
                 result: CompositionAttemptPayload.resultLabel(for: outcome.grade),
                 usedHint: usedHint,
                 latencyMs: latencyMs
@@ -229,7 +229,7 @@ public struct LiveCompositionUseCase: CompositionUseCase {
                 skill: Skill.composition.rawValue,
                 createdAt: Date(),
                 durationMs: latencyMs,
-                payloadSchemaVersion: 1,
+                payloadSchemaVersion: CompositionAttemptPayload.currentSchemaVersion,
                 payloadJSON: payload
             )
         )

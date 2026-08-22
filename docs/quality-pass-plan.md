@@ -165,11 +165,11 @@ private func saveOrRollback() throws {
 
 - **対象**: `CompositionFeature/CompositionUseCase.swift` の `persist(outcome:...)`
 - **現状**: payload が `["payloadSchemaVersion": "1", "passed": "true" | "false" | "unscored"]` の `[String: String]` で、スキーマ番号が文字列・真偽値がラベル文字列。shadowing 側（architecture §4.6 の `ShadowingScore` 構造体）と非対称で、Phase 3 同期時のデコードが脆い。
-- **方針**: `CompositionFeature` に Codable 構造体を定義して encode する（未リリースのため互換不要 — architecture §7.4 の「未リリース限定」判断と同根拠。`payloadSchemaVersion` は 1 のまま）:
+- **方針**: `CompositionFeature` に Codable 構造体を定義して encode する。`v0.1.0` タグに旧形式（`payloadSchemaVersion` 文字列 + `passed`）が実在するため、新形式は **v2**（外側の `LessonAttemptWrite.payloadSchemaVersion` も 2）。v1 fixture は decode 互換:
 
 ```swift
 struct CompositionAttemptPayload: Codable, Sendable {
-    var payloadSchemaVersion: Int  // 1
+    var payloadSchemaVersion: Int  // 2
     var result: String             // "pass" | "fail" | "unscored"
     var usedHint: Bool
     var latencyMs: Int

@@ -613,11 +613,11 @@ func grade(input: String, acceptable: [String], language: BCP47Language) -> Comp
 
 `.unscored` は照合器ではなく UseCase 層が付与する（ASR が使えない・認識が空のとき）。`.unscored` は `LessonAttempt` のみ追記し、`.fail` の `ReviewEvent` を書かない（認識失敗を学習失敗として SRS に流さない）。
 
-瞬間英作文の Attempt `payloadJSON` は型付き Codable（`payloadSchemaVersion` は 1。未リリースのため互換不要）:
+瞬間英作文の Attempt `payloadJSON` は型付き Codable。`v0.1.0` タグには旧形式（`payloadSchemaVersion` 文字列 + `passed`）が実在するため、現行は **v2**（外側の `LessonAttemptWrite.payloadSchemaVersion` も 2）。v1 は decode 互換で保持する。
 
 ```swift
 struct CompositionAttemptPayload: Codable, Sendable {
-    var payloadSchemaVersion: Int  // 1
+    var payloadSchemaVersion: Int  // 2（現行）。v1 fixture は 1 のまま decode
     var result: String             // "pass" | "fail" | "unscored"
     var usedHint: Bool
     var latencyMs: Int
@@ -1011,7 +1011,9 @@ struct WordTiming: Codable, Sendable {
 
 **v1 から `VersionedSchema` を定義する**（Phase 2 に延期しない）。
 
-未リリース期間に限り、`SnapSpeakSchemaV1`（`versionIdentifier` 1.0.0）へフィールドを直接追加してよい（既存インストールが無いため後方互換が不要。`SnapSpeakMigrationPlan` のステージは増やさない）。**リリース後のスキーマ変更は VersionedSchema の増分と `SchemaMigrationPlan` ステージ追加を必須とする。** この「V1 直接拡張」をリリース後に繰り返してはならない。
+`v0.1.0` タグ以降は Attempt / ReviewEvent の `payloadJSON` 形を変えるとき、外側の `payloadSchemaVersion` と内側の版数を上げて旧版を decode（または透過保持）する。V1 ペイロードを直接拡張して互換を捨ててはならない。
+
+SwiftData の `SnapSpeakSchemaV1`（`versionIdentifier` 1.0.0）へフィールドを直接追加してよいのは、ストアを配る前に限る（`SnapSpeakMigrationPlan` のステージは増やさない）。**ストアを配ったあとのスキーマ変更は VersionedSchema の増分と `SchemaMigrationPlan` ステージ追加を必須とする。**
 
 ```swift
 enum SnapSpeakSchemaV1: VersionedSchema {
@@ -1124,7 +1126,7 @@ enum SnapSpeakSchemaV1: VersionedSchema {
 
 - `@ModelActor`（例: `PersistenceActor`）が `ModelContext` を所有する。
 - Feature には Sendable DTO だけを返す。
-- `payloadJSON` には必ず `payloadSchemaVersion` を並列で持つ。
+- `payloadJSON` には必ず `payloadSchemaVersion` を並列で持つ。`v0.1.0` タグ以降は形を変えるたびに版数を上げ、旧版の decode を維持する。
 - `save()` は `saveOrRollback` 経由。失敗時は未保存変更を巻き戻してから rethrow する（部分状態を残さない）。
 - ローカル表示カタログ（seed + downloaded）は `CourseCatalog.uniquedActiveReleases` で `courseId` ごとに revision 最大を残す。同一 revision は `releaseId` 非 nil（downloaded）を優先し、双方非 nil なら辞書順で大きい方、双方 nil なら先勝ち。
 

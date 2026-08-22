@@ -16,7 +16,7 @@ struct CompositionUseCaseTests {
     @Test("CompositionAttemptPayload の encode/decode roundtrip")
     func payloadRoundTrip() throws {
         let original = CompositionAttemptPayload(
-            payloadSchemaVersion: 1,
+            payloadSchemaVersion: CompositionAttemptPayload.currentSchemaVersion,
             result: "unscored",
             usedHint: true,
             latencyMs: 1_200
@@ -28,6 +28,22 @@ struct CompositionUseCaseTests {
         #expect(CompositionAttemptPayload.resultLabel(for: .fail) == "fail")
         #expect(CompositionAttemptPayload.resultLabel(for: .pass(kind: .normalizedMatch)) == "pass")
         #expect(CompositionGrade.unscored.shouldAppendReviewEvent == false)
+    }
+
+    @Test("v0.1.0 の v1 fixture を decode して result に写像する")
+    func decodesLegacyV1PassedFixture() throws {
+        let fixtures: [(Data, String)] = [
+            (Data(#"{"payloadSchemaVersion":"1","passed":"true"}"#.utf8), "pass"),
+            (Data(#"{"payloadSchemaVersion":"1","passed":"false"}"#.utf8), "fail"),
+            (Data(#"{"payloadSchemaVersion":"1","passed":"unscored"}"#.utf8), "unscored"),
+        ]
+        for (data, expected) in fixtures {
+            let decoded = try JSONDecoder().decode(CompositionAttemptPayload.self, from: data)
+            #expect(decoded.payloadSchemaVersion == 1)
+            #expect(decoded.result == expected)
+            #expect(decoded.usedHint == false)
+            #expect(decoded.latencyMs == 0)
+        }
     }
 
     @Test("空 ASR は unscored・Attempt 追記・ReviewEvent 0 件")
@@ -82,7 +98,7 @@ struct CompositionUseCaseTests {
             from: attempt?.payloadJSON ?? Data()
         )
         #expect(payload.result == "unscored")
-        #expect(payload.payloadSchemaVersion == 1)
+        #expect(payload.payloadSchemaVersion == CompositionAttemptPayload.currentSchemaVersion)
         #expect(payload.usedHint == usedHint)
         #expect(payload.latencyMs == 900)
         let cardKey = CardKey(

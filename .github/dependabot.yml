@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # GitHub Actions のバージョンピン更新（actions/checkout 等）
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: []
+    commit-message:
+      prefix: ci
+  # SwiftPM 依存（swift-crypto 等）の更新
+  - package-ecosystem: swift
+    directory: /Packages/SnapSpeakCore
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build

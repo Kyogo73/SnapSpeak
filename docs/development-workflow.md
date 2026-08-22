@@ -115,32 +115,36 @@ gitGraph
 
 ---
 
-## 5. リリース手順（develop → main）
+## 5. リリース手順（develop → main。タグ・Release は自動）
 
-1. **develop で検証**: 対象コミットが `develop`（テスト環境）で CI green かつ TestFlight / 内部配布で検証済みであることを確認する。
-2. **版上げ**: `App/project.yml` の以下を更新する（`.xcodeproj` は XcodeGen 生成物のためコミットしない。版数の正本は `project.yml`）。
-   - `MARKETING_VERSION`（= semver。例 `1.0.0`。Info.plist の `CFBundleShortVersionString` に対応）
-   - `CURRENT_PROJECT_VERSION`（= ビルド番号。リリースごとに単調増加。Info.plist の `CFBundleVersion` に対応）
-   - 版上げは `release/vX.Y.Z` ブランチ、または `develop` 上の `chore(app): bump version to X.Y.Z` コミットで行う。
-3. **main へマージ**: `develop` → `main` の PR を作成し、CI 3 ジョブ green + レビュー承認後に **Merge commit** でマージする。
-4. **タグ付け**: `main` の該当コミットに semver タグを打つ。
-   ```bash
-   git checkout main && git pull origin main
-   git tag -a v1.0.0 -m "SnapSpeak v1.0.0"
-   git push origin v1.0.0
-   ```
-5. **GitHub Release**: タグ push を契機に [.github/workflows/release.yml](../.github/workflows/release.yml) が起動し、`core-linux` 相当のビルド / テスト後に **ドラフト Release** を作成する。内容を確認して公開する。
-6. **配布**: App Store 提出（`main`）/ TestFlight 配布（`develop`）は現状 **手動**。署名・TestFlight 自動化は将来対応（本書 §7・release.yml のコメント参照）。
+リリースは **「リリース PR をマージする」の 1 操作**に自動化されている。本番反映の判断（マージ）だけが人間の作業。
 
-### バージョニング方針（semver）
+1. **リリース PR は自動で用意される**: `develop` が `main` より先行すると、[release-pr.yml](../.github/workflows/release-pr.yml) が `develop` → `main` の PR を自動作成する（既にオープンならそのまま。差分は develop への push に追随）。
+2. **検証とマージ判断（人間）**: PR の差分と `develop` の CI green を確認し、**Merge commit** でマージする。本番リリースはユーザーのチェック必須。
+3. **タグとドラフト Release（自動）**: `main` への push を契機に [release.yml](../.github/workflows/release.yml) が走り、
+   - `core-linux` 相当のビルド / テストをゲートとして実行
+   - [scripts/next-version.sh](../scripts/next-version.sh) が **Conventional Commits から次の semver を計算**（`feat!:`/`BREAKING CHANGE`=MAJOR、`feat:`=MINOR、それ以外=PATCH。初回は `v0.1.0`）
+   - タグ `vX.Y.Z` を自動 push し、**ドラフト GitHub Release**（リリースノート自動生成）を作成
+4. **公開（人間）**: ドラフト Release の内容を確認して公開する。
+5. **配布**: App Store 提出（`main`）/ TestFlight 配布（`develop`）は現状 **手動**。署名・TestFlight 自動化は将来対応（本書 §7・release.yml のコメント参照）。
 
-| 変更 | 上げる桁 | 例 |
+補足:
+
+- **手動タグも引き続き有効**（hotfix の付け直し等）。`v*` タグを push すれば release.yml がドラフト Release を作成する。自動タグは HEAD が既にタグ済みならスキップするため二重作成は起きない。
+- **PR タイトルがバージョン計算の入力**になる（Squash マージでコミット subject になるため）。[pr-title.yml](../.github/workflows/pr-title.yml) が全 PR のタイトルを Conventional Commits 形式で検証する。
+- **版上げ（`App/project.yml`）**: `MARKETING_VERSION`（semver）と `CURRENT_PROJECT_VERSION`（ビルド番号）は **App Store / TestFlight に実配布するときに** タグと整合させて更新する（`chore(app): bump version to X.Y.Z`）。git タグの自動採番とは独立で、実配布を始めるまでは更新不要。
+
+### バージョニング方針（semver × Conventional Commits）
+
+| PR タイトル / コミット | 上げる桁 | 例 |
 |------|----------|-----|
-| 破壊的変更・大型機能 | MAJOR | `1.0.0` → `2.0.0` |
-| 後方互換の機能追加 | MINOR | `1.0.0` → `1.1.0` |
-| バグ修正のみ | PATCH | `1.0.0` → `1.0.1` |
+| `feat!:` または本文に `BREAKING CHANGE` | MAJOR | `1.0.0` → `2.0.0` |
+| `feat:` / `feat(scope):` | MINOR | `1.0.0` → `1.1.0` |
+| それ以外（`fix:` `docs:` `chore:` 等） | PATCH | `1.0.0` → `1.0.1` |
 
-- `MARKETING_VERSION` を semver に一致させる。`CURRENT_PROJECT_VERSION`（ビルド番号）は App Store Connect の要件上、同一 `MARKETING_VERSION` 内でも**再提出のたびに増やす**。
+- 判定はリリース間（前タグ〜main HEAD）の全コミットを走査し、最も大きい桁を採用する（実装: `scripts/next-version.sh`）。
+- 1.0.0 到達までは `!` / `BREAKING CHANGE` を使わない運用とする（0.x の間は MINOR までで表現する）。
+- `CURRENT_PROJECT_VERSION`（ビルド番号）は App Store Connect の要件上、同一 `MARKETING_VERSION` 内でも**再提出のたびに増やす**。
 
 ---
 
@@ -154,7 +158,7 @@ gitGraph
    git checkout -b hotfix/audio-session-crash
    ```
 2. 修正をコミットし、`App/project.yml` の `CURRENT_PROJECT_VERSION`（必要なら `MARKETING_VERSION` の PATCH）を上げる。
-3. **`main` へ PR**（CI green + レビュー）→ Merge commit。PATCH タグ（例 `v1.0.1`）を打ち、`release.yml` で Release を作成。
+3. **`main` へ PR**（CI green + レビュー）→ Merge commit。マージすると release.yml が自動で PATCH タグ（例 `v1.0.1`）とドラフト Release を作成する（hotfix コミットが `fix:` であること）。
 4. **同じ修正を `develop` へも反映**する（`hotfix/*` → `develop` の PR、またはリリース後の `main` → `develop` バックマージ）。**これを怠ると次回リリースで修正が巻き戻る**ため必須。
 
 ```mermaid
@@ -184,10 +188,12 @@ iOS アプリのため「サーバーデプロイ」ではなく **配布チャ�
 
 | イベント | 走るワークフロー | ジョブ | 目的 |
 |----------|------------------|--------|------|
-| `develop` / `main` 宛の **PR**（feature→develop, develop→main, hotfix→main/develop） | `ci.yml` | `lint` / `core-linux` / `ios-macos` | マージ前ゲート（必須チェック） |
-| `develop` への **push**（マージ後） | `ci.yml` | 同上 | テスト環境の健全性確認 |
-| `main` への **push**（マージ後） | `ci.yml` | 同上 | 本番ブランチの健全性確認 |
-| `v*` **タグ** push | `release.yml` | `core-linux` 相当 → GitHub Release（ドラフト） | リリース成果物の作成 |
+| すべての **PR**（feature→develop, develop→main, hotfix→main/develop） | `ci.yml` | `lint` / `core-linux` / `ios-macos` | マージ前ゲート（必須チェック） |
+| すべての **PR**（作成・タイトル編集時） | `pr-title.yml` | `conventional-title` | PR タイトル規約の強制（バージョン計算の入力品質） |
+| `develop` への **push**（マージ後） | `ci.yml` / `release-pr.yml` | CI 3 ジョブ / リリース PR 自動作成 | テスト環境の健全性確認・リリース準備 |
+| `main` への **push**（= リリース PR マージ） | `ci.yml` / `release.yml` | CI 3 ジョブ / `core-linux` ゲート → **自動タグ** → ドラフト Release | 本番反映とリリース成果物の自動作成 |
+| `v*` **タグ** push（手動時のみ） | `release.yml` | `core-linux` ゲート → GitHub Release（ドラフト） | hotfix 等の手動リリース |
+| 週次 | Dependabot | GitHub Actions / SwiftPM の更新 PR | 依存の陳腐化防止（[.github/dependabot.yml](../.github/dependabot.yml)） |
 
 - CI ジョブの中身（ランナー・コマンド・キャッシュ・バージョンピン）は [.github/workflows/ci.yml](../.github/workflows/ci.yml) を正とする。ジョブ構成の詳細設計は phase1 実装計画（`docs/phase1-implementation-plan.md`）§5 を参照。
 - `concurrency` により同一 ref の旧実行はキャンセルする。テストは乱数・実時間・実ネットワークに依存しない設計のため、CI 内リトライは行わない。

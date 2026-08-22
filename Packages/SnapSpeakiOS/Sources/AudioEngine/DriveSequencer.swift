@@ -7,7 +7,7 @@ public actor DriveSequencer: DriveSequencing {
     private let speech: any SpeechSynthesizing
     private let filePlayer: any PhaseFilePlaying
     private let clock: any DriveClocking
-    private let session: AudioSessionConfigurator
+    private let session: any AudioSessionConfiguring
     private var assets: any DriveAssetResolving
     private let recovery = RecoveryObserver()
 
@@ -18,7 +18,8 @@ public actor DriveSequencer: DriveSequencing {
     private var generation: UInt64 = 0
     private var playTask: Task<Void, Never>?
     private var recoveryTask: Task<Void, Never>?
-    private var itemStartedAt: Date?
+    private var itemSegmentStartedAt: Date?
+    private var itemAccumulatedMs = 0
     private var itemUsedTTS = false
     private var sessionUsedTTS = false
     private var continuations: [UUID: AsyncStream<DriveSequencerEvent>.Continuation] = [:]
@@ -27,7 +28,7 @@ public actor DriveSequencer: DriveSequencing {
         speech: any SpeechSynthesizing,
         filePlayer: any PhaseFilePlaying,
         clock: any DriveClocking = ContinuousClockSleeper(),
-        session: AudioSessionConfigurator = AudioSessionConfigurator(),
+        session: any AudioSessionConfiguring = AudioSessionConfigurator(),
         assets: any DriveAssetResolving = EmptyAssetResolver()
     ) {
         self.speech = speech
@@ -37,7 +38,7 @@ public actor DriveSequencer: DriveSequencing {
         self.assets = assets
     }
 
-    public func events() -> AsyncStream<DriveSequencerEvent> {
+    public func events() async -> AsyncStream<DriveSequencerEvent> {
         AsyncStream { continuation in
             let id = UUID()
             continuations[id] = continuation
@@ -62,11 +63,19 @@ public actor DriveSequencer: DriveSequencing {
         self.announcementTexts = announcementTexts
         self.outroText = outroText
         sessionUsedTTS = false
+        resetItemTiming()
         var next = DriveCursor(script: script)
         let outputs = next.start()
         cursor = next
         startRecoveryMonitoring()
-        try? session.activatePreview()
+        do {
+            try session.activatePreview()
+        } catch {
+            _ = next.apply(.pause)
+            cursor = next
+            emit(.paused(reason: .audioSessionFailure))
+            return
+        }
         await handle(outputs, generation: generation)
     }
 
@@ -84,6 +93,7 @@ public actor DriveSequencer: DriveSequencing {
             return
         }
         guard var cursor else { return }
+        resetItemTiming()
         let outputs = cursor.apply(.resume)
         self.cursor = cursor
         emit(.resumed)
@@ -94,6 +104,7 @@ public actor DriveSequencer: DriveSequencing {
         generation += 1
         let gen = generation
         await haltPlayback(resetCursor: false)
+        resetItemTiming()
         guard var cursor else { return }
         let outputs = cursor.apply(.skipToNextItem)
         self.cursor = cursor
@@ -104,6 +115,7 @@ public actor DriveSequencer: DriveSequencing {
         generation += 1
         let gen = generation
         await haltPlayback(resetCursor: false)
+        resetItemTiming()
         guard var cursor else { return }
         let outputs = cursor.apply(.previousPressed)
         self.cursor = cursor
@@ -120,6 +132,11 @@ public actor DriveSequencer: DriveSequencing {
         await recovery.stop()
         recoveryTask?.cancel()
         recoveryTask = nil
+    }
+
+    /// テスト用。割り込み / 経路変更を注入する。
+    public func applyRecovery(_ event: RecoveryEvent) async {
+        await handleRecovery(event)
     }
 
     private func pause(reason: DrivePauseReason) async {
@@ -139,13 +156,18 @@ public actor DriveSequencer: DriveSequencing {
                 playTask = Task { await self.playPhase(index, generation: gen) }
                 return
             case let .itemCompleted(ref):
-                let elapsed = elapsedMs()
-                emit(.itemCompleted(ref, usedTTSFallback: itemUsedTTS, elapsedMs: elapsed))
-                itemStartedAt = nil
-                itemUsedTTS = false
+                emit(.itemCompleted(ref, usedTTSFallback: itemUsedTTS, elapsedMs: elapsedMs()))
+                resetItemTiming()
             case let .finished(endedByUser):
-                emit(.finished(endedByUser: endedByUser, completedCount: cursor?.completedPassCount ?? 0))
+                emit(
+                    .finished(
+                        endedByUser: endedByUser,
+                        completedCount: cursor?.completedPassCount ?? 0,
+                        usedTTSFallback: sessionUsedTTS
+                    )
+                )
                 await recovery.stop()
+                try? session.deactivate()
             }
         }
     }
@@ -153,21 +175,26 @@ public actor DriveSequencer: DriveSequencing {
     private func playPhase(_ index: Int, generation gen: UInt64) async {
         guard gen == generation, let script, script.phases.indices.contains(index) else { return }
         let phase = script.phases[index]
-        if let item = phase.item, itemStartedAt == nil {
-            itemStartedAt = Date()
-            itemUsedTTS = false
+        if let item = phase.item, isFirstPhase(of: item, at: index, in: script) {
+            resetItemTiming()
+            itemSegmentStartedAt = Date()
         }
         emit(.phaseChanged(kind: phase.kind, itemRef: phase.item))
         do {
-            try await render(phase)
+            try await render(phase, generation: gen)
         } catch SpeechSynthesisError.voiceUnavailable {
             guard gen == generation, var cursor else { return }
             if let item = phase.item {
                 emit(.itemSkipped(item))
             }
+            resetItemTiming()
             let outputs = cursor.apply(.skipToNextItem)
             self.cursor = cursor
             await handle(outputs, generation: gen)
+            return
+        } catch is CancellationError {
+            return
+        } catch SpeechSynthesisError.cancelled {
             return
         } catch {
             return
@@ -178,7 +205,7 @@ public actor DriveSequencer: DriveSequencing {
         await handle(outputs, generation: gen)
     }
 
-    private func render(_ phase: DrivePhase) async throws {
+    private func render(_ phase: DrivePhase, generation gen: UInt64) async throws {
         switch phase.audio {
         case let .announcement(announcement):
             let text = announcementText(announcement)
@@ -191,10 +218,11 @@ public actor DriveSequencer: DriveSequencing {
                 courseId: courseId,
                 relativePath: relativePath,
                 fallbackText: fallbackText,
-                fallbackTag: fallbackTag
+                fallbackTag: fallbackTag,
+                generation: gen
             )
         case .silence:
-            await clock.sleep(milliseconds: phase.estimatedDurationMs)
+            try await clock.sleep(milliseconds: phase.estimatedDurationMs)
         }
     }
 
@@ -202,21 +230,35 @@ public actor DriveSequencer: DriveSequencing {
         courseId: String,
         relativePath: String,
         fallbackText: String,
-        fallbackTag: String
+        fallbackTag: String,
+        generation gen: UInt64
     ) async throws {
         if let url = assets.fileURL(courseId: courseId, relativePath: relativePath) {
             do {
                 try await filePlayer.play(url: url)
                 return
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch SpeechSynthesisError.cancelled {
+                throw SpeechSynthesisError.cancelled
             } catch {
+                try ensureCanFallback(generation: gen)
                 itemUsedTTS = true
                 sessionUsedTTS = true
             }
         } else {
+            try ensureCanFallback(generation: gen)
             itemUsedTTS = true
             sessionUsedTTS = true
         }
+        try ensureCanFallback(generation: gen)
         try await speech.speak(text: fallbackText, languageTag: fallbackTag)
+    }
+
+    private func ensureCanFallback(generation gen: UInt64) throws {
+        guard gen == generation, !Task.isCancelled else {
+            throw SpeechSynthesisError.cancelled
+        }
     }
 
     private func markTTSIfContent(_ phase: DrivePhase) {
@@ -237,11 +279,33 @@ public actor DriveSequencer: DriveSequencing {
     }
 
     private func elapsedMs() -> Int {
-        guard let itemStartedAt else { return 0 }
-        return max(Int(Date().timeIntervalSince(itemStartedAt) * 1_000), 0)
+        var total = itemAccumulatedMs
+        if let itemSegmentStartedAt {
+            total += max(Int(Date().timeIntervalSince(itemSegmentStartedAt) * 1_000), 0)
+        }
+        return total
+    }
+
+    private func resetItemTiming() {
+        itemSegmentStartedAt = nil
+        itemAccumulatedMs = 0
+        itemUsedTTS = false
+    }
+
+    private func freezeItemSegment() {
+        if let itemSegmentStartedAt {
+            itemAccumulatedMs += max(Int(Date().timeIntervalSince(itemSegmentStartedAt) * 1_000), 0)
+            self.itemSegmentStartedAt = nil
+        }
+    }
+
+    private func isFirstPhase(of item: DriveItemRef, at index: Int, in script: DriveScript) -> Bool {
+        guard index > 0 else { return true }
+        return script.phases[index - 1].item != item
     }
 
     private func haltPlayback(resetCursor: Bool = true) async {
+        freezeItemSegment()
         playTask?.cancel()
         playTask = nil
         speech.stopSpeaking()
@@ -280,11 +344,13 @@ public actor DriveSequencer: DriveSequencing {
             if shouldResume {
                 await resume()
             }
-        case .routeChange:
-            await pause(reason: .routeChange)
+        case let .routeChange(oldDeviceUnavailable):
+            if oldDeviceUnavailable {
+                await pause(reason: .routeChange)
+            }
         case .mediaServicesReset:
-            speech.stopSpeaking()
-            filePlayer.stop()
+            speech.resetEngine()
+            filePlayer.resetEngine()
             await pause(reason: .mediaServicesReset)
         case .configurationChange:
             break

@@ -6,6 +6,7 @@ import MediaPlayer
 public final class DriveRemoteCommandBridge {
     private var sequencer: (any DriveSequencing)?
     private var registrations: [(MPRemoteCommand, Any)] = []
+    private var enabledSnapshots: [(MPRemoteCommand, Bool)] = []
     private var isPaused = true
 
     public init() {}
@@ -49,21 +50,32 @@ public final class DriveRemoteCommandBridge {
             command.removeTarget(token)
         }
         registrations = []
+        for (command, enabled) in enabledSnapshots {
+            command.isEnabled = enabled
+        }
+        enabledSnapshots = []
         sequencer = nil
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        MPNowPlayingInfoCenter.default().playbackState = .stopped
     }
 
     public func updateNowPlaying(title: String, artist: String, isPaused: Bool) {
         self.isPaused = isPaused
+        let center = MPNowPlayingInfoCenter.default()
+        center.playbackState = isPaused ? .paused : .playing
         let info: [String: Any] = [
             MPMediaItemPropertyTitle: title,
             MPMediaItemPropertyArtist: artist,
-            MPNowPlayingInfoPropertyPlaybackRate: isPaused ? 0.0 : 1.0
+            MPNowPlayingInfoPropertyPlaybackRate: isPaused ? 0.0 : 1.0,
+            MPNowPlayingInfoPropertyPlaybackState: isPaused
+                ? MPNowPlayingPlaybackState.paused.rawValue
+                : MPNowPlayingPlaybackState.playing.rawValue
         ]
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        center.nowPlayingInfo = info
     }
 
     private func register(_ command: MPRemoteCommand, handler: @escaping () -> Void) {
+        snapshotEnabled(command)
         command.isEnabled = true
         let token = command.addTarget { _ in
             handler()
@@ -73,6 +85,11 @@ public final class DriveRemoteCommandBridge {
     }
 
     private func disable(_ command: MPRemoteCommand) {
+        snapshotEnabled(command)
         command.isEnabled = false
+    }
+
+    private func snapshotEnabled(_ command: MPRemoteCommand) {
+        enabledSnapshots.append((command, command.isEnabled))
     }
 }

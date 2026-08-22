@@ -241,6 +241,14 @@ let package = Package(
             swiftSettings: swift6
         ),
         .testTarget(
+            name: "AudioEngineTests",
+            dependencies: [
+                "AudioEngine",
+                .product(name: "DriveKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
             name: "DriveModeFeatureTests",
             dependencies: [
                 "Analytics",

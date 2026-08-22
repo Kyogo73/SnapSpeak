@@ -3,12 +3,13 @@ import Foundation
 
 /// `AVSpeechSynthesizerDelegate` を continuation で async 化する。
 /// Delegate は non-Sendable のため最小の `@unchecked Sendable` 箱に閉じる。
+/// 要求 ID 照合で古い didFinish / didCancel が新しい発話を完了しない。
 public final class SpeechSynthesisClient: SpeechSynthesizing, @unchecked Sendable {
-    private let synthesizer = AVSpeechSynthesizer()
+    private var synthesizer = AVSpeechSynthesizer()
     private let box = SpeechSynthesisDelegateBox()
     private let lock = NSLock()
-    private var continuation: CheckedContinuation<Void, Error>?
-    private var continuationConsumed = false
+    private var bound = RequestBoundContinuation()
+    private var utteranceIDs: [ObjectIdentifier: UUID] = [:]
 
     public init() {
         synthesizer.delegate = box
@@ -20,31 +21,37 @@ public final class SpeechSynthesisClient: SpeechSynthesizing, @unchecked Sendabl
             throw SpeechSynthesisError.voiceUnavailable
         }
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            lock.lock()
-            continuation = cont
-            continuationConsumed = false
-            lock.unlock()
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = AVSpeechSynthesisVoice(language: languageTag)
+            lock.lock()
+            let id = bound.begin(cont)
+            utteranceIDs[ObjectIdentifier(utterance)] = id
+            lock.unlock()
             synthesizer.speak(utterance)
         }
     }
 
     public func stopSpeaking() {
         synthesizer.stopSpeaking(at: .immediate)
-        finish(.failure(SpeechSynthesisError.cancelled))
+        lock.lock()
+        bound.completeCurrent(.failure(SpeechSynthesisError.cancelled))
+        lock.unlock()
     }
 
-    fileprivate func finish(_ result: Result<Void, Error>) {
+    public func resetEngine() {
+        stopSpeaking()
+        let next = AVSpeechSynthesizer()
+        next.delegate = box
+        synthesizer = next
+    }
+
+    fileprivate func finish(utterance: AVSpeechUtterance, _ result: Result<Void, Error>) {
         lock.lock()
-        guard !continuationConsumed, let continuation else {
-            lock.unlock()
-            return
+        let id = utteranceIDs.removeValue(forKey: ObjectIdentifier(utterance))
+        if let id {
+            bound.complete(id: id, result)
         }
-        continuationConsumed = true
-        self.continuation = nil
         lock.unlock()
-        continuation.resume(with: result)
     }
 }
 
@@ -53,13 +60,11 @@ private final class SpeechSynthesisDelegateBox: NSObject, AVSpeechSynthesizerDel
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         _ = synthesizer
-        _ = utterance
-        owner?.finish(.success(()))
+        owner?.finish(utterance: utterance, .success(()))
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         _ = synthesizer
-        _ = utterance
-        owner?.finish(.failure(SpeechSynthesisError.cancelled))
+        owner?.finish(utterance: utterance, .failure(SpeechSynthesisError.cancelled))
     }
 }

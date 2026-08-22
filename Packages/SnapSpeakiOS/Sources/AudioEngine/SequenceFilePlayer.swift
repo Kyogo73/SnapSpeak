@@ -2,12 +2,13 @@ import AVFoundation
 import Foundation
 
 /// 単発ファイル再生。速度変更・録音タップなし。`AVAudioFile` オープン失敗は throw。
+/// schedule callback は play 要求 ID と照合し、古い完了が新しい再生を閉じない。
 public final class SequenceFilePlayer: PhaseFilePlaying, @unchecked Sendable {
-    private let engine = AVAudioEngine()
-    private let player = AVAudioPlayerNode()
+    private var engine = AVAudioEngine()
+    private var player = AVAudioPlayerNode()
     private let lock = NSLock()
-    private var continuation: CheckedContinuation<Void, Error>?
-    private var continuationConsumed = false
+    private var bound = RequestBoundContinuation()
+    private var playID: UUID?
     private var attached = false
 
     public init() {}
@@ -21,11 +22,11 @@ public final class SequenceFilePlayer: PhaseFilePlaying, @unchecked Sendable {
         }
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             lock.lock()
-            continuation = cont
-            continuationConsumed = false
+            let id = bound.begin(cont)
+            playID = id
             lock.unlock()
             player.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) { [weak self] _ in
-                self?.finish(.success(()))
+                self?.finish(id: id, .success(()))
             }
             player.play()
         }
@@ -34,7 +35,17 @@ public final class SequenceFilePlayer: PhaseFilePlaying, @unchecked Sendable {
     public func stop() {
         if player.isPlaying { player.stop() }
         if engine.isRunning { engine.stop() }
-        finish(.failure(SpeechSynthesisError.cancelled))
+        lock.lock()
+        bound.completeCurrent(.failure(SpeechSynthesisError.cancelled))
+        playID = nil
+        lock.unlock()
+    }
+
+    public func resetEngine() {
+        stop()
+        engine = AVAudioEngine()
+        player = AVAudioPlayerNode()
+        attached = false
     }
 
     private func attachIfNeeded() {
@@ -44,15 +55,14 @@ public final class SequenceFilePlayer: PhaseFilePlaying, @unchecked Sendable {
         attached = true
     }
 
-    private func finish(_ result: Result<Void, Error>) {
+    private func finish(id: UUID, _ result: Result<Void, Error>) {
         lock.lock()
-        guard !continuationConsumed, let continuation else {
+        guard playID == id else {
             lock.unlock()
             return
         }
-        continuationConsumed = true
-        self.continuation = nil
+        playID = nil
+        bound.complete(id: id, result)
         lock.unlock()
-        continuation.resume(with: result)
     }
 }

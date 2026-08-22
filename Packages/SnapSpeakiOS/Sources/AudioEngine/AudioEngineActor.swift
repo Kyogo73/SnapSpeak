@@ -212,7 +212,7 @@ public actor AudioEngineActor {
             graph.teardown()
             try? session.deactivate()
             state = .idle
-        case .routeChange, .mediaServicesReset, .configurationChange:
+        case .routeChange(_), .mediaServicesReset, .configurationChange:
             _ = await stop()
         }
     }

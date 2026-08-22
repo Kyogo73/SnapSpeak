@@ -15,7 +15,7 @@ public enum DriveSequencerEvent: Sendable, Equatable {
     case itemSkipped(DriveItemRef)
     case paused(reason: DrivePauseReason)
     case resumed
-    case finished(endedByUser: Bool, completedCount: Int)
+    case finished(endedByUser: Bool, completedCount: Int, usedTTSFallback: Bool)
 }
 
 public protocol DriveSequencing: Sendable {

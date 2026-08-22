@@ -191,6 +191,21 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.CompositionFeatureTests
+  AudioEngineTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/AudioEngineTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: AudioEngine
+      - package: SnapSpeakCore
+        product: DriveKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.AudioEngineTests
   DriveModeFeatureTests:
     type: bundle.unit-test
     platform: iOS
@@ -262,6 +277,7 @@ schemes:
         NotificationsKitTests: [test]
         OnboardingFeatureTests: [test]
         CompositionFeatureTests: [test]
+        AudioEngineTests: [test]
         DriveModeFeatureTests: [test]
         AppFeatureTests: [test]
     test:
@@ -273,5 +289,6 @@ schemes:
         - NotificationsKitTests
         - OnboardingFeatureTests
         - CompositionFeatureTests
+        - AudioEngineTests
         - DriveModeFeatureTests
         - AppFeatureTests

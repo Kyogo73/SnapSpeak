@@ -45,8 +45,8 @@ public struct DriveSessionView: View {
                     newCount: viewModel.newCount,
                     isRepeatFill: viewModel.isRepeatFill,
                     loadFailed: viewModel.loadFailed,
-                    length: $length,
                     canStart: viewModel.canStart,
+                    length: $length,
                     onStart: {
                         viewModel.applyLength(length)
                         Task { await viewModel.start(courses: courses) }

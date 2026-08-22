@@ -51,6 +51,7 @@ let package = Package(
             name: "AudioEngine",
             dependencies: [
                 "Analytics",
+                .product(name: "DriveKit", package: "SnapSpeakCore"),
                 .product(name: "ScoringKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6

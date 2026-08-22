@@ -109,7 +109,7 @@ public struct SettingsView: View {
         captionsEnabled = loaded.captionsEnabled
         dailyGoalItems = loaded.dailyGoalItems
         reminderEnabled = loaded.reminderEnabled
-        var components = DateComponents()
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         components.hour = loaded.reminderHour ?? 21
         components.minute = loaded.reminderMinute
         reminderDate = Calendar.current.date(from: components) ?? Self.defaultReminderDate
@@ -142,7 +142,7 @@ public struct SettingsView: View {
     }
 
     private static var defaultReminderDate: Date {
-        var components = DateComponents()
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         components.hour = 21
         components.minute = 0
         return Calendar.current.date(from: components) ?? Date()

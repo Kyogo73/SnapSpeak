@@ -58,7 +58,7 @@ public struct OnboardingGoalView: View {
     private var reminderDateBinding: Binding<Date> {
         Binding(
             get: {
-                var components = DateComponents()
+                var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
                 components.hour = reminderTime.hour ?? 21
                 components.minute = reminderTime.minute ?? 0
                 return Calendar.current.date(from: components) ?? Date()

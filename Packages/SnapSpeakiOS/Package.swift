@@ -222,5 +222,18 @@ let package = Package(
             ],
             swiftSettings: swift6
         ),
+        .testTarget(
+            name: "AppFeatureTests",
+            dependencies: [
+                "Analytics",
+                "AppFeature",
+                "NotificationsKit",
+                "Persistence",
+                "ReviewFeature",
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
     ]
 )

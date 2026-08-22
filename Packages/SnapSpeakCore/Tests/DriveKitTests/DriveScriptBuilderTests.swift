@@ -131,6 +131,35 @@ struct DriveScriptBuilderTests {
         #expect(longMs == 8_320)
     }
 
+    @Test("repeatPause クランプと pauseMultiplier 0.8 / 1.3")
+    func repeatPauseClampAndMultiplier() {
+        let short = DriveFixtures.composition(id: "short", l1: "あ", l2: "A")
+        let long = DriveFixtures.composition(id: "long", l1: "あ", l2: "A", audioMs: 20_000)
+        let shortScript = DriveScriptBuilder.build(items: [short], settings: .standard)
+        let longScript = DriveScriptBuilder.build(items: [long], settings: .standard)
+        let shortPause = shortScript.phases.first { $0.kind == .repeatPause }?.estimatedDurationMs
+        let longPause = longScript.phases.first { $0.kind == .repeatPause }?.estimatedDurationMs
+        #expect(shortPause == 2_000)
+        #expect(longPause == 8_000)
+
+        let mid = DriveFixtures.composition(id: "mid", l1: "あ", l2: "A", audioMs: 4_000)
+        let standard = DriveScriptBuilder.build(items: [mid], settings: DriveFixtures.settings())
+        let shortMul = DriveScriptBuilder.build(
+            items: [mid],
+            settings: DriveFixtures.settings(pauseMultiplier: 0.8)
+        )
+        let longMul = DriveScriptBuilder.build(
+            items: [mid],
+            settings: DriveFixtures.settings(pauseMultiplier: 1.3)
+        )
+        let standardMs = standard.phases.first { $0.kind == .repeatPause }?.estimatedDurationMs
+        let shortMs = shortMul.phases.first { $0.kind == .repeatPause }?.estimatedDurationMs
+        let longMs = longMul.phases.first { $0.kind == .repeatPause }?.estimatedDurationMs
+        #expect(standardMs == 4_000)
+        #expect(shortMs == 3_200)
+        #expect(longMs == 5_200)
+    }
+
     @Test("B6 切り詰め: 予算ちょうど / 1ms 不足 / 先頭超過でも 1 件")
     func truncationBoundaries() {
         let timing = DriveFixtures.measurableTiming()

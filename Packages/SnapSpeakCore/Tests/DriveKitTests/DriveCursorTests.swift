@@ -179,6 +179,40 @@ struct DriveCursorTests {
         #expect(completed.first?.passIndex == 0)
     }
 
+    @Test("C7 完了後の同 pass 再走で completedCount が増えない")
+    func replaySamePassAfterCompletionDoesNotIncrement() {
+        let script = DriveScriptBuilder.build(
+            items: [
+                DriveFixtures.composition(id: "a"),
+                DriveFixtures.composition(id: "b"),
+            ],
+            settings: DriveFixtures.settings(timing: DriveFixtures.cappedTiming(2))
+        )
+        var cursor = DriveCursor(script: script)
+        var outputs = cursor.start()
+        for _ in 0..<64 {
+            let next = cursor.apply(.phaseFinished)
+            outputs.append(contentsOf: next)
+            if DriveCursor.completedRefs(in: next).contains(where: { $0.itemId == "a" }) {
+                break
+            }
+        }
+        #expect(cursor.completedPassCount == 1)
+        _ = cursor.apply(.previousPressed)
+        for _ in 0..<64 {
+            let next = cursor.apply(.phaseFinished)
+            outputs.append(contentsOf: next)
+            if next.contains(where: { if case .finished = $0 { return true }; return false }) {
+                break
+            }
+            if next.isEmpty { break }
+        }
+        let completedA = DriveCursor.completedRefs(in: outputs).filter { $0.itemId == "a" }
+        #expect(completedA.count == 1)
+        #expect(completedA.first?.passIndex == 0)
+        #expect(cursor.completedPassCount == 2)
+    }
+
     @Test("アナウンス中の resume はそのアナウンスの頭から")
     func resumeDuringIntroReplaysIntro() {
         let script = DriveScriptBuilder.build(

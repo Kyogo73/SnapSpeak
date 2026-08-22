@@ -206,6 +206,14 @@ public actor PersistenceActor {
             dailyGoalItems: defaults.dailyGoalItems,
             onboardingCompletedAt: defaults.onboardingCompletedAt,
             lastKnownStreakDays: defaults.lastKnownStreakDays,
+            habitStreakRecordedDayStart: defaults.habitStreakRecordedDayStart,
+            habitGoalMetDayStart: defaults.habitGoalMetDayStart,
+            habitBrokenRecordedDayStart: defaults.habitBrokenRecordedDayStart,
+            recoveryDismissedFromStreak: defaults.recoveryDismissedFromStreak,
+            lastOpenedCourseId: defaults.lastOpenedCourseId,
+            lastOpenedLessonId: defaults.lastOpenedLessonId,
+            lastOpenedItemId: defaults.lastOpenedItemId,
+            lastOpenedMode: defaults.lastOpenedMode,
             fieldRevisionsJSON: defaults.fieldRevisionsJSON,
             deletedAt: defaults.deletedAt
         )
@@ -232,6 +240,14 @@ public actor PersistenceActor {
                 dailyGoalItems: dto.dailyGoalItems,
                 onboardingCompletedAt: dto.onboardingCompletedAt,
                 lastKnownStreakDays: dto.lastKnownStreakDays,
+                habitStreakRecordedDayStart: dto.habitStreakRecordedDayStart,
+                habitGoalMetDayStart: dto.habitGoalMetDayStart,
+                habitBrokenRecordedDayStart: dto.habitBrokenRecordedDayStart,
+                recoveryDismissedFromStreak: dto.recoveryDismissedFromStreak,
+                lastOpenedCourseId: dto.lastOpenedCourseId,
+                lastOpenedLessonId: dto.lastOpenedLessonId,
+                lastOpenedItemId: dto.lastOpenedItemId,
+                lastOpenedMode: dto.lastOpenedMode,
                 fieldRevisionsJSON: dto.fieldRevisionsJSON,
                 deletedAt: dto.deletedAt
             )
@@ -247,10 +263,107 @@ public actor PersistenceActor {
         model.dailyGoalItems = dto.dailyGoalItems
         model.onboardingCompletedAt = dto.onboardingCompletedAt
         model.lastKnownStreakDays = dto.lastKnownStreakDays
+        model.habitStreakRecordedDayStart = dto.habitStreakRecordedDayStart
+        model.habitGoalMetDayStart = dto.habitGoalMetDayStart
+        model.habitBrokenRecordedDayStart = dto.habitBrokenRecordedDayStart
+        model.recoveryDismissedFromStreak = dto.recoveryDismissedFromStreak
+        model.lastOpenedCourseId = dto.lastOpenedCourseId
+        model.lastOpenedLessonId = dto.lastOpenedLessonId
+        model.lastOpenedItemId = dto.lastOpenedItemId
+        model.lastOpenedMode = dto.lastOpenedMode
         model.fieldRevisionsJSON = dto.fieldRevisionsJSON
         model.deletedAt = dto.deletedAt
         try modelContext.save()
         return PersistenceMapping.settingsDTO(model)
+    }
+
+    /// `lastKnownStreakDays` だけを原子的に更新する（他設定の巻き戻しを防ぐ）。
+    public func updateLastKnownStreakDays(_ days: Int) throws {
+        let model = try requireSettings()
+        model.lastKnownStreakDays = days
+        try modelContext.save()
+    }
+
+    public func updateHabitMarkers(_ markers: HabitDayMarkers) throws {
+        let model = try requireSettings()
+        model.habitStreakRecordedDayStart = markers.streakRecordedDayStart
+        model.habitGoalMetDayStart = markers.goalMetDayStart
+        model.habitBrokenRecordedDayStart = markers.brokenRecordedDayStart
+        try modelContext.save()
+    }
+
+    public func markRecoveryDismissed(fromStreak: Int) throws {
+        let model = try requireSettings()
+        model.recoveryDismissedFromStreak = fromStreak
+        try modelContext.save()
+    }
+
+    public func recordLastOpenedLesson(
+        courseId: String,
+        lessonId: String,
+        itemId: String,
+        mode: String
+    ) throws {
+        let model = try requireSettings()
+        model.lastOpenedCourseId = courseId
+        model.lastOpenedLessonId = lessonId
+        model.lastOpenedItemId = itemId
+        model.lastOpenedMode = mode
+        try modelContext.save()
+    }
+
+    public func latestAttempt() throws -> LessonAttemptDTO? {
+        var descriptor = FetchDescriptor<LessonAttempt>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first.map(PersistenceMapping.attemptDTO)
+    }
+
+    /// Attempt を追記し、学習日前後から当日初の習慣イベントを原子的に判定する。
+    public func appendAttemptEvaluatingHabit(
+        _ write: LessonAttemptWrite,
+        now: Date = Date(),
+        timeZoneIdentifier: String = TimeZone.autoupdatingCurrent.identifier
+    ) throws -> AttemptHabitResult {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier)
+            ?? TimeZone(secondsFromGMT: 0)
+            ?? TimeZone.current
+        let dayStart = StudyDay.studyDay(of: now, calendar: calendar)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+        let itemsBefore = try attemptCount(from: dayStart, to: dayEnd)
+        let attempt = try appendAttempt(write)
+        let itemsAfter = try attemptCount(from: dayStart, to: dayEnd)
+        let activity = try attemptActivityDates()
+        let streak = StreakCalculator.snapshot(activity: activity, now: now, calendar: calendar)
+        let settings = try loadOrCreateSettings()
+        let events = HabitAnalytics.eventsAfterAttempt(
+            studyDayStart: dayStart,
+            streakDaysAfter: streak.currentStreakDays,
+            itemsTodayBefore: itemsBefore,
+            itemsTodayAfter: itemsAfter,
+            dailyGoal: settings.dailyGoalItems,
+            markers: settings.habitMarkers
+        )
+        try updateHabitMarkers(events.nextMarkers)
+        try updateLastKnownStreakDays(streak.currentStreakDays)
+        return AttemptHabitResult(
+            attempt: attempt,
+            recordStreakDays: events.recordStreakDays,
+            metGoalItems: events.metGoalItems,
+            dailyGoalItems: settings.dailyGoalItems
+        )
+    }
+
+    private func requireSettings() throws -> UserSettings {
+        _ = try loadOrCreateSettings()
+        var descriptor = FetchDescriptor<UserSettings>()
+        descriptor.fetchLimit = 1
+        guard let model = try modelContext.fetch(descriptor).first else {
+            throw PersistenceError.missingSettings
+        }
+        return model
     }
 
     public func upsertDownloadedCourse(_ dto: DownloadedCourseDTO) throws -> DownloadedCourseDTO {
@@ -297,14 +410,19 @@ public actor PersistenceActor {
         try modelContext.fetch(FetchDescriptor<DownloadedCourse>()).map(PersistenceMapping.downloadedDTO)
     }
 
-    /// dueAt <= now のカードを dueAt 昇順で返す（ゲート判定は SessionPlanner の責務）。
+    /// `dueAt <= now` に加え、失敗カードは `relearnGateAt <= now` でも候補に含める。
+    /// optional の `#Predicate` 比較を避け、件数規模が小さい前提でメモリ上で合流する。
     public func dueCards(now: Date) throws -> [SRSCardDTO] {
-        let threshold = now
-        let descriptor = FetchDescriptor<SRSCard>(
-            predicate: #Predicate { $0.dueAt <= threshold },
-            sortBy: [SortDescriptor(\.dueAt)]
+        let cards = try modelContext.fetch(
+            FetchDescriptor<SRSCard>(sortBy: [SortDescriptor(\.dueAt)])
         )
-        return try modelContext.fetch(descriptor).map(PersistenceMapping.cardDTO)
+        return cards
+            .filter { card in
+                if card.dueAt <= now { return true }
+                if let gate = card.relearnGateAt { return gate <= now }
+                return false
+            }
+            .map(PersistenceMapping.cardDTO)
     }
 
     /// 全 LessonAttempt の createdAt（ストリーク計算の入力。propertiesToFetch で軽量化）。
@@ -345,4 +463,5 @@ public actor PersistenceActor {
 
 public enum PersistenceError: Error, Sendable, Equatable {
     case unknownContentSchema(Int)
+    case missingSettings
 }

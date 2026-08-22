@@ -13,6 +13,14 @@ public final class UserSettings {
     public var dailyGoalItems: Int
     public var onboardingCompletedAt: Date?
     public var lastKnownStreakDays: Int
+    public var habitStreakRecordedDayStart: Date?
+    public var habitGoalMetDayStart: Date?
+    public var habitBrokenRecordedDayStart: Date?
+    public var recoveryDismissedFromStreak: Int
+    public var lastOpenedCourseId: String?
+    public var lastOpenedLessonId: String?
+    public var lastOpenedItemId: String?
+    public var lastOpenedMode: String?
     public var fieldRevisionsJSON: Data
     public var deletedAt: Date?
 
@@ -27,6 +35,14 @@ public final class UserSettings {
         dailyGoalItems: Int,
         onboardingCompletedAt: Date?,
         lastKnownStreakDays: Int,
+        habitStreakRecordedDayStart: Date? = nil,
+        habitGoalMetDayStart: Date? = nil,
+        habitBrokenRecordedDayStart: Date? = nil,
+        recoveryDismissedFromStreak: Int = 0,
+        lastOpenedCourseId: String? = nil,
+        lastOpenedLessonId: String? = nil,
+        lastOpenedItemId: String? = nil,
+        lastOpenedMode: String? = nil,
         fieldRevisionsJSON: Data,
         deletedAt: Date?
     ) {
@@ -40,6 +56,14 @@ public final class UserSettings {
         self.dailyGoalItems = dailyGoalItems
         self.onboardingCompletedAt = onboardingCompletedAt
         self.lastKnownStreakDays = lastKnownStreakDays
+        self.habitStreakRecordedDayStart = habitStreakRecordedDayStart
+        self.habitGoalMetDayStart = habitGoalMetDayStart
+        self.habitBrokenRecordedDayStart = habitBrokenRecordedDayStart
+        self.recoveryDismissedFromStreak = recoveryDismissedFromStreak
+        self.lastOpenedCourseId = lastOpenedCourseId
+        self.lastOpenedLessonId = lastOpenedLessonId
+        self.lastOpenedItemId = lastOpenedItemId
+        self.lastOpenedMode = lastOpenedMode
         self.fieldRevisionsJSON = fieldRevisionsJSON
         self.deletedAt = deletedAt
     }

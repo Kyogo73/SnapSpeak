@@ -152,6 +152,10 @@ struct PersistenceActorTests {
         #expect(loaded.reminderMinute == 0)
         #expect(loaded.onboardingCompletedAt == nil)
         #expect(loaded.lastKnownStreakDays == 0)
+        #expect(loaded.habitStreakRecordedDayStart == nil)
+        #expect(loaded.habitGoalMetDayStart == nil)
+        #expect(loaded.habitBrokenRecordedDayStart == nil)
+        #expect(loaded.recoveryDismissedFromStreak == 0)
 
         var updated = loaded
         updated.dailyGoalItems = 20
@@ -251,6 +255,70 @@ struct PersistenceActorTests {
         #expect(due.map(\.itemId) == ["item_early", "item_late"])
         let beforeAny = try await actor.dueCards(now: Date(timeIntervalSince1970: 1_600_000_000))
         #expect(beforeAny.isEmpty)
+    }
+
+    @Test("失敗カードは dueAt が未来でも relearnGateAt 到達で dueCards に入る")
+    func dueCardsIncludesGatedSameDayRetry() async throws {
+        let actor = try makeActor()
+        let reviewedAt = Date(timeIntervalSince1970: 1_700_000_400)
+        let failed = try await foldNewCard(
+            actor: actor,
+            itemId: "failed_same_day",
+            reviewedAt: reviewedAt,
+            quality: .fail
+        )
+        #expect(failed.relearnGateAt != nil)
+        #expect(failed.dueAt > reviewedAt.addingTimeInterval(10 * 60))
+        let beforeGate = try await actor.dueCards(now: reviewedAt.addingTimeInterval(60))
+        #expect(beforeGate.contains { $0.itemId == "failed_same_day" } == false)
+        let afterGate = try await actor.dueCards(now: reviewedAt.addingTimeInterval(10 * 60))
+        #expect(afterGate.contains { $0.itemId == "failed_same_day" })
+    }
+
+    @Test("appendAttemptEvaluatingHabit は当日初とゴール到達を一度だけ返す")
+    func habitEventsFireOncePerStudyDay() async throws {
+        let actor = try makeActor()
+        var settings = try await actor.loadOrCreateSettings()
+        settings.dailyGoalItems = 2
+        _ = try await actor.saveSettings(settings)
+        let now = Date(timeIntervalSince1970: 1_777_200_000)
+        let first = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "one", createdAt: now),
+            now: now,
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(first.recordStreakDays != nil)
+        #expect(first.metGoalItems == nil)
+        let second = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "two", createdAt: now.addingTimeInterval(10)),
+            now: now.addingTimeInterval(10),
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(second.recordStreakDays == nil)
+        #expect(second.metGoalItems == 2)
+        let third = try await actor.appendAttemptEvaluatingHabit(
+            attemptWrite(itemId: "three", createdAt: now.addingTimeInterval(20)),
+            now: now.addingTimeInterval(20),
+            timeZoneIdentifier: "UTC"
+        )
+        #expect(third.recordStreakDays == nil)
+        #expect(third.metGoalItems == nil)
+        let latest = try await actor.latestAttempt()
+        #expect(latest?.itemId == "three")
+    }
+
+    @Test("updateLastKnownStreakDays は他設定を巻き戻さない")
+    func lastKnownUpdateIsAtomic() async throws {
+        let actor = try makeActor()
+        var settings = try await actor.loadOrCreateSettings()
+        settings.dailyGoalItems = 20
+        settings.reminderEnabled = true
+        _ = try await actor.saveSettings(settings)
+        try await actor.updateLastKnownStreakDays(4)
+        let loaded = try await actor.loadOrCreateSettings()
+        #expect(loaded.lastKnownStreakDays == 4)
+        #expect(loaded.dailyGoalItems == 20)
+        #expect(loaded.reminderEnabled == true)
     }
 
     @Test("attemptCount は半開区間 [start, end)")

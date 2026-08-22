@@ -2,7 +2,7 @@
 
 本書は [ux-design.md §10](./ux-design.md)（UX 正本）を実装に写像する**実行計画**である。実行担当はコード・テスト・`Resources/Localizable.xcstrings`・`App/project.yml`、および変更に対応する docs の同期を編集してよい。CI 設定（`.github/workflows/`）の変更は不要（新規テストターゲットは `App/project.yml` の scheme 追加だけで `ios-macos` に取り込まれる）。
 
-> **状態: 未実行（計画）。** フェーズ位置づけは roadmap Phase 2 の前倒し最優先項目。
+> **状態: 実装済み（D1〜D8）。** フェーズ位置づけは roadmap Phase 2 の前倒し最優先項目。実機 / 車載 Bluetooth の DoD は未確認（本計画 §4.3）。
 
 関連文書: [ux-design.md §10](./ux-design.md)（UX 正本）/ [architecture.md](./architecture.md)(設計正本) / [roadmap.md](./roadmap.md)（スコープ正本）/ [quality-pass-plan.md](./quality-pass-plan.md)（直近の品質パス。テストターゲット追加・DI シームの前例）/ [development-workflow.md](./development-workflow.md)（ブランチ・コミット規約）。
 
@@ -419,14 +419,14 @@ PR は 1 本（`develop` 向け）。タイトルは Conventional Commits（例 
 
 | # | コミット | 内容 | 検証 |
 |---|----------|------|------|
-| D1 | `feat(core): DriveKit（スクリプト生成とカーソル）` | §1 一式 + B1〜B11・C1〜C7 | **Linux `swift test`** |
-| D2 | `feat(core): drive 分析イベントを追加` | §2.4 + AnalyticsCore テスト | Linux |
-| D3 | `feat(persistence): ドライブ設定フィールドを追加` | §2.3 の UserSettings / DTO（payload は D5）+ PersistenceTests 追記 | ios-macos |
-| D4 | `feat(audio): TTS クライアントとドライブシーケンサ` | §2.1（`SpeechSynthesisClient` / `SequenceFilePlayer` / `DriveSequencer` + Recovery 接続。RemoteCommand は D7） | ios-macos |
-| D5 | `feat(drive): DriveModeFeature（resolver / recorder / VM / 3 画面）` | §2.2 + §2.3 payload + xcstrings（§2.6）+ `DriveModeFeatureTests` target（project.yml）+ architecture §2.1 / §7.4 同期 | ios-macos |
-| D6 | `feat(app): ホーム導線と配線、バックグラウンドオーディオ` | §2.5 + `UIBackgroundModes` + Settings 追加 UI | ios-macos |
-| D7 | `feat(audio): リモコンと NowPlaying` | `DriveRemoteCommandBridge`（薄い橋。ロジックなし） | ios-macos（動作は §4.3 実機） |
-| D8 | `docs: ドライブモード実装結果を反映` | 本計画の消し込み・roadmap チェック更新・ux-design §10 の数値 / 文言確定反映 | レビュー |
+| D1 | `feat(core): DriveKit（スクリプト生成とカーソル）` | §1 一式 + B1〜B11・C1〜C7 | **Linux `swift test`** — 実装済み |
+| D2 | `feat(core): drive 分析イベントを追加` | §2.4 + AnalyticsCore テスト | Linux — 実装済み |
+| D3 | `feat(persistence): ドライブ設定フィールドを追加` | §2.3 の UserSettings / DTO（payload は D5）+ PersistenceTests 追記 | ios-macos — 実装済み |
+| D4 | `feat(audio): TTS クライアントとドライブシーケンサ` | §2.1（`SpeechSynthesisClient` / `SequenceFilePlayer` / `DriveSequencer` + Recovery 接続。RemoteCommand は D7） | ios-macos — 実装済み |
+| D5 | `feat(drive): DriveModeFeature（resolver / recorder / VM / 3 画面）` | §2.2 + §2.3 payload + xcstrings（§2.6）+ `DriveModeFeatureTests` target（project.yml）+ architecture §2.1 / §7.4 同期 | ios-macos — 実装済み |
+| D6 | `feat(app): ホーム導線と配線、バックグラウンドオーディオ` | §2.5 + `UIBackgroundModes` + Settings 追加 UI | ios-macos — 実装済み |
+| D7 | `feat(audio): リモコンと NowPlaying` | `DriveRemoteCommandBridge`（薄い橋。ロジックなし） | ios-macos（動作は §4.3 実機）— 実装済み |
+| D8 | `docs: ドライブモード実装結果を反映` | 本計画の消し込み・roadmap チェック更新・ux-design §10 の数値 / 文言確定反映 | レビュー — 実装済み |
 
 依存: D1 → D4 / D5（型が前提）。D2 → D5。D3 → D5 / D6。D4 → D5 → D6 → D7。docs 同期は各コミットにも含める（D8 は最終確認）。
 

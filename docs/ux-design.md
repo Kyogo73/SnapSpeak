@@ -552,7 +552,7 @@ flowchart TD
 
 ### 10.4 音声シーケンス仕様
 
-数値はすべて **初期仮値** であり、実走行での校正対象（architecture §6.3 の校正方針と同型）。定義の正本は DriveKit の `DriveTimingPolicy`（実装計画 §1.2）。
+数値はすべて **初期仮値** であり、実走行での校正対象（architecture §6.3 の校正方針と同型）。定義の正本は DriveKit の `DriveTimingPolicy.standard`（speakPause 1.6 / 3–12 秒、repeatPause 1.0 / 2–8 秒、trackGap 0.8 秒、itemGap 1.2 秒、TTS 推定 `500 + 90×L1 文字` / `500 + 60×L2 文字`、intro 8 秒 / section 2.5 秒 / outro 5 秒）。MVP はこの値で実装済み。
 
 **瞬間英作文 Item（日本語 → ポーズ → 英語正解）**:
 

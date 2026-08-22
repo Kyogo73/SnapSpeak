@@ -133,7 +133,9 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 >
 > **前倒し追加（方針更新）**: プロダクトポジショニングを「運転中の語学学習を主要ユースケースの第一級とする」に更新した（product-overview 冒頭・§1）。これに伴い **ドライブモード MVP を本 Phase の前倒し項目として最優先で組み込む**（StoreKit / ダッシュボードより先に着手する。習慣の供給源が増えるほど課金の説得材料も増えるため）。UX 正本は [ux-design.md §10](./ux-design.md)、実装計画は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。
 >
-> 本 Phase の**残スコープ**は、ドライブモード MVP、StoreKit 2 / Paywall / 無料制限、進捗ダッシュボード（グラフ類）、コンテンツ拡充の本格運用、品質閾値の再校正、ダウンロード管理 UI の強化である。
+> **ドライブモード MVP 実装状況**: クライアント実装（`DriveKit` / `DriveModeFeature` / `DriveSequencer` / Settings / `UIBackgroundModes`）は完了。記録は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。DoD のチェックは実車 / 車載 Bluetooth 確認を含むため未チェックのまま残す（実装完了 ≠ DoD 達成）。
+>
+> 本 Phase の**残スコープ**は、ドライブモードの実機 DoD、StoreKit 2 / Paywall / 無料制限、進捗ダッシュボード（グラフ類）、コンテンツ拡充の本格運用、品質閾値の再校正、ダウンロード管理 UI の強化である。
 
 ### 目的
 
@@ -145,7 +147,7 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 ### 主要機能
 
 - SRS 復習キュー（期限到来アイテムをホームから開始）。品質 0-5 の自動算出を学習ループに正式接続。低 confidence は自動更新しない — **前倒し実装済み**
-- **ドライブモード MVP**（本 Phase の前倒し最優先項目）: 乗車前ワンタップ開始 → 音声のみで自動進行（瞬間英作文: 日本語 → 発話ポーズ → 英語正解 / シャドーイング: お手本 × N 回で重ねて発話）→ 停車後ドライブノート。セッション長 5 / 10 / 20 分 / エンドレス。走行中はマイク・採点なし（未採点 Attempt でストリーク / ゴールに算入）。バックグラウンド再生・ロック画面 / ステアリングリモコン（`MPRemoteCommandCenter`）・割り込み自動復帰・お手本欠損時の TTS フォールバック。**CarPlay は対象外**（ux-design §10.10）。UX 正本は ux-design §10
+- **ドライブモード MVP**（本 Phase の前倒し最優先項目）: 乗車前ワンタップ開始 → 音声のみで自動進行（瞬間英作文: 日本語 → 発話ポーズ → 英語正解 / シャドーイング: お手本 × N 回で重ねて発話）→ 停車後ドライブノート。セッション長 5 / 10 / 20 分 / エンドレス。走行中はマイク・採点なし（未採点 Attempt でストリーク / ゴールに算入）。バックグラウンド再生・ロック画面 / ステアリングリモコン（`MPRemoteCommandCenter`）・割り込み自動復帰・お手本欠損時の TTS フォールバック。**CarPlay は対象外**（ux-design §10.10）。UX 正本は ux-design §10 — **クライアント実装済み**（実機 DoD は未確認）
 - 進捗ダッシュボード: 連続学習日（学習日境界 04:00）、週間完了、モード別平均スクリプト一致率（個人データはローカル）— ホームのストリーク / ゴール進捗表示のみ前倒し済み。グラフ類のダッシュボードは未実装
 - ストリーク表示。欠かした日の扱い（端末タイムゾーン、04:00 境界）— **前倒し実装済み**（休み 1 日の橋渡し救済を含む。ux-design §2.3）
 - ローカル通知リマインダー（学習時刻のユーザー設定。過剰通知を避ける既定オフまたは控えめ）— **前倒し実装済み**（1 日 1 本・3 日先読み・冪等同期。ux-design §6）
@@ -158,7 +160,7 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 
 - SRSKit のスケジュールをキュー UI と接続。`ReviewEvent` 追記と fold。タイムゾーン変更耐性 — **前倒し実装済み**（`HabitKit.SessionPlanner` + `ReviewFeature`）
 - 通知: `UserNotifications`、権限リクエストのタイミング（価値理解後）— **前倒し実装済み**（`NotificationsKit`。オンボーディングとリマインダー ON 操作の just-in-time 要求）
-- ドライブモード: core 新モジュール `DriveKit`（音声スクリプト生成とカーソル状態機械の純関数。Linux テスト）、iOS 新モジュール `DriveModeFeature`（開始 / グランスビュー / ドライブノート）、`AudioEngine` 拡張（連続再生シーケンサ・`AVSpeechSynthesizer` TTS フォールバック・割り込み自動再開・`MPRemoteCommandCenter` / NowPlaying）、`UserSettings` のドライブ設定フィールド、`UIBackgroundModes: audio`。実装分解は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。既存 `SessionPlanner` / `appendAttemptEvaluatingHabit` / unscored 設計を再利用し二重実装しない
+- ドライブモード: core 新モジュール `DriveKit`（音声スクリプト生成とカーソル状態機械の純関数。Linux テスト）、iOS 新モジュール `DriveModeFeature`（開始 / グランスビュー / ドライブノート）、`AudioEngine` 拡張（連続再生シーケンサ・`AVSpeechSynthesizer` TTS フォールバック・割り込み自動再開・`MPRemoteCommandCenter` / NowPlaying）、`UserSettings` のドライブ設定フィールド、`UIBackgroundModes: audio`。実装分解は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。既存 `SessionPlanner` / `appendAttemptEvaluatingHabit` / unscored 設計を再利用し二重実装しない — **実装済み**
 - StoreKit 2: 起動時に verified な `Transaction.currentEntitlements` を走査、`Transaction.updates` を常時購読し検証後 `finish()`、失効・返金・Billing Retry / Grace Period、Restore は明示操作から `AppStore.sync()`
 - 無料制限エンタイトルメントを ContentKit の解決レイヤに置き、プレイヤーは「開ける/開けない」だけを見る
 - 品質閾値をコーパスと実データで再校正（言語・長さ・confidence 別 `GradingPolicy`）

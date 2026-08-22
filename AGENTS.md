@@ -12,8 +12,8 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運�
 
 ### リポジトリ構成（2 SwiftPM パッケージ + App）
 
-- `Packages/SnapSpeakCore` … **Foundation のみに依存する中核ドメイン**（`LanguageKit` / `ScoringKit` / `CompositionKit` / `SRSKit` / `ContentCore` / `AnalyticsCore` / `HabitKit` と実行可能 `contentlint`）。外部依存は swift-crypto のみ。**この Linux VM で `swift build` / `swift test` が完結する唯一の部分**。
-- `Packages/SnapSpeakiOS` … Apple 専用（SwiftUI / SwiftData / AVFoundation / Speech / UIKit）。**Linux ではコンパイル不可**。検証は macOS CI（GitHub Actions の `ios-macos` ジョブ）のみ。機能モジュールは `AppFeature` / `OnboardingFeature` / `ReviewFeature` / `ShadowingFeature` / `CompositionFeature`、インフラは `NotificationsKit` / `Persistence` / `AudioEngine` / `SpeechKit` / `ContentKit` / `DesignSystem` / `Analytics`。
+- `Packages/SnapSpeakCore` … **Foundation のみに依存する中核ドメイン**（`LanguageKit` / `ScoringKit` / `CompositionKit` / `SRSKit` / `ContentCore` / `AnalyticsCore` / `HabitKit` / `DriveKit` と実行可能 `contentlint`）。外部依存は swift-crypto のみ。**この Linux VM で `swift build` / `swift test` が完結する唯一の部分**。
+- `Packages/SnapSpeakiOS` … Apple 専用（SwiftUI / SwiftData / AVFoundation / Speech / UIKit）。**Linux ではコンパイル不可**。検証は macOS CI（GitHub Actions の `ios-macos` ジョブ）のみ。機能モジュールは `AppFeature` / `OnboardingFeature` / `ReviewFeature` / `ShadowingFeature` / `CompositionFeature` / `DriveModeFeature`、インフラは `NotificationsKit` / `Persistence` / `AudioEngine` / `SpeechKit` / `ContentKit` / `DesignSystem` / `Analytics`。
 - `App/` … Xcode App ターゲット。`.xcodeproj` は **XcodeGen（`App/project.yml`）から生成**（手書き・コミットしない。`.gitignore` 済み）。
 
 ### 開発環境（この VM の非自明な前提）
@@ -39,7 +39,7 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運�
 
 ### 非自明な注意点（ハマりどころ）
 
-- iOS のユニットテスト（`PersistenceTests` / `ContentKitTests` / `ReviewFeatureTests` / `NotificationsKitTests` / `OnboardingFeatureTests` / `AppFeatureTests` / `CompositionFeatureTests`）は **ホストアプリを使わないロジックテスト**にしてある。SwiftPM の静的ライブラリ製品を bundle_loader 経由で解決するとリンクに失敗するため、テストターゲットは必要な製品を直接リンクする（`App/project.yml` 参照）。
+- iOS のユニットテスト（`PersistenceTests` / `ContentKitTests` / `ReviewFeatureTests` / `NotificationsKitTests` / `OnboardingFeatureTests` / `AppFeatureTests` / `CompositionFeatureTests` / `DriveModeFeatureTests`）は **ホストアプリを使わないロジックテスト**にしてある。SwiftPM の静的ライブラリ製品を bundle_loader 経由で解決するとリンクに失敗するため、テストターゲットは必要な製品を直接リンクする（`App/project.yml` 参照）。
 - `Packages/SnapSpeakCore/Package.swift` は `platforms` を明示している（swift-crypto の `SHA256` が macOS 10.15+ を要求するため。未指定だと macOS ビルドが落ちる）。
 - Bluetooth 系オーディオオプションは Xcode 16.4 SDK 準拠で `.allowBluetooth` を使用（`.allowBluetoothHFP` は新しい SDK 専用）。SDK 更新時に見直す。
 - シードの音声ファイル（`Resources/Seed/.../audio/*.m4a`）は現状 checksum 整合のための**ダミーバイト**で、実再生できない。`AVAudioFile` を使う実機フローは本番収録音声に差し替えてから。差し替え時は checksum / durationMs / captionSegments を再生成し `contentlint` で再検証する。このためドライブモードの初期経路は **TTS（`AVSpeechSynthesizer`）フォールバックが実質の本線**になる（`docs/drive-mode-implementation-plan.md` §0 参照）。

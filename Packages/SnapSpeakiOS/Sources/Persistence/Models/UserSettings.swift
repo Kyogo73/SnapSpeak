@@ -21,6 +21,9 @@ public final class UserSettings {
     public var lastOpenedLessonId: String?
     public var lastOpenedItemId: String?
     public var lastOpenedMode: String?
+    public var driveSessionMinutes: Int
+    public var drivePausePreset: String
+    public var driveShadowingRepeats: Int
     public var fieldRevisionsJSON: Data
     public var deletedAt: Date?
 
@@ -43,6 +46,9 @@ public final class UserSettings {
         lastOpenedLessonId: String? = nil,
         lastOpenedItemId: String? = nil,
         lastOpenedMode: String? = nil,
+        driveSessionMinutes: Int = 10,
+        drivePausePreset: String = "standard",
+        driveShadowingRepeats: Int = 2,
         fieldRevisionsJSON: Data,
         deletedAt: Date?
     ) {
@@ -64,6 +70,9 @@ public final class UserSettings {
         self.lastOpenedLessonId = lastOpenedLessonId
         self.lastOpenedItemId = lastOpenedItemId
         self.lastOpenedMode = lastOpenedMode
+        self.driveSessionMinutes = driveSessionMinutes
+        self.drivePausePreset = drivePausePreset
+        self.driveShadowingRepeats = driveShadowingRepeats
         self.fieldRevisionsJSON = fieldRevisionsJSON
         self.deletedAt = deletedAt
     }

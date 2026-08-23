@@ -63,6 +63,31 @@ struct TodayViewModelTests {
         #expect(viewModel.state == .failed)
     }
 
+    @Test("prepareDrivePlan はプラン空でも開始できる")
+    func prepareDrivePlanAllowsEmptyPlan() async throws {
+        let planning = FakeTodayPlanning()
+        await planning.configure(results: [.success(Self.emptySnapshot())])
+        let viewModel = try makeViewModel(planning: planning)
+
+        let prepared = await viewModel.prepareDrivePlan()
+
+        #expect(prepared.loadFailed == false)
+        #expect(prepared.plan.isEmpty)
+        #expect(viewModel.state == .ready)
+    }
+
+    @Test("prepareDrivePlan は failed のとき loadFailed")
+    func prepareDrivePlanMarksLoadFailed() async throws {
+        let planning = FakeTodayPlanning()
+        await planning.configure(results: [.failure(FakePlanError.makeTodayFailed)])
+        let viewModel = try makeViewModel(planning: planning)
+
+        let prepared = await viewModel.prepareDrivePlan()
+
+        #expect(prepared.loadFailed == true)
+        #expect(viewModel.state == .failed)
+    }
+
     private func makeViewModel(planning: FakeTodayPlanning) throws -> TodayViewModel {
         let container = try PersistenceActor.makeContainer(inMemory: true)
         let persistence = PersistenceActor(modelContainer: container)
@@ -100,6 +125,22 @@ struct TodayViewModelTests {
             ),
             goal: GoalProgress(completedItems: 0, goalItems: 10),
             plan: SessionPlan(reviews: [card], deferredDueCount: 0, newLesson: nil),
+            hasCourses: true
+        )
+    }
+
+    private static func emptySnapshot() -> TodaySnapshot {
+        TodaySnapshot(
+            streak: StreakSnapshot(
+                currentStreakDays: 1,
+                longestStreakDays: 1,
+                totalStudyDays: 1,
+                studiedToday: true,
+                isAtRisk: false,
+                isOnLastGraceDay: false
+            ),
+            goal: GoalProgress(completedItems: 10, goalItems: 10),
+            plan: SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil),
             hasCourses: true
         )
     }

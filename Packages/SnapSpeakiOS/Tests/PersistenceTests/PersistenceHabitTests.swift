@@ -19,6 +19,9 @@ struct PersistenceHabitTests {
         #expect(loaded.habitGoalMetDayStart == nil)
         #expect(loaded.habitBrokenRecordedDayStart == nil)
         #expect(loaded.recoveryDismissedFromStreak == 0)
+        #expect(loaded.driveSessionMinutes == 10)
+        #expect(loaded.drivePausePreset == "standard")
+        #expect(loaded.driveShadowingRepeats == 2)
 
         var updated = loaded
         updated.dailyGoalItems = 20
@@ -28,6 +31,9 @@ struct PersistenceHabitTests {
         let completedAt = Date(timeIntervalSince1970: 1_700_000_000)
         updated.onboardingCompletedAt = completedAt
         updated.lastKnownStreakDays = 7
+        updated.driveSessionMinutes = 20
+        updated.drivePausePreset = "long"
+        updated.driveShadowingRepeats = 3
         let saved = try await actor.saveSettings(updated)
         #expect(saved.dailyGoalItems == 20)
         #expect(saved.reminderEnabled == true)
@@ -35,6 +41,9 @@ struct PersistenceHabitTests {
         #expect(saved.reminderMinute == 30)
         #expect(saved.onboardingCompletedAt == completedAt)
         #expect(saved.lastKnownStreakDays == 7)
+        #expect(saved.driveSessionMinutes == 20)
+        #expect(saved.drivePausePreset == "long")
+        #expect(saved.driveShadowingRepeats == 3)
 
         let again = try await actor.loadOrCreateSettings()
         #expect(again == saved)

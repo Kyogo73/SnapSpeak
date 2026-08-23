@@ -71,6 +71,9 @@ enum PersistenceMapping {
             lastOpenedLessonId: model.lastOpenedLessonId,
             lastOpenedItemId: model.lastOpenedItemId,
             lastOpenedMode: model.lastOpenedMode,
+            driveSessionMinutes: model.driveSessionMinutes,
+            drivePausePreset: model.drivePausePreset,
+            driveShadowingRepeats: model.driveShadowingRepeats,
             fieldRevisionsJSON: model.fieldRevisionsJSON,
             deletedAt: model.deletedAt
         )

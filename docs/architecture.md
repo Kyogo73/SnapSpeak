@@ -100,8 +100,10 @@ flowchart TB
 | **NotificationsKit** | インフラ | `UNUserNotificationCenter` ラッパ。権限要求、予約の冪等同期、通知タップの委譲 |
 | **DesignSystem** | UI | 色、タイポ、ボタン、カード、進捗リング、ストリーク表示。機能知識を持たない |
 | **Analytics** | インフラ | イベント送信のプロトコルと実装。個人データ・音声を受け取らない |
+| **DriveKit** | ドメイン | ドライブモードの音声スクリプト生成と進行カーソル。純関数 / 純状態機械。UI・AVFoundation を持たない |
+| **DriveModeFeature** | 機能 | ドライブ開始 / グランス / ノート画面。プラン写像・未採点 Attempt 記録。`ReviewFeature` は import しない |
 
-実装上のパッケージ分割（Phase 1）: Linux では Apple フレームワークをビルドできないため、上表のモジュールは 2 つの Swift パッケージにグルーピングする。Foundation のみの `Packages/SnapSpeakCore`（LanguageKit / ScoringKit / CompositionKit / SRSKit / ContentCore / AnalyticsCore / HabitKit）と、Apple 専用の `Packages/SnapSpeakiOS`（AppFeature / OnboardingFeature / ReviewFeature / ShadowingFeature / CompositionFeature / AudioEngine / SpeechKit / ContentKit / Persistence / DesignSystem / Analytics / NotificationsKit）。各モジュールはパッケージ内の target として実現し、本節の依存方向は維持する。`ScoringKit` は採点コア（UI / Audio 非依存）。`SpeechKit` は `SFSpeechRecognizer` のオンデバイス専用ラッパである。`HabitKit` は `SRSKit`（学習日境界）のみに依存する。
+実装上のパッケージ分割（Phase 1）: Linux では Apple フレームワークをビルドできないため、上表のモジュールは 2 つの Swift パッケージにグルーピングする。Foundation のみの `Packages/SnapSpeakCore`（LanguageKit / ScoringKit / CompositionKit / SRSKit / ContentCore / AnalyticsCore / HabitKit / DriveKit）と、Apple 専用の `Packages/SnapSpeakiOS`（AppFeature / OnboardingFeature / ReviewFeature / ShadowingFeature / CompositionFeature / DriveModeFeature / AudioEngine / SpeechKit / ContentKit / Persistence / DesignSystem / Analytics / NotificationsKit）。各モジュールはパッケージ内の target として実現し、本節の依存方向は維持する。`ScoringKit` は採点コア（UI / Audio 非依存）。`SpeechKit` は `SFSpeechRecognizer` のオンデバイス専用ラッパである。`HabitKit` は `SRSKit`（学習日境界）のみに依存する。`DriveKit` は `SRSKit`（`Skill`）のみに依存する。
 
 依存方向は一方向にする。
 
@@ -112,11 +114,13 @@ flowchart TB
   RV["ReviewFeature"]
   SH["ShadowingFeature"]
   CP["CompositionFeature"]
+  DM["DriveModeFeature"]
   NK["NotificationsKit"]
   AE["AudioEngine"]
   CK["ContentKit"]
   PS["Persistence"]
   HK["HabitKit"]
+  DK["DriveKit"]
   SRS["SRSKit"]
   DS["DesignSystem"]
   AN["Analytics"]
@@ -125,6 +129,7 @@ flowchart TB
   App --> RV
   App --> SH
   App --> CP
+  App --> DM
   App --> NK
   App --> HK
   App --> CK
@@ -149,13 +154,20 @@ flowchart TB
   CP --> SRS
   CP --> DS
   CP --> AN
+  DM --> AE
+  DM --> PS
+  DM --> CK
+  DM --> DS
+  DM --> AN
   NK --> HK
   NK --> AN
   PS --> HK
   PS --> SRS
   AE --> AN
+  AE --> DK
   CK --> SRS
   HK --> SRS
+  DK --> SRS
 ```
 
 禁止:
@@ -1108,6 +1120,9 @@ enum SnapSpeakSchemaV1: VersionedSchema {
     var lastOpenedLessonId: String?
     var lastOpenedItemId: String?
     var lastOpenedMode: String?      // "shadowing" | "composition"
+    var driveSessionMinutes: Int     // 5 / 10 / 20 / 0（エンドレス）。既定 10
+    var drivePausePreset: String     // "short" / "standard" / "long"。既定 "standard"
+    var driveShadowingRepeats: Int   // 1...3。既定 2
 
     var fieldRevisionsJSON: Data     // フィールド別 revision
     var deletedAt: Date?             // tombstone（アカウント単位）
@@ -1126,7 +1141,15 @@ enum SnapSpeakSchemaV1: VersionedSchema {
 
 - `@ModelActor`（例: `PersistenceActor`）が `ModelContext` を所有する。
 - Feature には Sendable DTO だけを返す。
-- `payloadJSON` には必ず `payloadSchemaVersion` を並列で持つ。`v0.1.0` タグ以降は形を変えるたびに版数を上げ、旧版の decode を維持する。
+- `payloadJSON` には必ず `payloadSchemaVersion` を並列で持つ。`v0.1.0` タグ以降は形を変えるたびに版数を上げ、旧版の decode を維持する。外側バージョンは skill ごとの**形状 ID** である。
+
+| skill | 外側 `payloadSchemaVersion` | 形状 |
+|-------|------------------------------|------|
+| shadowing | 1 | 通常レッスン（`ShadowingScore` または `{}`） |
+| shadowing | 2 | `DriveAttemptPayload`（`context: "drive"`。ドライブモード。`ReviewEvent` / `foldSRSCard` は呼ばない） |
+| composition | 1 | 旧形式（`v0.1.0` タグ。decode 互換のみ） |
+| composition | 2 | `CompositionAttemptPayload`（通常レッスン） |
+| composition | 3 | `DriveAttemptPayload`（`context: "drive"`。ドライブモード。`ReviewEvent` / `foldSRSCard` は呼ばない） |
 - `save()` は `saveOrRollback` 経由。失敗時は未保存変更を巻き戻してから rethrow する（部分状態を残さない）。
 - ローカル表示カタログ（seed + downloaded）は `CourseCatalog.uniquedActiveReleases` で `courseId` ごとに revision 最大を残す。同一 revision は `releaseId` 非 nil（downloaded）を優先し、双方非 nil なら辞書順で大きい方、双方 nil なら先勝ち。
 

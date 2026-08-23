@@ -1,5 +1,6 @@
 import ContentCore
 import ContentKit
+import HabitKit
 import OnboardingFeature
 import SwiftUI
 
@@ -13,6 +14,7 @@ public struct RootView: View {
     @State private var settingsPath: [SettingsDestination] = []
     @State private var selectedTab: AppTab = .home
     @State private var showOnboarding = false
+    @State private var driveSession: DriveSessionLaunch?
 
     public init() {}
 
@@ -62,6 +64,23 @@ public struct RootView: View {
         .onOpenURL { url in
             handleDeepLink(url)
         }
+        .fullScreenCover(item: $driveSession) { launch in
+            DriveSessionContainer(
+                launch: launch,
+                courses: courses,
+                dependencies: dependencies,
+                today: todayViewModel,
+                onClose: {
+                    driveSession = nil
+                    Task { await todayViewModel?.refresh() }
+                },
+                onOpenLesson: { coordinate in
+                    driveSession = nil
+                    homePath.append(.lesson(coordinate))
+                    Task { await todayViewModel?.refresh() }
+                }
+            )
+        }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingContainerView(
                 persistence: dependencies.persistence,
@@ -85,7 +104,9 @@ public struct RootView: View {
                 path: $homePath,
                 courses: courses,
                 today: todayViewModel,
-                onContinueLearning: { selectedTab = .catalog }
+                onContinueLearning: { selectedTab = .catalog },
+                onOpenDrive: { Task { await presentDrive(immediate: false) } },
+                onQuickStartDrive: { Task { await presentDrive(immediate: true) } }
             )
         } else {
             ProgressView()
@@ -161,6 +182,24 @@ public struct RootView: View {
             lessonId: lesson.id,
             itemId: item.id,
             mode: lesson.mode
+        )
+    }
+
+    private func presentDrive(immediate: Bool) async {
+        guard !courses.isEmpty else { return }
+        await dependencies.audio.stop()
+        let prepared: (plan: SessionPlan, loadFailed: Bool)
+        if let todayViewModel {
+            prepared = await todayViewModel.prepareDrivePlan()
+        } else {
+            prepared = (SessionPlan(reviews: [], deferredDueCount: 0, newLesson: nil), true)
+        }
+        let settings = await dependencies.loadSettings()
+        driveSession = DriveSessionLaunch(
+            plan: prepared.plan,
+            settings: settings,
+            startImmediately: immediate,
+            loadFailed: prepared.loadFailed
         )
     }
 

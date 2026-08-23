@@ -1,6 +1,11 @@
 import AVFoundation
 
-public struct AudioSessionConfigurator: Sendable {
+public protocol AudioSessionConfiguring: Sendable {
+    func activatePreview() throws
+    func deactivate() throws
+}
+
+public struct AudioSessionConfigurator: AudioSessionConfiguring, Sendable {
     public init() {}
 
     /// Preview: `.playback` + `.spokenAudio`. Never combine `.spokenAudio` with playAndRecord.

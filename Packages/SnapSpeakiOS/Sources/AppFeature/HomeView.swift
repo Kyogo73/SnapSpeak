@@ -11,18 +11,24 @@ public struct HomeView: View {
     public var courses: [StoredCourse]
     @ObservedObject var today: TodayViewModel
     public var onContinueLearning: () -> Void
+    public var onOpenDrive: () -> Void
+    public var onQuickStartDrive: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(
         path: Binding<[HomeDestination]>,
         courses: [StoredCourse],
         today: TodayViewModel,
-        onContinueLearning: @escaping () -> Void
+        onContinueLearning: @escaping () -> Void,
+        onOpenDrive: @escaping () -> Void,
+        onQuickStartDrive: @escaping () -> Void
     ) {
         _path = path
         self.courses = courses
         self.today = today
         self.onContinueLearning = onContinueLearning
+        self.onOpenDrive = onOpenDrive
+        self.onQuickStartDrive = onQuickStartDrive
     }
 
     public var body: some View {
@@ -38,6 +44,9 @@ public struct HomeView: View {
                 }
                 progressLink
                 todayCard
+                if !courses.isEmpty {
+                    driveCard
+                }
                 if let continueLesson = today.continueLesson {
                     continueCard(continueLesson)
                 }
@@ -177,6 +186,23 @@ public struct HomeView: View {
             SecondaryButton("home.recovery.dismiss") {
                 Task { await today.dismissRecovery() }
             }
+        }
+    }
+
+    private var driveCard: some View {
+        CardContainer {
+            Button(action: onOpenDrive) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("home.drive.title")
+                        .font(Typography.headline)
+                    Text("home.drive.subtitle")
+                        .font(Typography.body)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            PrimaryButton("home.drive.quick_start", action: onQuickStartDrive)
         }
     }
 

@@ -22,6 +22,7 @@ let package = Package(
         .library(name: "NotificationsKit", targets: ["NotificationsKit"]),
         .library(name: "ReviewFeature", targets: ["ReviewFeature"]),
         .library(name: "OnboardingFeature", targets: ["OnboardingFeature"]),
+        .library(name: "DriveModeFeature", targets: ["DriveModeFeature"]),
     ],
     dependencies: [
         .package(path: "../SnapSpeakCore"),
@@ -51,6 +52,7 @@ let package = Package(
             name: "AudioEngine",
             dependencies: [
                 "Analytics",
+                .product(name: "DriveKit", package: "SnapSpeakCore"),
                 .product(name: "ScoringKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
@@ -135,6 +137,21 @@ let package = Package(
             swiftSettings: swift6
         ),
         .target(
+            name: "DriveModeFeature",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "ContentKit",
+                "DesignSystem",
+                "Persistence",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "DriveKit", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .target(
             name: "AppFeature",
             dependencies: [
                 "Analytics",
@@ -142,6 +159,7 @@ let package = Package(
                 "CompositionFeature",
                 "ContentKit",
                 "DesignSystem",
+                "DriveModeFeature",
                 "NotificationsKit",
                 "OnboardingFeature",
                 "Persistence",
@@ -218,6 +236,30 @@ let package = Package(
                 "SpeechKit",
                 .product(name: "CompositionKit", package: "SnapSpeakCore"),
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "AudioEngineTests",
+            dependencies: [
+                "AudioEngine",
+                .product(name: "DriveKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "DriveModeFeatureTests",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "ContentKit",
+                "DriveModeFeature",
+                "Persistence",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "DriveKit", package: "SnapSpeakCore"),
+                .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "LanguageKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
             ],

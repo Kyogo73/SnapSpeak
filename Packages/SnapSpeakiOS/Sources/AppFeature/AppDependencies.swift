@@ -28,6 +28,10 @@ public final class AppDependencies: ObservableObject {
     public let todayPlanService: TodayPlanService
     public let reminderDelegate: ReminderDelegate
     public let reminderRouter: ReminderRouter
+    public let speechSynthesis: any SpeechSynthesizing
+    public let driveFilePlayer: any PhaseFilePlaying
+    public let driveSequencer: any DriveSequencing
+    public let driveRemoteBridge: DriveRemoteCommandBridge
 
     public init(
         persistence: PersistenceActor,
@@ -45,7 +49,11 @@ public final class AppDependencies: ObservableObject {
         reminderScheduler: ReminderScheduler,
         todayPlanService: TodayPlanService,
         reminderDelegate: ReminderDelegate,
-        reminderRouter: ReminderRouter
+        reminderRouter: ReminderRouter,
+        speechSynthesis: any SpeechSynthesizing,
+        driveFilePlayer: any PhaseFilePlaying,
+        driveSequencer: any DriveSequencing,
+        driveRemoteBridge: DriveRemoteCommandBridge
     ) {
         self.persistence = persistence
         self.audio = audio
@@ -63,6 +71,10 @@ public final class AppDependencies: ObservableObject {
         self.todayPlanService = todayPlanService
         self.reminderDelegate = reminderDelegate
         self.reminderRouter = reminderRouter
+        self.speechSynthesis = speechSynthesis
+        self.driveFilePlayer = driveFilePlayer
+        self.driveSequencer = driveSequencer
+        self.driveRemoteBridge = driveRemoteBridge
     }
 
     public static func live(resourceBundle: Bundle) throws -> AppDependencies {
@@ -108,6 +120,13 @@ public final class AppDependencies: ObservableObject {
         let reminderDelegate = ReminderDelegate(analytics: analytics, router: reminderRouter)
         let reminderScheduler = ReminderScheduler(center: LiveReminderCenter(), analytics: analytics)
         let todayPlanService = TodayPlanService(persistence: persistence, courseStore: courseStore)
+        let speechSynthesis = SpeechSynthesisClient()
+        let driveFilePlayer = SequenceFilePlayer()
+        let driveSequencer = DriveSequencer(
+            speech: speechSynthesis,
+            filePlayer: driveFilePlayer
+        )
+        let driveRemoteBridge = DriveRemoteCommandBridge()
 
         let settings: UserSettingsDTO = UserSettingsDTO.phase1Default
         return AppDependencies(
@@ -126,7 +145,11 @@ public final class AppDependencies: ObservableObject {
             reminderScheduler: reminderScheduler,
             todayPlanService: todayPlanService,
             reminderDelegate: reminderDelegate,
-            reminderRouter: reminderRouter
+            reminderRouter: reminderRouter,
+            speechSynthesis: speechSynthesis,
+            driveFilePlayer: driveFilePlayer,
+            driveSequencer: driveSequencer,
+            driveRemoteBridge: driveRemoteBridge
         )
     }
 

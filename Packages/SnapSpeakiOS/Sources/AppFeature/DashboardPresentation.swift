@@ -34,4 +34,10 @@ public enum DashboardPresentation {
         "dashboard.local_note",
         "dashboard.window_note",
     ]
+
+    public static let weekSummaryAccessibilityKey = "dashboard.week.summary_a11y"
+
+    public static func showsGoalMetMark(goalMet: Bool) -> Bool {
+        goalMet
+    }
 }

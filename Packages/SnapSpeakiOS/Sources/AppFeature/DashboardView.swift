@@ -93,7 +93,12 @@ public struct DashboardView: View {
                 .font(Typography.headline)
             weekChart(summary)
                 .frame(height: 180)
-                .accessibilityLabel("dashboard.week.title")
+                .accessibilityLabel(
+                    LocalizedFormat.string(
+                        DashboardPresentation.weekSummaryAccessibilityKey,
+                        summary.weekCompletedItems
+                    )
+                )
             Text(LocalizedFormat.string("dashboard.week.total", summary.weekCompletedItems))
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryFill)
@@ -112,10 +117,18 @@ public struct DashboardView: View {
             )
             .foregroundStyle(zeroDayBarStyle(bar))
             .annotation(position: .top) {
-                Text(verbatim: "\(bar.completedItems)")
-                    .font(Typography.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(Colors.secondaryFill)
+                HStack(spacing: 2) {
+                    Text(verbatim: "\(bar.completedItems)")
+                        .font(Typography.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(Colors.secondaryFill)
+                    if DashboardPresentation.showsGoalMetMark(goalMet: bar.goalMet) {
+                        Image(systemName: "checkmark")
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.accent)
+                            .accessibilityHidden(true)
+                    }
+                }
             }
             .accessibilityLabel(Text(verbatim: shortDayLabel(bar.dayStart)))
             .accessibilityValue(Text(verbatim: barValueLabel(bar)))
@@ -183,10 +196,12 @@ public struct DashboardView: View {
 
     private var notesCard: some View {
         CardContainer {
-            ForEach(DashboardPresentation.noteKeys, id: \.self) { key in
-                Text(LocalizedStringKey(key))
-                    .font(Typography.caption)
-                    .foregroundStyle(Colors.secondaryFill)
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(DashboardPresentation.noteKeys, id: \.self) { key in
+                    Text(LocalizedStringKey(key))
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
             }
         }
     }

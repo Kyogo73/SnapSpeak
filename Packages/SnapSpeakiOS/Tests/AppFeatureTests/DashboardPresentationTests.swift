@@ -13,8 +13,8 @@ struct DashboardPresentationTests {
     @Test("1 件以上の日は実数を y に使いプレースホルダにしない")
     func nonzeroDayBarUsesActualCount() {
         #expect(DashboardPresentation.usesZeroPlaceholder(completedItems: 3) == false)
-        #expect(DashboardPresentation.barYEnd(completedItems: 3) == 3)
-        #expect(DashboardPresentation.barYEnd(completedItems: 1) == 1)
+        #expect(DashboardPresentation.barYEnd(completedItems: 3) == 3.0)
+        #expect(DashboardPresentation.barYEnd(completedItems: 1) == 1.0)
     }
 
     @Test("モード別 % の指標名は率があるときだけ出す（ss-j36 B）")
@@ -40,5 +40,16 @@ struct DashboardPresentationTests {
             "dashboard.window_note",
         ])
         #expect(DashboardPresentation.noteKeys.count == 3)
+    }
+
+    @Test("チャート全体の a11y は合計を含む要約キー")
+    func weekChartUsesSummaryAccessibilityKey() {
+        #expect(DashboardPresentation.weekSummaryAccessibilityKey == "dashboard.week.summary_a11y")
+    }
+
+    @Test("達成日は色以外のチェック記号を出す")
+    func showsGoalMetMarkWhenGoalMet() {
+        #expect(DashboardPresentation.showsGoalMetMark(goalMet: true))
+        #expect(DashboardPresentation.showsGoalMetMark(goalMet: false) == false)
     }
 }

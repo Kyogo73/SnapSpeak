@@ -30,6 +30,13 @@ light / dark は `prefers-color-scheme` で切り替える。
 2. light / dark（OS または DevTools の `prefers-color-scheme`）と幅 375px（iPhone 最小相当）で確認する。
 3. 指摘は beads または PR コメントに画面名つきで記録する。
 
+## ダッシュボード（Phase 1）
+
+| ファイル | 内容 |
+|----------|------|
+| [dashboard-before.html](./dashboard-before.html) | Phase 1 前（ss-j36 A〜D が再現する現状） |
+| [dashboard.html](./dashboard.html) | Phase 1 後（0 件日プレースホルダ / 指標名 / at-risk テキスト / 30 日窓 / 達成日 ✓ / チャート要約） |
+
 ## 免責
 
 モックはレビュー用アーティファクトである。実装の正本は SwiftUI コードと `docs/ux-design.md`。乖離を見つけたらモックを直す（モックが正本にならない）。

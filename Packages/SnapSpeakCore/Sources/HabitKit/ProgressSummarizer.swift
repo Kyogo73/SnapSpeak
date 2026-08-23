@@ -28,22 +28,16 @@ public struct ProgressSampleItem: Sendable, Equatable {
     }
 }
 
-/// 1 学習日の完了数バー（直近 7 学習日の 1 本）。
+/// 1 学習日の完了数バー（直近 7 学習日の 1 本）。出力専用。構築は HabitKit 内部のみ。
 public struct DailyProgressBar: Sendable, Equatable {
     /// 学習日開始（04:00 境界）。
     public var dayStart: Date
     public var completedItems: Int
     /// 現在の `goalItemsPerDay` 基準。
     public var goalMet: Bool
-
-    public init(dayStart: Date, completedItems: Int, goalMet: Bool) {
-        self.dayStart = dayStart
-        self.completedItems = completedItems
-        self.goalMet = goalMet
-    }
 }
 
-/// 進捗ダッシュボード用の集計結果。正本は LessonAttempt 列であり、本値は保存しない。
+/// 進捗ダッシュボード用の集計結果。正本は LessonAttempt 列であり、本値は保存しない。出力専用。
 public struct ProgressSummary: Sendable, Equatable {
     public var streak: StreakSnapshot
     /// 古い→新しい順で 7 要素固定。
@@ -56,24 +50,6 @@ public struct ProgressSummary: Sendable, Equatable {
     public var compositionPassRate: Double?
     /// pass + fail 件数。
     public var compositionScoredCount: Int
-
-    public init(
-        streak: StreakSnapshot,
-        dailyBars: [DailyProgressBar],
-        weekCompletedItems: Int,
-        shadowingAverageMatchRate: Double?,
-        shadowingSampleCount: Int,
-        compositionPassRate: Double?,
-        compositionScoredCount: Int
-    ) {
-        self.streak = streak
-        self.dailyBars = dailyBars
-        self.weekCompletedItems = weekCompletedItems
-        self.shadowingAverageMatchRate = shadowingAverageMatchRate
-        self.shadowingSampleCount = shadowingSampleCount
-        self.compositionPassRate = compositionPassRate
-        self.compositionScoredCount = compositionScoredCount
-    }
 }
 
 public enum ProgressSummarizer {
@@ -143,14 +119,16 @@ public enum ProgressSummarizer {
             let day = StudyDay.studyDay(of: sample.createdAt, calendar: calendar, dayBoundaryHour: dayBoundaryHour)
             counts[day, default: 0] += 1
         }
-        return (-6...0).compactMap { offset in
-            guard let dayStart = calendar.date(byAdding: .day, value: offset, to: today) else {
-                return nil
-            }
+        var bars: [DailyProgressBar] = []
+        bars.reserveCapacity(7)
+        for offset in -6...0 {
+            let dayStart = calendar.date(byAdding: .day, value: offset, to: today)
+                ?? today.addingTimeInterval(TimeInterval(offset) * 86_400)
             let completedItems = counts[dayStart] ?? 0
             let goalMet = goalItemsPerDay > 0 && completedItems >= goalItemsPerDay
-            return DailyProgressBar(dayStart: dayStart, completedItems: completedItems, goalMet: goalMet)
+            bars.append(DailyProgressBar(dayStart: dayStart, completedItems: completedItems, goalMet: goalMet))
         }
+        return bars
     }
 
     private static func average(of values: [Double]) -> Double? {

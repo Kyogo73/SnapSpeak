@@ -15,7 +15,11 @@ iPhone 向け語学学習アプリ。中核は **シャドーイング** と **�
 | [プロダクト概要](docs/product-overview.md) | ターゲット、課題と価値、コア学習ループ、差別化、KPI |
 | [アーキテクチャ](docs/architecture.md) | システム構成、モジュール、音声パイプライン、採点、SRS、データモデル、国際化、非機能要件 |
 | [ロードマップ](docs/roadmap.md) | Phase 1〜4 の目的・機能・技術タスク・完了基準・リスクと依存関係 |
+| [UX 設計](docs/ux-design.md) | オンボーディングと継続体験の正本。ストリーク / デイリーゴール / 今日の学習のルール仕様、画面仕様、状態マトリクス、通知戦略、a11y、i18n、計測 |
 | [開発ワークフロー](docs/development-workflow.md) | ブランチ運用（main=本番 / develop=テスト）、PR・コミット規約、リリース・hotfix 手順、CI/CD ゲート |
+| [Phase 1 実装計画](docs/phase1-implementation-plan.md) | 初期実装の分解（モジュール骨格、シード、CI、コミット順）。実装済み |
+| [Phase 2 前倒し実装計画](docs/phase2-retention-implementation-plan.md) | オンボーディング + 継続機能（復習キュー / ストリーク / ゴール / 通知）の実装分解。実装完了後の記録 |
+| [品質改善計画](docs/quality-pass-plan.md) | リファクタリング・UI/UX 是正・堅牢性・自動テスト追加の実行計画と QA チェックリスト |
 
 ## 技術スタック（確定）
 

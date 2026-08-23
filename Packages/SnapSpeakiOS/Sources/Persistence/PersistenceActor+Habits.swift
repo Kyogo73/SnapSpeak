@@ -9,7 +9,7 @@ extension PersistenceActor {
     public func updateLastKnownStreakDays(_ days: Int) throws {
         let model = try requireSettings()
         model.lastKnownStreakDays = days
-        try modelContext.save()
+        try saveOrRollback()
     }
 
     public func updateHabitMarkers(_ markers: HabitDayMarkers) throws {
@@ -17,13 +17,13 @@ extension PersistenceActor {
         model.habitStreakRecordedDayStart = markers.streakRecordedDayStart
         model.habitGoalMetDayStart = markers.goalMetDayStart
         model.habitBrokenRecordedDayStart = markers.brokenRecordedDayStart
-        try modelContext.save()
+        try saveOrRollback()
     }
 
     public func markRecoveryDismissed(fromStreak: Int) throws {
         let model = try requireSettings()
         model.recoveryDismissedFromStreak = fromStreak
-        try modelContext.save()
+        try saveOrRollback()
     }
 
     public func recordLastOpenedLesson(
@@ -37,7 +37,7 @@ extension PersistenceActor {
         model.lastOpenedLessonId = lessonId
         model.lastOpenedItemId = itemId
         model.lastOpenedMode = mode
-        try modelContext.save()
+        try saveOrRollback()
     }
 
     public func latestAttempt() throws -> LessonAttemptDTO? {
@@ -49,13 +49,12 @@ extension PersistenceActor {
     }
 
     /// Attempt・markers・lastKnownStreakDays を単一 `save()` で追記する。
-    /// 学習日は `write.createdAt`（`now` は互換のため残すが判定に使わない）。
+    /// 学習日は `write.createdAt` で判定する。
+    /// save 失敗時は `saveOrRollback` で Attempt・markers・lastKnown が揃って巻き戻る。
     public func appendAttemptEvaluatingHabit(
         _ write: LessonAttemptWrite,
-        now: Date = Date(),
         timeZoneIdentifier: String = TimeZone.autoupdatingCurrent.identifier
     ) throws -> AttemptHabitResult {
-        _ = now
         let settings = try loadOrCreateSettings()
         if let existing = try fetchAttempt(id: write.id) {
             return AttemptHabitResult(
@@ -94,7 +93,7 @@ extension PersistenceActor {
             markers: events.nextMarkers,
             lastKnownStreakDays: streak.currentStreakDays
         )
-        try modelContext.save()
+        try saveOrRollback()
         return AttemptHabitResult(
             attempt: PersistenceMapping.attemptDTO(model),
             recordStreakDays: events.recordStreakDays,

@@ -23,7 +23,7 @@ jobs:
     container: swift:6.1-noble
     defaults: { run: { working-directory: Packages/SnapSpeakCore } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/cache@v6
         with:
           path: Packages/SnapSpeakCore/.build
@@ -38,7 +38,7 @@ jobs:
     needs: core-linux
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # タグ探索とリリースノート生成のため全履歴
       - name: Compute next version
@@ -63,7 +63,7 @@ jobs:
           git push origin "refs/tags/${{ steps.version.outputs.next }}"
       - name: Create GitHub Release (draft)
         if: steps.version.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v2 # バージョンはピン（更新は Dependabot PR で）
+        uses: softprops/action-gh-release@v3 # バージョンはピン（更新は Dependabot PR で）
         with:
           tag_name: ${{ steps.version.outputs.next }}
           draft: true # 内容確認後に手動で公開する
@@ -75,11 +75,11 @@ jobs:
     needs: core-linux
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Create GitHub Release (draft)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           generate_release_notes: true

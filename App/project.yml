@@ -137,6 +137,83 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.NotificationsKitTests
+  OnboardingFeatureTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/OnboardingFeatureTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: OnboardingFeature
+      - package: SnapSpeakiOS
+        product: Persistence
+      - package: SnapSpeakiOS
+        product: NotificationsKit
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakCore
+        product: HabitKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.OnboardingFeatureTests
+  CompositionFeatureTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/CompositionFeatureTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: CompositionFeature
+      - package: SnapSpeakiOS
+        product: Persistence
+      - package: SnapSpeakiOS
+        product: SpeechKit
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakiOS
+        product: AudioEngine
+      - package: SnapSpeakiOS
+        product: ContentKit
+      - package: SnapSpeakCore
+        product: ContentCore
+      - package: SnapSpeakCore
+        product: LanguageKit
+      - package: SnapSpeakCore
+        product: CompositionKit
+      - package: SnapSpeakCore
+        product: SRSKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.CompositionFeatureTests
+  AppFeatureTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/AppFeatureTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: AppFeature
+      - package: SnapSpeakiOS
+        product: ReviewFeature
+      - package: SnapSpeakiOS
+        product: Persistence
+      - package: SnapSpeakiOS
+        product: NotificationsKit
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakCore
+        product: HabitKit
+      - package: SnapSpeakCore
+        product: SRSKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.AppFeatureTests
 schemes:
   SnapSpeak:
     build:
@@ -150,6 +227,9 @@ schemes:
         ContentKitTests: [test]
         ReviewFeatureTests: [test]
         NotificationsKitTests: [test]
+        OnboardingFeatureTests: [test]
+        CompositionFeatureTests: [test]
+        AppFeatureTests: [test]
     test:
       config: Debug
       targets:
@@ -157,3 +237,6 @@ schemes:
         - ContentKitTests
         - ReviewFeatureTests
         - NotificationsKitTests
+        - OnboardingFeatureTests
+        - CompositionFeatureTests
+        - AppFeatureTests

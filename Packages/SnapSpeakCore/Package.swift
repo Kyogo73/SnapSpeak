@@ -23,7 +23,7 @@ let package = Package(
         .executable(name: "contentlint", targets: ["contentlint"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.1"),
     ],
     targets: [
         .target(

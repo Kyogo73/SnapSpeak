@@ -1,0 +1,25 @@
+{
+  "plugins": {
+    "semgrep-plugin": {
+      "enabled": true
+    },
+    "cloudflare": {
+      "enabled": true
+    },
+    "supabase": {
+      "enabled": true
+    },
+    "mobbin": {
+      "enabled": true
+    },
+    "playwright": {
+      "enabled": false
+    },
+    "shadcn": {
+      "enabled": false
+    },
+    "open-design": {
+      "enabled": false
+    }
+  }
+}

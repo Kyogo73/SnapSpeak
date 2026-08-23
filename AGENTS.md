@@ -23,6 +23,13 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運�
 - **Xcode / Apple SDK はこの Linux VM に存在しない。** iOS パッケージ・App のコンパイル/テストはローカルで再現できない。iOS 側を変更したら **必ず `ios-macos` CI を回して確認する**（このリポジトリでは実際に CI をコンパイラとして使って反復する運用）。
 - フェーズ分割の正本は `docs/roadmap.md`。Phase 3 で Supabase（Auth / 同期 / Edge Functions）が入る想定。将来 Deno/TypeScript の Edge Functions など Linux 上で動くコンポーネントが追加された時点で、その部分のみこの VM 上でセットアップ・実行可能になる。
 
+### MCP / プラグイン（AI 開発ツール設定）
+
+- リポジトリ標準の MCP サーバーは `.cursor/mcp.json` にコミット済み（**認証キー不要の HTTP 型のみ**を置く。秘密情報は置かない）: `context7`（ライブラリ最新ドキュメント）/ `cloudflare-docs`（R2・Workers 公式ドキュメント検索。CDN は R2 採用）/ `deepwiki`（OSS リポジトリへの Q&A）。IDE でこのリポジトリを開くと全員そのまま使える。
+- プロジェクトのプラグイン有効/無効は `.cursor/settings.json` で宣言する。web フロントエンド専用の `playwright` / `shadcn` / `open-design` は **本リポジトリでは無効**（iOS アプリ開発に不要。誤作動・接続エラーの騒音源になるため）。`semgrep-plugin`（静的解析）/ `cloudflare`（R2 構築。Phase 2 残スコープ）/ `supabase`（Phase 3）/ `mobbin`（UX リサーチ）は有効。
+- OAuth が必要なプラグイン（Cloudflare bindings / builds / observability、Supabase、Mobbin）は**各自が初回にブラウザでログイン**して使う（設定 → MCP の「Needs login」から）。
+- **Cloud Agents はリポジトリの `.cursor/mcp.json` を読まない**。Cloud Agent に MCP を足す場合は cursor.com ダッシュボード（個人またはチームの MCP 設定）で構成する（SSE 非対応・HTTP 推奨・OAuth はユーザー単位）。
+
 ### ブランチ運用（正本は `docs/development-workflow.md`）
 
 - `main` = **本番**（App Store 配布相当）、`develop` = **テスト環境**（TestFlight / 内部配布相当・常時検証）。どちらも直 push 禁止・PR 必須・CI 必須。

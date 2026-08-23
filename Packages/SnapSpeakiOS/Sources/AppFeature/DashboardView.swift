@@ -99,9 +99,13 @@ public struct DashboardView: View {
         Chart(summary.dailyBars, id: \.dayStart) { bar in
             BarMark(
                 x: .value(LocalizedStringKey("dashboard.chart.axis_day"), bar.dayStart, unit: .day),
-                y: .value(LocalizedStringKey("dashboard.chart.axis_count"), bar.completedItems)
+                yStart: .value(LocalizedStringKey("dashboard.chart.axis_count"), 0),
+                yEnd: .value(
+                    LocalizedStringKey("dashboard.chart.axis_count"),
+                    DashboardPresentation.barYEnd(completedItems: bar.completedItems)
+                )
             )
-            .foregroundStyle(bar.goalMet ? Colors.accent : Colors.secondaryFill)
+            .foregroundStyle(zeroDayBarStyle(bar))
             .annotation(position: .top) {
                 Text(verbatim: "\(bar.completedItems)")
                     .font(Typography.caption)
@@ -181,5 +185,13 @@ public struct DashboardView: View {
             return count + " " + LocalizedFormat.string("dashboard.bar.goal_met")
         }
         return count
+    }
+
+    /// 0 件日は薄いプレースホルダ。goalMet 日の色は従来どおりアクセント。
+    private func zeroDayBarStyle(_ bar: DailyProgressBar) -> Color {
+        if DashboardPresentation.usesZeroPlaceholder(completedItems: bar.completedItems) {
+            return Colors.secondaryFill.opacity(0.35)
+        }
+        return bar.goalMet ? Colors.accent : Colors.secondaryFill
     }
 }

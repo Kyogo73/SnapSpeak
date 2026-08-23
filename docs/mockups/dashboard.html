@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DashboardView readyContent — 現状（Phase 1 前）</title>
+  <title>DashboardView readyContent — ss-j36 A 後</title>
   <style>
     :root {
       --title: 28px;
@@ -99,7 +99,10 @@
       background: var(--secondary);
     }
     .bar.goal { background: var(--accent); }
-    .bar.zero { height: 0; }
+    .bar.zero {
+      height: 8px;
+      background: color-mix(in srgb, var(--secondary) 35%, transparent);
+    }
     .axis {
       display: flex;
       gap: 8px;
@@ -153,7 +156,7 @@
           </div>
           <div class="bar-col">
             <div class="bar-label">0</div>
-            <!-- ss-j36 A: completedItems == 0 で高さ 0。欠測に見える -->
+            <!-- ss-j36 A: 0 件日は最小高さプレースホルダ（欠測ではない） -->
             <div class="bar zero"></div>
           </div>
           <div class="bar-col">
@@ -208,8 +211,8 @@
     </div>
   </div>
   <p class="review-note">
-    DashboardView.readyContent 現状写し。サンプル: ストリーク 12（at-risk）/ 直近 7 日に 0 件日 2 本（火・金は高さ 0）/
-    達成日はアクセント色のみ / モード別は % と件数のみ / 注記 2 行。
+    DashboardView.readyContent（ss-j36 A 反映）。0 件日（火・金）は高さ 0 ではなく薄い最小バー + 値ラベル 0。
+    未反映: B 指標名 / C at-risk テキスト / D 30 日窓 / 達成日のチェック記号。
     幅 375px・prefers-color-scheme で確認。
   </p>
 </body>

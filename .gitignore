@@ -6,3 +6,8 @@ App/SnapSpeak-Info.plist
 xcuserdata/
 *.xcresult
 .DS_Store
+
+# Beads (bd) 課題トラッカー: ローカル DB (Dolt) は除外し issues.jsonl のみコミット
+.beads/*
+!.beads/issues.jsonl
+.beads-credential-key

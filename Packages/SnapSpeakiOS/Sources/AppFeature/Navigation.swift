@@ -18,6 +18,7 @@ public struct LessonCoordinate: Hashable, Sendable {
 public enum HomeDestination: Hashable, Sendable {
     case lesson(LessonCoordinate)
     case review
+    case progress
 }
 
 public enum SettingsDestination: Hashable {

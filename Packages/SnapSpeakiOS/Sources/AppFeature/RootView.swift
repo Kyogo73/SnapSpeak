@@ -143,6 +143,8 @@ public struct RootView: View {
             } else {
                 ProgressView()
             }
+        case .progress:
+            DashboardView(persistence: dependencies.persistence)
         }
     }
 

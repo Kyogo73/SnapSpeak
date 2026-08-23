@@ -290,4 +290,24 @@ struct PersistenceHabitTests {
         #expect(first.recordStreakDays != nil)
         #expect(second.recordStreakDays == nil)
     }
+
+    @Test("attempts(from:to:) は範囲外除外・半開区間・createdAt 昇順")
+    func attemptsHalfOpenIntervalAndAscendingCreatedAt() async throws {
+        let actor = try makeActor()
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let midEarly = Date(timeIntervalSince1970: 1_700_000_400)
+        let midLate = Date(timeIntervalSince1970: 1_700_000_800)
+        let end = Date(timeIntervalSince1970: 1_700_001_000)
+        let before = Date(timeIntervalSince1970: 1_699_999_000)
+        let after = Date(timeIntervalSince1970: 1_700_002_000)
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "late", createdAt: midLate))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "before", createdAt: before))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "end", createdAt: end))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "start", createdAt: start))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "after", createdAt: after))
+        _ = try await actor.appendAttempt(attemptWrite(itemId: "early", createdAt: midEarly))
+        let found = try await actor.attempts(from: start, to: end)
+        #expect(found.map(\.itemId) == ["start", "early", "late"])
+        #expect(found.map(\.createdAt) == [start, midEarly, midLate])
+    }
 }

@@ -42,6 +42,7 @@ public struct HomeView: View {
                 } else {
                     habitCard
                 }
+                progressLink
                 todayCard
                 if !courses.isEmpty {
                     driveCard
@@ -202,6 +203,15 @@ public struct HomeView: View {
             }
             .buttonStyle(.plain)
             PrimaryButton("home.drive.quick_start", action: onQuickStartDrive)
+        }
+    }
+
+    private var progressLink: some View {
+        CardContainer {
+            Button { path.append(.progress) } label: {
+                Label("home.progress_link", systemImage: "chart.bar.fill")
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            }
         }
     }
 

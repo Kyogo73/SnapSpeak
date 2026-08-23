@@ -210,6 +210,8 @@ targets:
         product: HabitKit
       - package: SnapSpeakCore
         product: SRSKit
+      - package: SnapSpeakCore
+        product: ScoringKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

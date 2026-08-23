@@ -151,6 +151,7 @@ let package = Package(
                 .product(name: "ContentCore", package: "SnapSpeakCore"),
                 .product(name: "HabitKit", package: "SnapSpeakCore"),
                 .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "ScoringKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6
         ),

@@ -1,6 +1,6 @@
 # 進捗ダッシュボード実装計画（Phase 2 残スコープ C1）
 
-本書は [roadmap.md](./roadmap.md) Phase 2「進捗ダッシュボード」を実装 PR に落とす計画である。設計判断の正本は [architecture.md](./architecture.md)、UX 正本は [ux-design.md](./ux-design.md)（本実装で §7 を新設）。フェーズ定義・不変条件は roadmap.md が勝つ。
+本書は [roadmap.md](./roadmap.md) Phase 2「進捗ダッシュボード」を実装 PR に落とす計画である。設計判断の正本は [architecture.md](./architecture.md)、UX 正本は [ux-design.md](./ux-design.md)（本実装で §4.8 を新設し §5・§8 に追記）。フェーズ定義・不変条件は roadmap.md が勝つ。
 
 > **状態: 実装中（`cursor/progress-dashboard-0083`）。** GitHub Actions が課金制限で停止中のため、iOS 側の CI 検証（`ios-macos`）は課金修復後に実施する。core は Linux `swift test`、lint は Linux SwiftLint で先行検証する。
 
@@ -30,7 +30,7 @@
 - 未知の `payloadSchemaVersion` / デコード失敗アイテムは **完了数にはカウントし、率の集計からは除外**する（追記型履歴を壊さない・未知は拒否の原則に整合）。
 - 瞬間英作文 `result == "unscored"`（マイク拒否スキップ等）は率の分母に入れない。
 
-### 1.3 集計の定義（ux-design §7 に同内容を記載）
+### 1.3 集計の定義（ux-design §4.8 に同内容を記載）
 
 - **日別バー**: 今日を含む直近 7 学習日（04:00 境界、端末タイムゾーン）。完了アイテム数と、当時ではなく**現在の**デイリーゴールに対する達成表示（ux-design §2.2「遡及計算はしない」と整合: 過去日の達成表示は参考値であることを注記）。0 件日も 0 のバーとして埋める。
 - **週間完了**: 上記 7 学習日の完了アイテム合計。
@@ -125,7 +125,7 @@ public func attempts(from start: Date, to end: Date) throws -> [LessonAttemptDTO
 ## 6. docs 同期（同一 PR 内）
 
 - `docs/architecture.md` §2.1: HabitKit 責務に「進捗集計」、AppFeature 責務に「進捗ダッシュボード」を追記。
-- `docs/ux-design.md`: §7「進捗ダッシュボード」を新設（導線・表示要素・a11y・文言キー・空/失敗状態）。
+- `docs/ux-design.md`: §4.8「進捗ダッシュボード」を新設し、§5 状態マトリクスと §8 名前空間に追記。
 - `docs/roadmap.md`: Phase 2 実装状況注記の「グラフ類のダッシュボードは未実装」を「実装済み（DoD の実機確認は未）」へ更新。残スコープ列挙から削除。
 
 ## 7. コミット順（実績はマージ後に追記）

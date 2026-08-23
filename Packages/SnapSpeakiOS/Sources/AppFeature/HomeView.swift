@@ -36,6 +36,7 @@ public struct HomeView: View {
                 } else {
                     habitCard
                 }
+                progressLink
                 todayCard
                 if let continueLesson = today.continueLesson {
                     continueCard(continueLesson)
@@ -175,6 +176,15 @@ public struct HomeView: View {
             }
             SecondaryButton("home.recovery.dismiss") {
                 Task { await today.dismissRecovery() }
+            }
+        }
+    }
+
+    private var progressLink: some View {
+        CardContainer {
+            Button { path.append(.progress) } label: {
+                Label("home.progress_link", systemImage: "chart.bar.fill")
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
         }
     }

@@ -23,7 +23,7 @@ jobs:
     container: swift:6.1-noble
     defaults: { run: { working-directory: Packages/SnapSpeakCore } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/cache@v4
         with:
           path: Packages/SnapSpeakCore/.build
@@ -38,7 +38,7 @@ jobs:
     needs: core-linux
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # タグ探索とリリースノート生成のため全履歴
       - name: Compute next version
@@ -75,7 +75,7 @@ jobs:
     needs: core-linux
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Create GitHub Release (draft)

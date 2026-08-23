@@ -80,7 +80,7 @@
     "dashboard.streak.total": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "累計 %1$lld 日" } } } },
     "dashboard.week.title": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "直近 7 日" } } } },
     "dashboard.week.total": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "合計 %1$lld 問" } } } },
-    "dashboard.week.summary_a11y": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "直近 7 日の学習完了数の棒グラフ。合計 %lld 問" } } } },
+    "dashboard.week.summary_a11y": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "直近 7 日の学習完了数の棒グラフ。合計 %1$lld 問" } } } },
     "dashboard.bar.value_label": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%1$lld 問" } } } },
     "dashboard.bar.goal_met": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "目標達成" } } } },
     "dashboard.chart.axis_count": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "完了数" } } } },

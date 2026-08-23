@@ -102,8 +102,9 @@
     }
     .bar.goal { background: var(--accent); }
     .bar.zero {
-      height: 8px;
-      background: color-mix(in srgb, var(--secondary) 35%, transparent);
+      /* 0.15 / 5 件相当より少し大きめ。薄いバーとして欠測と区別する */
+      height: 16px;
+      background: color-mix(in srgb, var(--secondary) 45%, transparent);
     }
     .axis {
       display: flex;

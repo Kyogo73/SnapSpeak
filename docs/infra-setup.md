@@ -26,8 +26,8 @@ Phase 1 から CDN 配信は必須。採用は **Cloudflare R2**（S3 互換 + C
 
 1. ダッシュボードで **R2 object storage** を開く（[Overview](https://dash.cloudflare.com/?to=/:account/r2/overview)）。
 2. **Create bucket** を押す。
-3. 名前はグローバル一意の kebab-case。推奨: `snapspeak-cdn`（本番）/ `snapspeak-cdn-dev`（検証用を分ける場合）。
-4. **Location**: 初期は *None*（自動）でよい。日本ユーザー中心なら後から Location Hint（例 `APAC`）を検討する。既存バケットのリージョンは変えられない。
+3. 名前は **アカウント内で一意** の kebab-case（グローバル一意ではない）。推奨: `snapspeak-cdn`（本番）/ `snapspeak-cdn-dev`（検証用を分ける場合）。
+4. **Location**: 作成時に **Asia-Pacific（`APAC`）を指定する**。主要ユーザーが日本のため。Location Hint は **作成時だけ** 効く。作成後は変更できない。同名で削除して作り直しても、最初の配置が維持される（[R2 data location](https://developers.cloudflare.com/r2/reference/data-location/)）。`None`（Automatic）で作ると、作成者の最寄りリージョンに固定される。
 5. **Create bucket** で作成する。
 6. バケットの **Settings** で **S3 API** エンドポイントを控える。形は  
    `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`  
@@ -185,6 +185,6 @@ Cursor Cloud Agents はリポジトリの `.cursor/mcp.json` を読まない。�
 | `xcodegen generate` → archive → `-exportArchive` → upload | [release.yml](../.github/workflows/release.yml) の TODO に書いた流れ |
 | 失敗時の手動フォールバック | 証明書期限切れ・API キー失効でも Xcode Organizer から上げられること |
 
-iOS の TestFlight 提出に **Apple notary（macOS 用 notarize）は不要**。release.yml コメントの "notarize / upload" は将来設計時に「iOS は upload のみ」と読み替える。
+iOS の TestFlight 提出に **Apple notary（macOS 用 notarize）は不要**。[release.yml](../.github/workflows/release.yml) の TODO も upload のみとしている。
 
 自動化に着手するまで、本節の表はチェックリストとしてだけ使う。値をリポジトリにコミットしない。

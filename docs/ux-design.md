@@ -386,7 +386,7 @@ flowchart TD
 │ └────────────────────────────┘ │
 │ ┌────────────────────────────┐ │
 │ │ 直近 7 日                   │ │
-│ │  [棒グラフ 7 本 + 値ラベル]   │ │  ← 0 件日も埋める。達成日はアクセント
+│ │  [棒グラフ 7 本 + 値+✓]      │ │  ← 0 件日も埋める。達成日はアクセント+✓
 │ │  合計 18 問                  │ │
 │ └────────────────────────────┘ │
 │ ┌────────────────────────────┐ │
@@ -395,8 +395,9 @@ flowchart TD
 │ │ 瞬間英作文      70%  ・  8 件 │ │
 │ └────────────────────────────┘ │
 │ ┌────────────────────────────┐ │
-│ │ スクリプト一致率は語の再現度   │ │  ← caption 2 行
+│ │ スクリプト一致率は語の再現度   │ │  ← caption 3 行
 │ │ 集計はこの端末内の履歴のみ     │ │
+│ │ モード別平均は直近 30 学習日   │ │
 │ └────────────────────────────┘ │
 └────────────────────────────────┘
 ```
@@ -405,12 +406,12 @@ flowchart TD
 |------|------|------|
 | 導線 | ホームの遷移行 | `home.progress_link`（「進捗を見る」）。habit / 回復カードの直後、今日の学習カードの前。44pt 領域 |
 | ストリーク | StreakBadge | 既存部品を再利用。current をバッジ、longest / total を `dashboard.streak.longest` / `dashboard.streak.total` で併記。入力は全履歴の `attemptActivityDates()` |
-| 直近 7 日 | 縦棒チャート | 今日を含む直近 7 学習日（04:00 境界、端末 TZ）。完了アイテム数。0 件日も 0 のバー。ゴール達成日はアクセント色 + 値ラベル常時表示（色だけに依存しない）。過去日の達成は**現在の**デイリーゴール基準（遡及しない。§2.2） |
+| 直近 7 日 | 縦棒チャート | 今日を含む直近 7 学習日（04:00 境界、端末 TZ）。完了アイテム数。0 件日も 0 のバー。達成日はアクセント色 + 値ラベル + チェック記号（色だけに依存しない）。過去日の達成は**現在の**デイリーゴール基準（遡及しない。§2.2） |
 | | 週間完了 | 上記 7 学習日の完了合計（`dashboard.week.total`） |
 | モード別 | シャドーイング | 直近 30 学習日の `scriptMatchRate` 単純平均。件数併記。0 件は `dashboard.modes.no_data` |
 | | 瞬間英作文 | 同窓の `pass / (pass + fail)`。`unscored` は分母に入れない |
-| 注記 | caption 2 行 | `dashboard.metric_note`（語の再現度であり発音の正確さではない）と `dashboard.local_note`（この端末内の履歴のみ） |
-| a11y | チャート | 全体に `dashboard.week.title`。各バーは日付ラベル + `dashboard.bar.value_label`（n 問）。goalMet なら `dashboard.bar.goal_met` を値に追記 |
+| 注記 | caption 3 行 | `dashboard.metric_note`（語の再現度であり発音の正確さではない）と `dashboard.local_note`（この端末内の履歴のみ）と `dashboard.window_note`（直近 30 学習日窓である旨） |
+| a11y | チャート | 全体に `dashboard.week.summary_a11y`（合計値を含む要約）。各バーは日付ラベル + `dashboard.bar.value_label`（n 問）。goalMet なら `dashboard.bar.goal_met` を値に追記 |
 | Dynamic Type | | 固定高さはチャート（180pt 程度）のみ。カードは縦積みで崩れない |
 
 **状態遷移**: `loading → ready(ProgressSummary) / empty(履歴 0) / failed(読み込み失敗)`（実装は `DashboardViewModel.DashboardState` と 1:1）。`empty` は `dashboard.empty`。`failed` は `dashboard.load_failed` + `dashboard.retry`。Analytics イベントは追加しない。

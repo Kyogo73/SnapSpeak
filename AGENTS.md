@@ -6,7 +6,7 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運�
 
 ### サブエージェント運用（ユーザー指示・恒久設定）
 
-- コーディネーター分業: **計画 = Claude Fable / 実行 = Grok 4.6 / レビュー・QA = GPT5.6 Sol**。
+- コーディネーター分業: **計画 = Grok 4.6 / 実行 = Grok 4.6 / レビュー・QA = GPT5.6 Sol**。
 - サブエージェントへ委任する際は、**委任時点で選択可能なモデル一覧を確認し、各系列の最上位 reasoning/effort ティアを都度指定**する。ティア名（xhigh / max など）は環境・時期で変わるため特定の名前に固定しない。
 - マージ前にレビュー担当（Sol）の「マージ可」判定を得る。`main`（本番）へのマージのみユーザーのチェック必須、`develop` へは CI green で自動マージ可。
 
@@ -36,8 +36,8 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運�
 
 - `main` = **本番**（App Store 配布相当）、`develop` = **テスト環境**（TestFlight / 内部配布相当・常時検証）。どちらも直 push 禁止・PR 必須・CI 必須。
 - **feature（および Cloud Agent の `cursor/*`）ブランチは実質 feature 扱い。最終的に `develop` へ集約**する（PR ベースを develop 相当に向ける）。
-- **リリースは自動化済み**: `develop` が先行すると `release-pr.yml` が develop → main のリリース PR を自動作成。人間がマージすると `release.yml` が Conventional Commits から semver を計算（`scripts/next-version.sh`）して**自動でタグとドラフト GitHub Release を作成**する。hotfix は `main` から分岐し `main` と `develop` の両方へ反映する。
-- CI（`.github/workflows/ci.yml`）は **全 PR** と `develop` / `main` への push で `lint` / `core-linux` / `ios-macos` を実行。`pr-title.yml` が PR タイトルの Conventional Commits 形式を強制（**PR タイトルが Squash 後のコミット subject ＝ バージョン計算の入力**になるため）。署名・TestFlight 自動化は未着手（手動）。
+- **リリースは自動化済み**: `develop` が先行すると `release-pr.yml` が develop → main のリリース PR を自動作成。人間がマージすると `release.yml` が Conventional Commits から semver を計算（`scripts/next-version.sh`）して**自動でタグとドラフト GitHub Release を作成**する。hotfix は `main` から分岐し `main` と `develop` の両方へ反映する。**リリース PR は必ず Merge commit で取り込む**（`development-workflow.md` §マージ方針の既定。squash すると main/develop の履歴が分岐し、次回リリース PR が CONFLICTING になる — 2026-08-23 の #21→#26 で実証、#27 で解消）。
+- CI（`.github/workflows/ci.yml`）は **全 PR** と `develop` / `main` への push で `lint` / `core-linux` / `contentlint` / `ios-macos` を実行。`pr-title.yml` が PR タイトルの Conventional Commits 形式を強制（**PR タイトルが Squash 後のコミット subject ＝ バージョン計算の入力**になるため）。署名・TestFlight 自動化は未着手（手動）。
 
 ### ビルド / テスト / Lint（コマンド）
 

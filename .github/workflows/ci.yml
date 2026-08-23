@@ -29,6 +29,19 @@ jobs:
           key: spm-linux-${{ hashFiles('Packages/SnapSpeakCore/Package.resolved', '.swift-version') }}
       - run: swift build --build-tests
       - run: swift test
+
+  # Phase 2 入稿チェック相当（caption 単調増加 / oneOf / 言語ペア / checksum）。
+  # core-linux とは独立ジョブにし、コンテンツだけの失敗を切り分けられるようにする。
+  contentlint:
+    runs-on: ubuntu-24.04
+    container: swift:6.1-noble
+    defaults: { run: { working-directory: Packages/SnapSpeakCore } }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: Packages/SnapSpeakCore/.build
+          key: spm-linux-${{ hashFiles('Packages/SnapSpeakCore/Package.resolved', '.swift-version') }}
       - run: swift run contentlint ../../Resources/Seed/course_daily_ja_en/index.json --audio-root ../../Resources/Seed/course_daily_ja_en
 
   ios-macos:

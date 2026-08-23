@@ -21,7 +21,7 @@
 | B | 新 target `DashboardFeature` を切る | 否。`App/project.yml` の変更（scheme・テスト target）が必要になり、CI 停止中に統合リスクを増やす。画面 1 枚 + VM に target は過剰 |
 | C | SwiftData 集計を iOS 側だけで行う | 否。Linux テスト不能。「core 純関数 + Linux 担保」の既存方針（phase2 計画 §0）に反する |
 
-採用理由: `HabitKit` は「ストリーク、デイリーゴール、セッションプラン」を持つ習慣ドメインであり進捗集計は同質。`AppFeature` は既に `Persistence` / `HabitKit` / `CompositionFeature` / `ShadowingFeature`（HomeView 経由）/ `DesignSystem` / `Analytics` に依存しており、**依存追加ゼロ**で完結する。
+採用理由: `HabitKit` は「ストリーク、デイリーゴール、セッションプラン」を持つ習慣ドメインであり進捗集計は同質。`AppFeature` は既に `Persistence` / `HabitKit` / `CompositionFeature` / `ShadowingFeature`（HomeView 経由）/ `DesignSystem` / `Analytics` に依存しており、AppFeature の依存追加は core 製品 `ScoringKit` の明示宣言のみ（新規の外部依存・target 追加はゼロ）。
 
 ### 1.2 ペイロードのデコード責務
 

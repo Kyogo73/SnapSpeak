@@ -16,6 +16,9 @@ public final class DashboardViewModel: ObservableObject {
 
     @Published public private(set) var state: DashboardState = .loading
 
+    /// `ShadowingScore` の現行 `payloadSchemaVersion`（= 1）に対応する。
+    private static let supportedShadowingPayloadVersion = 1
+
     private let persistence: PersistenceActor
 
     public init(persistence: PersistenceActor) {
@@ -53,7 +56,12 @@ public final class DashboardViewModel: ObservableObject {
     public static func sample(from dto: LessonAttemptDTO) -> ProgressSampleItem? {
         switch dto.skill {
         case "shadowing":
-            let rate = (try? JSONDecoder().decode(ShadowingScore.self, from: dto.payloadJSON))?.scriptMatchRate
+            let rate: Double?
+            if dto.payloadSchemaVersion == supportedShadowingPayloadVersion {
+                rate = (try? JSONDecoder().decode(ShadowingScore.self, from: dto.payloadJSON))?.scriptMatchRate
+            } else {
+                rate = nil
+            }
             return ProgressSampleItem(createdAt: dto.createdAt, mode: .shadowing, scriptMatchRate: rate)
         case "composition":
             return ProgressSampleItem(

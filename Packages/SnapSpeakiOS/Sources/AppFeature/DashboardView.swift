@@ -98,8 +98,8 @@ public struct DashboardView: View {
     private func weekChart(_ summary: ProgressSummary) -> some View {
         Chart(summary.dailyBars, id: \.dayStart) { bar in
             BarMark(
-                x: .value("day", bar.dayStart, unit: .day),
-                y: .value("count", bar.completedItems)
+                x: .value(LocalizedStringKey("dashboard.chart.axis_day"), bar.dayStart, unit: .day),
+                y: .value(LocalizedStringKey("dashboard.chart.axis_count"), bar.completedItems)
             )
             .foregroundStyle(bar.goalMet ? Colors.accent : Colors.secondaryFill)
             .annotation(position: .top) {

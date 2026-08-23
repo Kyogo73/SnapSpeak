@@ -232,6 +232,7 @@ let package = Package(
                 "Persistence",
                 "ReviewFeature",
                 .product(name: "HabitKit", package: "SnapSpeakCore"),
+                .product(name: "ScoringKit", package: "SnapSpeakCore"),
                 .product(name: "SRSKit", package: "SnapSpeakCore"),
             ],
             swiftSettings: swift6

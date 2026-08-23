@@ -82,6 +82,8 @@
     "dashboard.week.total": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "合計 %1$lld 問" } } } },
     "dashboard.bar.value_label": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%1$lld 問" } } } },
     "dashboard.bar.goal_met": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "目標達成" } } } },
+    "dashboard.chart.axis_count": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "完了数" } } } },
+    "dashboard.chart.axis_day": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "日付" } } } },
     "dashboard.modes.title": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "モード別" } } } },
     "dashboard.modes.shadowing": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "シャドーイング" } } } },
     "dashboard.modes.composition": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "瞬間英作文" } } } },

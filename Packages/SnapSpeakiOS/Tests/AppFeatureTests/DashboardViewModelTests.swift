@@ -2,6 +2,7 @@ import AppFeature
 import Foundation
 import HabitKit
 import Persistence
+import ScoringKit
 import Testing
 
 @Suite("DashboardViewModel")
@@ -55,6 +56,16 @@ struct DashboardViewModelTests {
         )
         #expect(unknownComposition?.mode == .composition)
         #expect(unknownComposition?.passed == nil)
+    }
+
+    @Test("sample(from:): 未知の shadowing payloadSchemaVersion は率を除外する")
+    func sampleIgnoresUnknownShadowingPayloadVersion() throws {
+        let payload = try encodedShadowingScore(scriptMatchRate: 0.9, payloadSchemaVersion: 2)
+        let sample = DashboardViewModel.sample(
+            from: attemptDTO(skill: "shadowing", payload: payload, schema: 2)
+        )
+        #expect(sample?.mode == .shadowing)
+        #expect(sample?.scriptMatchRate == nil)
     }
 
     @Test("windowStart は 04:00 境界で今学習日開始の 30 日前")
@@ -166,41 +177,33 @@ struct DashboardViewModelTests {
         Data(#"{"payloadSchemaVersion":2,"result":"\#(result)","usedHint":false,"latencyMs":100}"#.utf8)
     }
 
-    /// `ScoringKit.ShadowingScore` と同形の Codable ペイロードをエンコードする。
-    private func encodedShadowingScore(scriptMatchRate: Double) throws -> Data {
+    private func encodedShadowingScore(
+        scriptMatchRate: Double,
+        payloadSchemaVersion: Int = 1
+    ) throws -> Data {
         try JSONEncoder().encode(
-            EncodedShadowingScore(scriptMatchRate: scriptMatchRate)
+            ShadowingScore(
+                payloadSchemaVersion: payloadSchemaVersion,
+                scriptMatchRate: scriptMatchRate,
+                precision: 1,
+                recall: 1,
+                omissions: [],
+                hesitations: 0,
+                substitutions: 0,
+                wpm: 120,
+                delayMsMedian: nil,
+                delayGranularity: .unavailable,
+                meanConfidence: nil,
+                minConfidence: nil,
+                audioRoute: AudioRouteSnapshot(
+                    inputPortName: "mic",
+                    outputPortName: "speaker",
+                    isHFP: false,
+                    voiceProcessingEnabled: true
+                ),
+                playbackRate: 1,
+                simultaneousPlayAndRecord: true
+            )
         )
     }
-}
-
-private struct EncodedShadowingScore: Encodable {
-    var payloadSchemaVersion = 1
-    var scriptMatchRate: Double
-    var precision = 1.0
-    var recall = 1.0
-    var omissions: [EncodedAlignedSpan] = []
-    var hesitations = 0
-    var substitutions = 0
-    var wpm = 120.0
-    var delayMsMedian: Int?
-    var delayGranularity = "unavailable"
-    var asrOnDevice = true
-    var meanConfidence: Double?
-    var minConfidence: Double?
-    var audioRoute = EncodedAudioRoute()
-    var playbackRate: Float = 1
-    var simultaneousPlayAndRecord = true
-}
-
-private struct EncodedAlignedSpan: Encodable {
-    var startRefIndex = 0
-    var endRefIndex = 0
-}
-
-private struct EncodedAudioRoute: Encodable {
-    var inputPortName = "mic"
-    var outputPortName = "speaker"
-    var isHFP = false
-    var voiceProcessingEnabled = true
 }

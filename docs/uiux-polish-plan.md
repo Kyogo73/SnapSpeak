@@ -4,7 +4,7 @@
 
 **Goal:** SnapSpeak 全画面（オンボーディング / ホーム / 復習セッション / シャドーイング / 瞬間英作文 / ドライブモード / ダッシュボード / 設定 / カタログ / ダウンロード / プライバシー）を ui-ux-pro-max の優先度カテゴリで監査した結果を、検証可能な bite-sized タスクとして実装に落とす。
 
-**Architecture:** 既存の MVVM + Swift Concurrency・DesignSystem 部品（`CardContainer` / `PrimaryButton` / `SecondaryButton` / `StreakBadge` / `ProgressRing` / `ScoreBadge` / `AdaptiveStack` / `DegradedBanner` / `Typography` / `Colors` / `LocalizedFormat`）を拡張して対処する。新規モジュール・新規外部依存・新規アーキテクチャは導入しない。core（`Packages/SnapSpeakCore`）は原則として触らない（本計画のタスクはすべて iOS パッケージとリソースに閉じる）。
+**Architecture:** 既存の MVVM + Swift Concurrency・DesignSystem 部品（`CardContainer` / `PrimaryButton` / `SecondaryButton` / `StreakBadge` / `ProgressRing` / `ScoreBadge` / `AdaptiveStack` / `DegradedBanner` / `Typography` / `Colors` / `LocalizedFormat`）を拡張して対処する。新規モジュール・新規外部依存・新規アーキテクチャは導入しない。`Packages/SnapSpeakCore` のスキーマ・採点定義は触らない（`LessonV1` への `title` 追加などの schemaVersion 変更は本計画の対象外。未知の高い schemaVersion は拒否される不変条件と衝突するため）。変更範囲は iOS パッケージ（表示・ViewModel・`ContentKit.DownloadManager` 公開 API）と `Resources/`、およびダッシュボード表示変更に伴う `docs/ux-design.md` §4.8 の同期に閉じる。
 
 **Tech Stack:** SwiftUI / iOS 17+ / SwiftData / String Catalog（`Resources/Localizable.xcstrings`）/ Swift Charts（ダッシュボード）/ AVSpeechSynthesizer（ドライブ TTS）。
 
@@ -27,7 +27,7 @@
 - 色のみに依存した状態表示をしない（アイコン・テキスト・`isSelected` 等を併記）。
 - Reduce Motion 対応: 新規アニメーションは `@Environment(\.accessibilityReduceMotion)` で静止表現に落とす。
 - SwiftLint strict green（`file_length` 400 行。超過しそうな場合は責務で分割する）。
-- core パッケージ（`Packages/SnapSpeakCore`）は Apple フレームワークを import しない。本計画では core に変更を入れない。
+- core パッケージ（`Packages/SnapSpeakCore`）は Apple フレームワークを import しない。本計画では core に変更を入れない（`LessonV1` スキーマ拡張も禁止。カタログラベルは item 本文で解決する）。
 - 学習履歴・`ReviewEvent` は追記型のまま。SRS カードを LWW しない。採点指標名は「スクリプト一致率 / 語の再現度」であり発音精度と誤認させない。
 - 分析イベントは ux-design §9 の表と 1:1 を維持する（本計画ではイベントの追加・削除・ペイロード変更を行わない）。
 
@@ -60,7 +60,7 @@
 | 11 | オンボーディング | 2 画面間の移動に進捗インジケータがなく、複数ステップであることが分からない | P2 | quick-reference §8 `multi-step-progress` / ux-design §3.1 | Task 11 |
 | 12 | オンボーディング | 目標プリセットの `.inline` Picker がラジオグループとしての意味付け（`accessibilityElement(children: .contain)` とグループラベル）を持たない | P2 | ux-design §7「目標プリセットはラジオグループとして読み上げ」 | Task 11 |
 | 13 | ホーム | ドライブカードのカード本体（`buttonStyle(.plain)` のみ）に押下時の可視フィードバックがなく、タップ可能であるアフォーダンス（chevron 等）がない | P2 | quick-reference §2 `press-feedback` / §9 `nav-label-icon` | Task 12 |
-| 14 | カタログ | レッスン行のラベルが `item.id`（例: `item-001`）そのままで、ユーザーに意味のある名称ではない | P2 | quick-reference §5 `content-priority` / ux-design P2（意思決定を委ねない） | Task 13 |
+| 14 | カタログ | レッスン行のラベルが `item.id`（例: `item-001`）そのままで、ユーザーに意味のある名称ではない。`LessonV1` にタイトルはなく、lesson 単位へ集約すると 2 件目以降の item をカタログから開けなくなる | P2 | quick-reference §5 `content-priority` / ux-design P2（意思決定を委ねない）/ ContentCore `LessonV1`（`title` なし・`items: [ItemV1]`） | Task 13 |
 | 15 | ダウンロード | コースの表示が `course.id` で、タイトル解決（`LocalizedTitle.resolve`）を使っていない。容量の実数値もない（`downloads.storage` 固定文言のみ） | P2 | quick-reference §8 `progressive-disclosure` / roadmap Phase 2「ダウンロード管理 UI の強化（容量、削除…）」 | Task 14 |
 | 16 | ダウンロード | 削除が即時実行で確認ダイアログがない（破壊的操作） | P2 | quick-reference §8 `confirmation-dialogs` / `destructive-emphasis` | Task 14 |
 | 17 | 設定 | インストール ID リセットが確認なし・フィードバックなしで即時実行される | P2 | quick-reference §8 `confirmation-dialogs` / `success-feedback` | Task 15 |
@@ -76,7 +76,7 @@
 | 27 | オンボーディング | 保存失敗バナー（`onboarding.save_failed`）が赤背景のみでアイコン・再試行導線がなく、VoiceOver アナウンスもない | P2 | quick-reference §8 `error-recovery` / §1 `aria-live-errors` 相当 | Task 11 |
 | 28 | ホーム | 回復カードの PrimaryButton が「今日の 1 問から再開する」で、主 CTA が画面上に 2 つ（今日の学習カードの「始める」と）並存しうる | P3 | quick-reference §4 `primary-action` / ux-design §3.4（回復カードは habitCard に置き換わる設計のため実際は排他。念のため仕様確認のみ） | 対応不要（§3.4 どおり排他表示を確認済み。監査ノートに記録） |
 
-P1 = 10 件（#1〜#10 のうち #6 は Task 6 に統合）、P2 = 13 件、P3 = 5 件（#28 は確認の結果「対応不要」）。
+P1 = 10 件（#1〜#10）、P2 = 12 件（#11〜#21・#27）、P3 = 5 件対応（#22〜#26）+ #28 は確認の結果「対応不要」。
 
 ---
 
@@ -221,10 +221,11 @@ git commit -m "fix(dashboard): ストリーク at-risk をテキストでも表�
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/AppFeature/DashboardView.swift`（`notesCard`）
 - Modify: `Resources/Localizable.xcstrings`
+- Modify: `docs/ux-design.md`（§4.8 注記。caption 行数とキー一覧）
 - Modify: `docs/mockups/dashboard.html`
 
 **Interfaces:**
-- Produces: 新規 i18n キー `dashboard.window_note`。
+- Produces: 新規 i18n キー `dashboard.window_note`。ux-design §4.8 の注記仕様を 3 行に同期する。
 
 - [ ] **Step 1: i18n キーを追加**
 
@@ -234,16 +235,22 @@ git commit -m "fix(dashboard): ストリーク at-risk をテキストでも表�
 
 `notesCard` に `Text("dashboard.window_note")` を既存 2 行（`dashboard.metric_note` / `dashboard.local_note`）と同じスタイル（caption / secondaryFill）で追加する。
 
-- [ ] **Step 3: モックアップ更新**
+- [ ] **Step 3: ux-design.md を同期（正本の更新）**
 
-- [ ] **Step 4: 検証**
+注記が「caption 2 行」から「3 行」に変わるため、正本である `docs/ux-design.md` §4.8 を同一コミットで更新する:
+- §4.8 のワイヤーフレームの注記カード部分に `dashboard.window_note` の 1 行を追加し、「caption 2 行」の記述を「caption 3 行」に修正する。
+- §4.8 の仕様表「注記」行に `dashboard.window_note`（直近 30 学習日窓である旨）を追記する。
 
-- `ios-macos` CI green。
+- [ ] **Step 4: モックアップ更新**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: 検証**
+
+- `ios-macos` CI green。ux-design.md と実装が一致していること（注記が 3 行）を目視確認。
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add Packages/SnapSpeakiOS/Sources/AppFeature/DashboardView.swift Resources/Localizable.xcstrings docs/mockups/dashboard.html
+git add Packages/SnapSpeakiOS/Sources/AppFeature/DashboardView.swift Resources/Localizable.xcstrings docs/mockups/dashboard.html docs/ux-design.md
 git commit -m "fix(dashboard): モード別平均の 30 学習日窓を注記 (ss-j36 D)"
 ```
 
@@ -252,10 +259,11 @@ git commit -m "fix(dashboard): モード別平均の 30 学習日窓を注記 (s
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/AppFeature/DashboardView.swift`（`weekCard` / `weekChart`）
 - Modify: `Resources/Localizable.xcstrings`
+- Modify: `docs/ux-design.md`（§4.8 a11y 行と直近 7 日の達成日仕様）
 - Modify: `docs/mockups/dashboard.html`
 
 **Interfaces:**
-- Produces: 新規 i18n キー `dashboard.week.summary_a11y`（チャート全体の要約）/ `dashboard.bar.goal_met_mark`（達成日の記号付きラベル用ではなく annotation テキストに使う既存 `dashboard.bar.goal_met` の活用方針）。
+- Produces: 新規 i18n キーは `dashboard.week.summary_a11y` のみ（チャート全体の要約）。達成日の記号は SF Symbol を使うため新規キーは不要（既存 `dashboard.bar.goal_met` は VoiceOver 値として維持。`dashboard.bar.goal_met_mark` は作らない）。
 
 - [ ] **Step 1: チャート全体の要約ラベル**
 
@@ -263,18 +271,24 @@ git commit -m "fix(dashboard): モード別平均の 30 学習日窓を注記 (s
 
 - [ ] **Step 2: 達成日の非色依存マーク**
 
-達成日（`goalMet`）の annotation テキストを `"\(bar.completedItems)"` から、値 + チェック記号（例: `Text("\(bar.completedItems) ✓")` ではなく SF Symbol の `checkmark` を `Image(systemName:)` で併置した HStack）に変更し、色を見なくても達成日が判別できるようにする。記号は `accessibilityHidden(true)`（バーの `accessibilityValue` に既に `dashboard.bar.goal_met` が含まれるため二重読みさせない）。
+達成日（`goalMet`）の annotation テキストを `"\(bar.completedItems)"` から、値 + チェック記号（SF Symbol の `checkmark` を `Image(systemName:)` で併置した HStack）に変更し、色を見なくても達成日が判別できるようにする。記号は `accessibilityHidden(true)`（バーの `accessibilityValue` に既に `dashboard.bar.goal_met` が含まれるため二重読みさせない）。
 
-- [ ] **Step 3: モックアップ更新**
+- [ ] **Step 3: ux-design.md を同期（正本の更新）**
 
-- [ ] **Step 4: 検証**
+チャート全体の a11y ラベルが `dashboard.week.title` から `dashboard.week.summary_a11y` に変わるため、正本である `docs/ux-design.md` §4.8 を同一コミットで更新する:
+- §4.8 の仕様表「a11y」行の「全体に `dashboard.week.title`」を「全体に `dashboard.week.summary_a11y`（合計値を含む要約）」に修正する。
+- §4.8「直近 7 日」行に「達成日はアクセント色 + 値ラベル + チェック記号（色だけに依存しない）」と記号表示を明記する。
 
-- `ios-macos` CI green。
+- [ ] **Step 4: モックアップ更新**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: 検証**
+
+- `ios-macos` CI green。ux-design.md と実装が一致していることを目視確認。
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add Packages/SnapSpeakiOS/Sources/AppFeature/DashboardView.swift Resources/Localizable.xcstrings docs/mockups/dashboard.html
+git add Packages/SnapSpeakiOS/Sources/AppFeature/DashboardView.swift Resources/Localizable.xcstrings docs/mockups/dashboard.html docs/ux-design.md
 git commit -m "fix(dashboard): チャート全体の a11y 要約と達成日の記号表示を追加"
 ```
 
@@ -287,23 +301,43 @@ git commit -m "fix(dashboard): チャート全体の a11y 要約と達成日の�
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/ShadowingFeature/ResultView.swift`
 - Modify: `Resources/Localizable.xcstrings`
+- Test: `Packages/SnapSpeakiOS/Tests/ShadowingFeatureTests/ResultBreakdownTests.swift`
 - Create: `docs/mockups/shadowing_result.html`
 
 **Interfaces:**
 - Consumes: `ShadowingScore`（ScoringKit）の既存プロパティ `omissions: [AlignedSpan]` / `hesitations: Int` / `wpm: Double` / `delayMsMedian: Int?` / `delayGranularity: DelayGranularity`。core は変更しない。
-- Produces: 新規 i18n キー `result.breakdown.omissions`（「抜け %lld 語」）/ `result.breakdown.hesitations`（「言い淀み %lld 回」）/ `result.breakdown.wpm`（「WPM %.1f」）/ `result.breakdown.delay`（「遅延 中央値 %lld ms」）/ `result.breakdown.delay_approx`（「遅延は文単位の概算です」）。
+- Produces: `static func omittedWordCount(_ omissions: [AlignedSpan]) -> Int`（抜け語数の算出。後続タスク・テストが利用）。新規 i18n キー `result.breakdown.omissions`（「抜け %lld 語」）/ `result.breakdown.hesitations`（「言い淀み %lld 回」）/ `result.breakdown.wpm`（「WPM %.1f」）/ `result.breakdown.delay`（「遅延 中央値 %lld ms」）/ `result.breakdown.delay_approx`（「遅延は文単位の概算です」）。
 
 - [ ] **Step 1: i18n キーを追加**
 
 上記 5 キーを `Resources/Localizable.xcstrings` に追加（ja のみ。件数は `%lld`、WPM は `%.1f` のまま）。
 
-- [ ] **Step 2: ResultView に内訳セクションを追加**
+- [ ] **Step 2: 抜け語数の算出ロジックを実装する**
 
-`ScoreBadge` と `result.script_match_rate_help` の後に、内訳ブロックを追加する:
+`score.omissions` は `[AlignedSpan]` で、各要素は連続した抜け区間（半開区間 `[startRefIndex, endRefIndex)`、ScoringKit `AlignedSpan` / `HesitationDetector` 実装どおり）。`omissions.count` は「区間数」であり「抜けた語数」ではないため、語数は次の純関数で算出する（`ResultView.swift` 内の private ヘルパか、テスト可能な static func として `ShadowingFeature` に置く）:
+
+```swift
+/// 抜けた語数 = 各区間の (endRefIndex - startRefIndex) の合計（半開区間）。
+static func omittedWordCount(_ omissions: [AlignedSpan]) -> Int {
+    omissions.reduce(0) { $0 + max(0, $1.endRefIndex - $1.startRefIndex) }
+}
+```
+
+- [ ] **Step 3: 抜け語数のテストを追加（hostless）**
+
+`Packages/SnapSpeakiOS/Tests/ShadowingFeatureTests/`（既存 target。なければ `App/project.yml` の既存 hostless target と同型で追加）に `ResultBreakdownTests.swift` を作成し、次を固定する:
+- 単一区間 `AlignedSpan(startRefIndex: 2, endRefIndex: 5)` → 3 語
+- 複数区間 `[0..<2, 4..<7]` → 2 + 3 = 5 語
+- 空配列 → 0 語
+- 逆転・ゼロ長区間（`endRefIndex <= startRefIndex`）は 0 にクリップ
+
+- [ ] **Step 4: ResultView に内訳セクションを追加**
+
+`ScoreBadge` と `result.script_match_rate_help` の後に、内訳ブロックを追加する（抜けは Step 2 の `omittedWordCount` を使う）:
 
 ```swift
 VStack(alignment: .leading, spacing: 8) {
-    Text(LocalizedFormat.string("result.breakdown.omissions", score.omissions.count))
+    Text(LocalizedFormat.string("result.breakdown.omissions", Self.omittedWordCount(score.omissions)))
     Text(LocalizedFormat.string("result.breakdown.hesitations", score.hesitations))
     Text(LocalizedFormat.string("result.breakdown.wpm", score.wpm))
     if let delay = score.delayMsMedian {
@@ -320,66 +354,77 @@ VStack(alignment: .leading, spacing: 8) {
 
 `DelayGranularity` のケースは ScoringKit 実装どおり `.word` / `.sentenceApproximate` / `.unavailable` を使う（`.unavailable` のときは `delayMsMedian` が nil のため遅延行自体が出ない）。指標名は「スクリプト一致率」のまま、発音精度を連想させる表現を追加しない（不変条件 8）。
 
-- [ ] **Step 3: モックアップ作成**
+- [ ] **Step 5: モックアップ作成**
 
 `docs/mockups/shadowing_result.html` を新規作成し、内訳つき結果画面を写す。
 
-- [ ] **Step 4: 検証**
+- [ ] **Step 6: 検証**
 
-- `ios-macos` CI green。`file_length`（ResultView は小さいため問題ないはず）。
+- `ios-macos` CI green（`ShadowingFeatureTests` の抜け語数テストを含む）。`file_length`（ResultView は小さいため問題ないはず）。
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add Packages/SnapSpeakiOS/Sources/ShadowingFeature/ResultView.swift Resources/Localizable.xcstrings docs/mockups/shadowing_result.html
+git add Packages/SnapSpeakiOS/Sources/ShadowingFeature/ResultView.swift Resources/Localizable.xcstrings Packages/SnapSpeakiOS/Tests/ShadowingFeatureTests/ResultBreakdownTests.swift docs/mockups/shadowing_result.html
 git commit -m "feat(shadowing): 結果画面に抜け・言い淀み・WPM・遅延の内訳を表示"
 ```
 
-### Task 8: 生エラー文字列の表示をやめ、原因と回復導線を示す
+### Task 8: 生エラー文字列の表示をやめ、失敗種別ごとに原因と回復導線を示す
+
+現状は `.failed(String)` に `String(describing: error)` を詰めて一律「読み込み失敗」相当で表示しており、録音・再生・採点の失敗を区別できない。「原因と回復方法を示す」（`error-clarity` / `error-recovery`）という目的を満たすため、失敗を型付き状態に分ける。
 
 **Files:**
+- Modify: `Packages/SnapSpeakiOS/Sources/ShadowingFeature/ShadowingLessonViewModel.swift`
 - Modify: `Packages/SnapSpeakiOS/Sources/ShadowingFeature/ShadowingLessonView.swift`
+- Modify: `Packages/SnapSpeakiOS/Sources/CompositionFeature/CompositionSessionViewModel.swift`
 - Modify: `Packages/SnapSpeakiOS/Sources/CompositionFeature/CompositionCardView.swift`
 - Modify: `Resources/Localizable.xcstrings`
+- Test: `Packages/SnapSpeakiOS/Tests/ShadowingFeatureTests/`（Task 7 で追加する target）・`Packages/SnapSpeakiOS/Tests/CompositionFeatureTests/`（失敗種別の写像テスト）
 
 **Interfaces:**
-- Consumes: 既存の `.failed(String)` フェーズ（ViewModel は変更しない。表示側のみ）。
-- Produces: 新規 i18n キー `common.error_load_failed`（「読み込みに失敗しました。もう一度お試しください」）。既存 `common.retry` を再利用。
+- Consumes: 既存の `ShadowingUseCaseError` / `CompositionUseCaseError`。`microphoneDenied` は既存フェーズのまま `.failed` に落とさない。
+- Produces: 各 ViewModel にネストした同型の失敗種別（`ShadowingLessonViewModel.FailureKind` / `CompositionSessionViewModel.FailureKind`。ケースは `load` / `playback` / `scoring`）。`CompositionFeature` が `ShadowingFeature` に依存しないよう、共有型は作らない。両 ViewModel の `.failed` を `failed(String)` から `failed(FailureKind)` に変える。新規 i18n キー `lesson.error.load`（「教材の読み込みに失敗しました。もう一度お試しください」）/ `lesson.error.playback`（「録音または再生に失敗しました。もう一度お試しください」）/ `lesson.error.scoring`（「採点に失敗しました。もう一度お試しください」）。
 
-- [ ] **Step 1: i18n キーを追加**
+写像（`ShadowingLessonViewModel`）:
+- `load()` の course/item 欠落 → `.failed(.load)`
+- `start()` / `replayPreview()` の catch（`microphoneDenied` 以外）→ `.failed(.playback)`
+- `stopAndScore()` の catch → `.failed(.scoring)`
 
-`common.error_load_failed` を追加。既存の `common.error` / `common.retry` はそのまま使う。
+写像（`CompositionSessionViewModel`）:
+- `load()` の course/item 欠落 → `.failed(.load)`
+- `startSpeaking()` の catch（`microphoneDenied` 以外。現状は `.prompt` に黙って戻る）→ `.failed(.playback)`
+- `submitTyped()` / `finishSpeaking()` の catch → `.failed(.scoring)`
 
-- [ ] **Step 2: ShadowingLessonView の failed 表示を修正**
+- [ ] **Step 1: 失敗種別の写像テストを先に書く（失敗することを確認）**
 
-`if case let .failed(message) = viewModel.phase` のブロックで `Text(message)`（生エラー）を削除し、次に置き換える:
+各 ViewModel の写像表どおり、`load` / `start` / `replayPreview` / `stopAndScore` / `startSpeaking` / `submitTyped` / `finishSpeaking` が `.failed(FailureKind)` になるテストを追加する。現状は `.failed(String)` のためコンパイルエラー（= 失敗）になることを確認する。共有型 `LessonFailureKind` は作らない。
 
-```swift
-if case .failed = viewModel.phase {
-    Text("common.error")
-        .font(Typography.headline)
-    Text("common.error_load_failed")
-        .font(Typography.body)
-        .foregroundStyle(Colors.secondaryFill)
-    SecondaryButton("common.retry") {
-        Task { await viewModel.load() }
-    }
-}
-```
+- [ ] **Step 2: 失敗種別の型と ViewModel の写像を実装**
 
-- [ ] **Step 3: CompositionCardView の failed 表示を修正**
+各 ViewModel に `public enum FailureKind: Sendable, Equatable { case load, playback, scoring }` をネスト定義する。Interfaces の写像表どおり `.failed(FailureKind)` に変更し、生の `String(describing:)` は破棄する。`microphoneDenied` は既存フェーズを維持する。
 
-`case .failed:` は既に `common.error` + `common.retry` がある。本文（`common.error_load_failed`）を 1 行追加して原因と回復方法を明示する。
+- [ ] **Step 3: テストが通ることを確認（hostless は CI）**
 
-- [ ] **Step 4: 検証**
+- [ ] **Step 4: i18n キーを追加**
 
-- `ios-macos` CI green。生エラー文字列が UI に出ないことを `rg "Text\\(message\\)" Packages/SnapSpeakiOS/Sources` が 0 件になることで確認。
+Interfaces の 3 キー（`lesson.error.load` / `lesson.error.playback` / `lesson.error.scoring`）を追加する。既存の `common.error` / `common.retry` はそのまま使う。一律の `common.error_load_failed` は使わない。
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: 両ビューの failed 表示を種別ごとに修正**
+
+`ShadowingLessonView` / `CompositionCardView` で、`.failed(let kind)` を switch し、種別に対応する本文キー（`lesson.error.load` / `lesson.error.playback` / `lesson.error.scoring`）を表示する。生エラー文字列は表示しない。回復導線は種別に応じて:
+- `.load` → `common.retry` で `load()` 再試行
+- `.playback` → シャドーイングは `start()`、瞬間英作文は `startSpeaking()`
+- `.scoring` → シャドーイングは `stopAndScore()`、瞬間英作文は直前の入力経路（`submitTyped()` または `finishSpeaking()`）
+
+- [ ] **Step 6: 検証**
+
+- `ios-macos` CI green。生エラー文字列が UI に出ないことを `rg "Text\\(message\\)|String\\(describing:" Packages/SnapSpeakiOS/Sources` が UI 表示経路で 0 件になることで確認。
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add Packages/SnapSpeakiOS/Sources/ShadowingFeature/ShadowingLessonView.swift Packages/SnapSpeakiOS/Sources/CompositionFeature/CompositionCardView.swift Resources/Localizable.xcstrings
-git commit -m "fix(lesson): 生エラー文字列をやめ原因と再試行導線を表示"
+git add Packages/SnapSpeakiOS/Sources/ShadowingFeature/ Packages/SnapSpeakiOS/Sources/CompositionFeature/ Resources/Localizable.xcstrings Packages/SnapSpeakiOS/Tests/
+git commit -m "fix(lesson): 失敗を型付き状態に分け、種別ごとの原因と回復導線を表示"
 ```
 
 ### Task 9: 録音中インジケータ
@@ -428,12 +473,14 @@ git commit -m "feat(lesson): 録音中インジケータを表示"
 - Modify: `Packages/SnapSpeakiOS/Tests/CompositionFeatureTests/`（既存 target にテスト追加）
 
 **Interfaces:**
-- Consumes: `ItemV1.sentencePair?.acceptable`（先頭をヒントとして使う。ContentCore 既存型）。
+- Consumes: `ItemV1.sentencePair?.acceptable`（先頭の許容パターンの**最初の 1 語**をヒントとして使う。ContentCore 既存型）。
 - Produces: `CompositionSessionViewModel.hintText: String?`（`@Published private(set)`）。`revealHint()` が `usedHint = true` に加えて `hintText` をセットする。新規 i18n キー `composition.hint_label`（「ヒント」）。
+
+正本との整合: product-overview.md §234-242「ヒント: MVP は『最初の 1 語を表示』」に従い、**許容文の全文ではなく最初の 1 語のみ**を表示する（答えの開示にならないようにするため）。
 
 - [ ] **Step 1: 失敗するテストを書く**
 
-`CompositionFeatureTests` に「`revealHint()` を呼ぶと `usedHint == true` かつ `hintText` が acceptable 先頭になる」「`acceptable` が空なら `hintText` は nil のまま」を追加し、現状（`hintText` 未定義）でコンパイルエラーになることを確認する。
+`CompositionFeatureTests` に「`revealHint()` を呼ぶと `usedHint == true` かつ `hintText` が acceptable 先頭文の**最初の 1 語**になる」「`acceptable` が空、または先頭文が空文字なら `hintText` は nil のまま」を追加し、現状（`hintText` 未定義）でコンパイルエラーになることを確認する。最初の 1 語の切り出しは空白区切り（L2 は英語のため `split(separator: " ").first` で足りる）をテストで固定する。
 
 - [ ] **Step 2: ViewModel に hintText を実装**
 
@@ -442,11 +489,15 @@ git commit -m "feat(lesson): 録音中インジケータを表示"
 
 public func revealHint() {
     usedHint = true
-    hintText = item?.sentencePair?.acceptable.first
+    guard let first = item?.sentencePair?.acceptable.first, !first.isEmpty else {
+        hintText = nil
+        return
+    }
+    hintText = first.split(separator: " ").first.map(String.init)
 }
 ```
 
-`item` は既存の private プロパティを使う。`acceptable` は ContentCore `SentencePairV1` で `[String]`（非 Optional）のため、`item?.sentencePair?.acceptable.first` でよい（空配列なら `first` は nil）。
+`item` は既存の private プロパティを使う。`acceptable` は ContentCore `SentencePairV1` で `[String]`（非 Optional）のため、`item?.sentencePair?.acceptable.first` で先頭文を取り、さらに空白で分割して最初の 1 語だけを `hintText` に入れる（全文は入れない）。
 
 - [ ] **Step 3: テストが通ることを確認（hostless は CI）**
 
@@ -471,7 +522,7 @@ if let hint = viewModel.hintText {
 
 ```bash
 git add Packages/SnapSpeakiOS/Sources/CompositionFeature/CompositionSessionViewModel.swift Packages/SnapSpeakiOS/Sources/CompositionFeature/CompositionCardView.swift Resources/Localizable.xcstrings Packages/SnapSpeakiOS/Tests/CompositionFeatureTests/
-git commit -m "fix(composition): ヒントボタンで先頭の許容パターンを表示"
+git commit -m "fix(composition): ヒントボタンで先頭の許容パターンの最初の 1 語を表示"
 ```
 
 ### Task 11: オンボーディングの進捗・ラジオグループ a11y・保存失敗バナー改善
@@ -544,66 +595,99 @@ git add Packages/SnapSpeakiOS/Sources/AppFeature/HomeView.swift docs/mockups/hom
 git commit -m "fix(home): ドライブカードにタップアフォーダンスと押下フィードバックを追加"
 ```
 
-### Task 13: カタログのレッスン行を意味のある名称に
+### Task 13: カタログの各行を意味のある名称に（各 item 導線は維持）
 
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/AppFeature/CatalogView.swift`
 - Create: `docs/mockups/catalog.html`
 
 **Interfaces:**
-- Consumes: `Lesson` / `Item` の既存プロパティ（ContentCore）。タイトル辞書が lesson にあれば `LocalizedTitle.resolve` を使う。なければ `lesson.id` を使う（item.id よりは意味がある）。core は変更しない。
+- Consumes: `CourseV1` / `UnitV1` / `LessonV1` / `ItemV1` の既存プロパティ（ContentCore）。`LessonV1` には `title` 辞書が**ない**（`id` / `mode` / `items` のみ。ContentCore `CourseV1.swift` で確認済み）。core は変更しない。
+- Produces: なし（表示のみの変更）。
 
-- [ ] **Step 1: 行ラベルを lesson 単位に変更**
+設計判断（Critical 指摘への対応）: lesson 単位への集約は**行わない**。`LessonV1` にタイトルがなく `lesson.id` フォールバックは内部 ID のままであり、かつ集約すると 2 件目以降の item をカタログから直接開けなくなるため。本タスクは **各 item 導線を維持したまま**、行の表示を `item.id` の生表示から意味のある内容に変える。スキーマ変更（`LessonV1` へのタイトル追加）は本計画のスコープ外とし、必要なら別途コンテンツスキーマの版管理（architecture の複数 immutable release 方針）に従って正式に起票する。
 
-現状は `lesson.items` の各 `item.id` を 1 行ずつ出している。`LocalizedTitle.resolve(lesson.title, ...)` が使えるか ContentCore の `Lesson` 型を確認し、使える場合は lesson タイトル（+ 複数 item がある場合は先頭 item への導線）を行ラベルにする。`Lesson` にタイトルがない場合は `lesson.id` を表示し、行のサブにモードを示す既存アイコンを維持する。どちらの場合も `item.id` の生表示はやめる。
+- [ ] **Step 1: 各行のラベルを item の本文に変更（導線は item 単位のまま）**
+
+現状は `lesson.items` の各 `item.id` を 1 行ずつ `Label(item.id, ...)` で出している。各行の遷移先（`LessonCoordinate(courseId:lessonId:itemId:mode:)`）は**変更せず**、表示だけを次に変える:
+- シャドーイング（`item.passage?.text`）→ 本文の先頭部分（例: 先頭 40 文字で打ち切り `…`）
+- 瞬間英作文（`item.sentencePair?.l1`）→ L1 文（日本語プロンプト）
+- どちらも取得できない場合のみ `item.id` にフォールバック
+
+行の構成は `VStack(alignment: .leading)` で「本文（headline）」+ サブ行（caption / secondaryFill）に `lesson.id` とモードを示す既存アイコンを残す。これにより、内部 ID（`item.id`）の生表示をやめつつ、各 item への導線はすべて維持する。
 
 - [ ] **Step 2: モックアップ作成**
 
+`docs/mockups/catalog.html` に、本文表示になった行（複数 item が並ぶ状態）を写す。
+
 - [ ] **Step 3: 検証**
 
-- `ios-macos` CI green。
+- `ios-macos` CI green。各行が従来どおり該当 item のレッスンへ遷移すること（遷移先の `LessonCoordinate` 生成ロジックを変更していないことをコードで確認）。
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add Packages/SnapSpeakiOS/Sources/AppFeature/CatalogView.swift docs/mockups/catalog.html
-git commit -m "fix(catalog): レッスン行を item.id 生表示から意味のある名称に変更"
+git commit -m "fix(catalog): 各行を item.id 生表示から本文表示に変更（各 item 導線は維持）"
 ```
 
 ### Task 14: ダウンロード管理のタイトル表示・容量・削除確認
 
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/AppFeature/DownloadsView.swift`
+- Modify: `Packages/SnapSpeakiOS/Sources/ContentKit/DownloadManager.swift`（容量の公開 API 追加）
 - Modify: `Resources/Localizable.xcstrings`
+- Test: `Packages/SnapSpeakiOS/Tests/ContentKitTests/DownloadManagerSizeTests.swift`（既存 target に追加）
 - Create: `docs/mockups/downloads.html`
 
 **Interfaces:**
-- Consumes: `LocalizedTitle.resolve`（ContentKit）、`dependencies.downloads` の既存 API。容量の実数値が既存 API から取れるかは実装時に `DownloadStore`（ContentKit）を確認する。取れない場合は容量表示をスコープアウトし、PR にその旨を記録する。
-- Produces: 新規 i18n キー `downloads.delete_confirm_title`（「このコースを削除しますか？」）/ `downloads.delete_confirm_message`（「ダウンロード済みの音声と教材を端末から削除します。学習履歴は残ります。」）/ `downloads.delete_confirm`（「削除」）。
+- Consumes: `LocalizedTitle.resolve`（ContentKit）、`StoredCourse.directory` / `revision`（ContentKit）。容量は既存の `DownloadManager` に公開 API を**追加**して取得する（既存 API には公開サイズ取得がなく、private の `directorySize(_:)` のみ存在する。ContentKit `DownloadManager.swift` で確認済み）。
+- Produces: `DownloadManager.courseSizeOnDisk(courseId: String) -> Int64`（公開。指定コースのディレクトリ配下の合計バイト数。存在しない場合は 0）。新規 i18n キー `downloads.delete_confirm_title`（「このコースを削除しますか？」）/ `downloads.delete_confirm_message`（「ダウンロード済みの音声と教材を端末から削除します。学習履歴は残ります。」）/ `downloads.delete_confirm`（「削除」）/ `downloads.size_format`（容量の表示書式が必要な場合。`ByteCountFormatter` を使うならキー不要）。
 
-- [ ] **Step 1: タイトル解決**
+設計判断（Important 指摘への対応）: 容量表示を「取得可能なら」の任意扱いにしない。監査指摘 #15 と roadmap Phase 2「ダウンロード管理 UI の強化（容量、削除…）」を未解消にしないため、`DownloadManager` に公開 API を追加して必ず表示する。
+
+- [ ] **Step 1: 容量 API の失敗するテストを書く**
+
+`ContentKitTests` に `DownloadManagerSizeTests.swift` を追加し、「既知のファイルを持つコースディレクトリの合計バイト数を返す」「存在しない courseId は 0 を返す」「`tmp-` プレフィクスの staging ディレクトリは含めない」を固定する。現状は公開 API がないためコンパイルエラー（= 失敗）になることを確認する。
+
+- [ ] **Step 2: DownloadManager に公開 API を追加**
+
+既存の private `directorySize(_:)` を再利用し、次を公開する:
+
+```swift
+/// 指定コースのディスク上の合計バイト数（存在しない場合は 0）。
+public func courseSizeOnDisk(courseId: String) -> Int64 {
+    let directory = contentRoot.appendingPathComponent(courseId, isDirectory: true)
+    guard fileManager.fileExists(atPath: directory.path) else { return 0 }
+    return directorySize(directory) ?? 0
+}
+```
+
+- [ ] **Step 3: テストが通ることを確認（hostless は CI）**
+
+- [ ] **Step 4: タイトル解決**
 
 `Text(stored.course.id)` を `LocalizedTitle.resolve(stored.course.title, requested:sourceLanguage:) ?? stored.course.id` に変更する（CatalogView と同じ解決順）。
 
-- [ ] **Step 2: 削除確認ダイアログ**
+- [ ] **Step 5: 削除確認ダイアログ**
 
 削除ボタンの `action` で即削除せず、`@State private var pendingDelete: StoredCourse?` を立てて `.confirmationDialog` を表示する。`Button("downloads.delete_confirm", role: .destructive)` で削除実行、`Button("common.close", role: .cancel)` でキャンセル。破壊的操作は赤（`role: .destructive`）で主操作と分離する（`destructive-emphasis`）。
 
-- [ ] **Step 3: 容量表示（取得可能な場合のみ）**
+- [ ] **Step 6: 容量表示**
 
-`DownloadStore` にコース別サイズ API があれば `downloads.storage` の横に実数値を出す。なければ本ステップはスキップして PR に記録する。
+`downloads.storage` の固定文言の横に、Step 2 の `courseSizeOnDisk` で取得した実数値を `ByteCountFormatter`（`countStyle = .file`）で人間可読にして表示する（caption / secondaryFill）。容量は `dependencies.downloads`（`DownloadManager`）から非同期で取得し、行の表示時に lazy に解決する。
 
-- [ ] **Step 4: モックアップ作成**
+- [ ] **Step 7: モックアップ作成**
 
-- [ ] **Step 5: 検証**
+- [ ] **Step 8: 検証**
 
-- `ios-macos` CI green。
+- `ios-macos` CI green（`ContentKitTests` の容量 API テストを含む）。
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add Packages/SnapSpeakiOS/Sources/AppFeature/DownloadsView.swift Resources/Localizable.xcstrings docs/mockups/downloads.html
-git commit -m "fix(downloads): タイトル解決・削除確認ダイアログを追加"
+git add Packages/SnapSpeakiOS/Sources/AppFeature/DownloadsView.swift Packages/SnapSpeakiOS/Sources/ContentKit/DownloadManager.swift Resources/Localizable.xcstrings Packages/SnapSpeakiOS/Tests/ContentKitTests/ docs/mockups/downloads.html
+git commit -m "fix(downloads): タイトル解決・容量表示（公開 API 追加）・削除確認ダイアログ"
 ```
 
 ### Task 15: 設定のインストール ID リセット確認と保存失敗の回復導線
@@ -641,6 +725,7 @@ git commit -m "fix(settings): インストール ID リセットの確認と保�
 
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/ReviewFeature/ReviewSessionView.swift`
+- Modify: `Resources/Localizable.xcstrings`
 - Create: `docs/mockups/review_session.html`
 
 **Interfaces:**
@@ -650,21 +735,21 @@ git commit -m "fix(settings): インストール ID リセットの確認と保�
 
 `runningBody` の進捗テキスト（「3 / 12」）の直下に `ProgressView(value: Double(index + 1), total: Double(total))` を追加し、`.tint(Colors.accent)` を適用する。テキストは残す（色・バーのみ依存にしない）。VoiceOver は既存の `review.session.progress_a11y` アナウンスを維持し、プログレスバー自体は `accessibilityHidden(true)`（二重読み防止）。
 
-- [ ] **Step 2: 離脱確認のボタン階層**
+- [ ] **Step 2: 離脱確認のキャンセル文言を「閉じる」から「キャンセル」に修正**
 
-`confirmationDialog` の `review.session.leave_confirm` ボタンに `role` は付けない（破壊的ではない。ux-design §4.4「破壊的操作ではない色」）。キャンセルは既存 `common.close`（`role: .cancel`）のまま。タイトル・メッセージは既存キーのまま変更しない。
+現状の `confirmationDialog` はキャンセルに `common.close`（「閉じる」）を使っており、離脱確認の文脈では「閉じる」が「離脱する」と読み違えられうる（対称性が弱いという監査指摘 #26）。キャンセル専用のキー `common.cancel`（「キャンセル」）を新規追加し、キャンセルボタンを `Button("common.cancel", role: .cancel)` に変更する。`review.session.leave_confirm` ボタンには `role` を付けない（破壊的ではない。ux-design §4.4「破壊的操作ではない色」）。タイトル・メッセージは既存キーのまま変更しない。
 
 - [ ] **Step 3: モックアップ作成**
 
 - [ ] **Step 4: 検証**
 
-- `ios-macos` CI green（`ReviewFeatureTests` 回帰）。
+- `ios-macos` CI green（`ReviewFeatureTests` 回帰）。`common.cancel` が `Resources/Localizable.xcstrings` に追加されていること。
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Packages/SnapSpeakiOS/Sources/ReviewFeature/ReviewSessionView.swift docs/mockups/review_session.html
-git commit -m "fix(review): セッションにプログレスバーを追加し離脱確認の階層を整理"
+git add Packages/SnapSpeakiOS/Sources/ReviewFeature/ReviewSessionView.swift Resources/Localizable.xcstrings docs/mockups/review_session.html
+git commit -m "fix(review): セッションにプログレスバーを追加し離脱確認のキャンセル文言を修正"
 ```
 
 ### Task 17: セッションサマリの達成演出（Reduce Motion 対応）
@@ -701,9 +786,21 @@ git commit -m "feat(review): サマリの目標達成にリング演出（Reduce
 **Interfaces:**
 - Produces: なし。
 
-- [ ] **Step 1: loading 中のプレースホルダ**
+- [ ] **Step 1: loading 中のプレースホルダ（`TodayState.loading` に限定）**
 
-`habitCard` は現在 `if let snapshot = today.snapshot` で、nil（初回 loading）の間はカードごと消える。`else` 分岐を追加し、loading 中は同じ `CardContainer` 内に `StreakBadge` 相当の高さと `ProgressRing` の枠（`Colors.secondaryFill.opacity(0.25)` の円）を持つプレースホルダを表示して、出現時のレイアウトシフトを防ぐ（`content-jumping`）。プレースホルダは `accessibilityHidden(true)`（読み上げは既存の ProgressView に任せる）。
+`habitCard` は現在 `if let snapshot = today.snapshot` で、nil の間はカードごと消える。ただし `snapshot == nil` をすべて loading と扱うと、**初回読み込み失敗（`TodayState.failed`）でもプレースホルダが残ってしまう**（Important 指摘）。プレースホルダは `today.state == .loading` のときに限定する:
+
+```swift
+if let snapshot = today.snapshot {
+    // 既存の habitCard 本体
+} else if today.state == .loading {
+    // プレースホルダ（下記）
+}
+// .failed / .empty / .recovery で snapshot が nil のときはプレースホルダを出さない
+// （.failed は todayCard 側の load_failed + retry が既に表示される）
+```
+
+loading 中は同じ `CardContainer` 内に `StreakBadge` 相当の高さと `ProgressRing` の枠（`Colors.secondaryFill.opacity(0.25)` の円）を持つプレースホルダを表示して、出現時のレイアウトシフトを防ぐ（`content-jumping`）。プレースホルダは `accessibilityHidden(true)`（読み上げは既存の ProgressView に任せる）。
 
 - [ ] **Step 2: 検証**
 
@@ -721,7 +818,7 @@ git commit -m "fix(home): habitCard の loading 中プレースホルダでレ�
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/DriveModeFeature/DriveStartView.swift`
 - Modify: `Packages/SnapSpeakiOS/Sources/DriveModeFeature/DriveGlanceView.swift`
-- Modify: `Resources/Localizable.xcstrings`
+- Modify: `Packages/SnapSpeakiOS/Sources/DriveModeFeature/DriveSessionView.swift`（`.idle` ケースを NavigationStack で包む）
 - Create: `docs/mockups/drive.html`
 
 **Interfaces:**
@@ -815,19 +912,20 @@ git commit -m "fix(privacy): プライバシーポリシーが外部リンクで
 
 ## リスクと対応
 
-|| リスク | 影響 | 対応 |
-||--------|------|------|
-|| iOS 側のコンパイルエラーを Linux で検出できない | 手戻り | タスクごとに `ios-macos` CI を回す既存運用。表示のみの変更を優先し、ViewModel 変更は Task 10 のみに限定 |
-|| `DelayGranularity` / `acceptable` 等の型名の取り違え | コンパイルエラー | 計画のコード例は ScoringKit / ContentCore の実在の定義（`.sentenceApproximate` / `[String]`）に合わせ済み。実装時は改めて定義を確認する |
-|| 新規 i18n キーの命名が既存規約と衝突 | レビュー差し戻し | ux-design §8 の `<画面>.<要素>[.<状態>]` 規約に従う。件数は `%lld` 変数のまま |
-|| モックアップと実装の乖離 | レビュー誤認 | モックはコードから起こす。乖離を見つけたらモックを直す（モックが正本にならない） |
-|| `file_length` 400 行超過 | SwiftLint エラー | DashboardView.swift / SettingsView.swift の変更が大きくなる場合は責務で extension 分割する |
+| リスク | 影響 | 対応 |
+|--------|------|------|
+| iOS 側のコンパイルエラーを Linux で検出できない | 手戻り | タスクごとに `ios-macos` CI を回す既存運用。表示のみの変更を優先する。ViewModel / API / テスト target の変更は Task 7（抜け語数ヘルパと `ShadowingFeatureTests`）・Task 8（失敗種別）・Task 10（ヒント 1 語）・Task 14（容量 API） |
+| `DelayGranularity` / `acceptable` / `AlignedSpan` 等の型名の取り違え | コンパイルエラー | 計画のコード例は ScoringKit / ContentCore の実在の定義（`.sentenceApproximate` / `[String]` / 半開区間 `[startRefIndex, endRefIndex)`）に合わせ済み。実装時は改めて定義を確認する |
+| 新規 i18n キーの命名が既存規約と衝突 | レビュー差し戻し | ux-design §8 の `<画面>.<要素>[.<状態>]` 規約に従う。件数は `%lld` 変数のまま |
+| モックアップと実装の乖離 | レビュー誤認 | モックはコードから起こす。乖離を見つけたらモックを直す（モックが正本にならない） |
+| `file_length` 400 行超過 | SwiftLint エラー | DashboardView.swift / SettingsView.swift の変更が大きくなる場合は責務で extension 分割する |
+| ux-design.md（正本）と実装の乖離 | 仕様の二重管理 | Task 5・6 で ux-design.md を同一コミットで同期する。表示文言・a11y ラベルを変えるタスクは正本の同期を必ず確認する |
 
 ## 想定実装順（依存関係）
 
-1. Task 1（モック基盤）→ Task 2〜6（ダッシュボード。ss-j36 の解消。独立して進められる）
-2. Task 7〜10（学習フロー。Task 10 は ViewModel 変更を含むため単独で）
+1. Task 1（モック基盤）→ Task 2〜6（ダッシュボード。ss-j36 の解消。Task 5・6 は ux-design.md の同期を含む）
+2. Task 7〜10（学習フロー。Task 7 で `ShadowingFeatureTests` を追加し Task 8 が再利用。Task 8 / Task 10 は ViewModel 変更）
 3. Task 11（オンボーディング）
-4. Task 12〜21（ホーム / カタログ / 設定 / セッション / ドライブ / プライバシー。相互依存なし。並行可）
+4. Task 12〜21（ホーム / カタログ / 設定 / セッション / ドライブ / プライバシー。Task 14 は DownloadManager への公開 API 追加を含む。相互依存なし。並行可）
 
 各タスクは 1 コミット。PR は 1 本（`develop` 向け）にまとめ、タイトルは Conventional Commits（例: `fix(ui): 全画面 UIUX 磨き込み（ss-j36 解消 + a11y/フィードバック是正）`）。

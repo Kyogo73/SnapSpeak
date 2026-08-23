@@ -20,10 +20,11 @@ let package = Package(
         .library(name: "ContentCore", targets: ["ContentCore"]),
         .library(name: "AnalyticsCore", targets: ["AnalyticsCore"]),
         .library(name: "HabitKit", targets: ["HabitKit"]),
+        .library(name: "DriveKit", targets: ["DriveKit"]),
         .executable(name: "contentlint", targets: ["contentlint"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.1"),
     ],
     targets: [
         .target(
@@ -60,6 +61,11 @@ let package = Package(
         ),
         .target(
             name: "HabitKit",
+            dependencies: ["SRSKit"],
+            swiftSettings: swift6
+        ),
+        .target(
+            name: "DriveKit",
             dependencies: ["SRSKit"],
             swiftSettings: swift6
         ),
@@ -102,6 +108,11 @@ let package = Package(
         .testTarget(
             name: "HabitKitTests",
             dependencies: ["HabitKit", "SRSKit"],
+            swiftSettings: swift6
+        ),
+        .testTarget(
+            name: "DriveKitTests",
+            dependencies: ["DriveKit", "SRSKit"],
             swiftSettings: swift6
         ),
     ]

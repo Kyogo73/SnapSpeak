@@ -1,19 +1,19 @@
 # AGENTS.md
 
-SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の開発ガイド。設計正本は `docs/`（`architecture.md` / `roadmap.md` / `product-overview.md`、オンボーディング・継続体験の UX 正本は `ux-design.md`）。実装計画・記録は `docs/phase1-implementation-plan.md`（Phase 1 初期実装）と `docs/phase2-retention-implementation-plan.md`（前倒しした継続機能。実装完了後の記録）、品質改善の実行計画は `docs/quality-pass-plan.md`。
+SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運転中の語学学習＝ドライブモードを主要ユースケースの第一級とする）の開発ガイド。設計正本は `docs/`（`architecture.md` / `roadmap.md` / `product-overview.md`、オンボーディング・継続体験・ドライブモードの UX 正本は `ux-design.md`）。実装計画・記録は `docs/phase1-implementation-plan.md`（Phase 1 初期実装）と `docs/phase2-retention-implementation-plan.md`（前倒しした継続機能。実装完了後の記録）、品質改善の実行計画は `docs/quality-pass-plan.md`、ドライブモード MVP の実装計画は `docs/drive-mode-implementation-plan.md`。
 
 ## Cursor Cloud specific instructions
 
 ### サブエージェント運用（ユーザー指示・恒久設定）
 
-- コーディネーター分業: **計画 = Claude Fable（thinking xhigh）/ 実行 = Grok 4.6（最上位 effort）/ レビュー・QA = GPT5.6 Sol（xhigh）**。
-- サブエージェントへ委任する際は、**常に各系列で選択可能な最上位の reasoning/effort** を指定する。
+- コーディネーター分業: **計画 = Claude Fable / 実行 = Grok 4.6 / レビュー・QA = GPT5.6 Sol**。
+- サブエージェントへ委任する際は、**委任時点で選択可能なモデル一覧を確認し、各系列の最上位 reasoning/effort ティアを都度指定**する。ティア名（xhigh / max など）は環境・時期で変わるため特定の名前に固定しない。
 - マージ前にレビュー担当（Sol）の「マージ可」判定を得る。`main`（本番）へのマージのみユーザーのチェック必須、`develop` へは CI green で自動マージ可。
 
 ### リポジトリ構成（2 SwiftPM パッケージ + App）
 
-- `Packages/SnapSpeakCore` … **Foundation のみに依存する中核ドメイン**（`LanguageKit` / `ScoringKit` / `CompositionKit` / `SRSKit` / `ContentCore` / `AnalyticsCore` / `HabitKit` と実行可能 `contentlint`）。外部依存は swift-crypto のみ。**この Linux VM で `swift build` / `swift test` が完結する唯一の部分**。
-- `Packages/SnapSpeakiOS` … Apple 専用（SwiftUI / SwiftData / AVFoundation / Speech / UIKit）。**Linux ではコンパイル不可**。検証は macOS CI（GitHub Actions の `ios-macos` ジョブ）のみ。機能モジュールは `AppFeature` / `OnboardingFeature` / `ReviewFeature` / `ShadowingFeature` / `CompositionFeature`、インフラは `NotificationsKit` / `Persistence` / `AudioEngine` / `SpeechKit` / `ContentKit` / `DesignSystem` / `Analytics`。
+- `Packages/SnapSpeakCore` … **Foundation のみに依存する中核ドメイン**（`LanguageKit` / `ScoringKit` / `CompositionKit` / `SRSKit` / `ContentCore` / `AnalyticsCore` / `HabitKit` / `DriveKit` と実行可能 `contentlint`）。外部依存は swift-crypto のみ。**この Linux VM で `swift build` / `swift test` が完結する唯一の部分**。
+- `Packages/SnapSpeakiOS` … Apple 専用（SwiftUI / SwiftData / AVFoundation / Speech / UIKit）。**Linux ではコンパイル不可**。検証は macOS CI（GitHub Actions の `ios-macos` ジョブ）のみ。機能モジュールは `AppFeature` / `OnboardingFeature` / `ReviewFeature` / `ShadowingFeature` / `CompositionFeature` / `DriveModeFeature`、インフラは `NotificationsKit` / `Persistence` / `AudioEngine` / `SpeechKit` / `ContentKit` / `DesignSystem` / `Analytics`。
 - `App/` … Xcode App ターゲット。`.xcodeproj` は **XcodeGen（`App/project.yml`）から生成**（手書き・コミットしない。`.gitignore` 済み）。
 
 ### 開発環境（この VM の非自明な前提）
@@ -22,6 +22,13 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の�
 - リポジトリ直下の `.swift-version` は **`6.1`**。swiftly はこれを読んで **Swift 6.1.2** を自動選択する（CI の `swift:6.1-noble` と一致）。別バージョンを明示したい場合は `swiftly run swift +<ver> ...` かツールチェーン直パス。
 - **Xcode / Apple SDK はこの Linux VM に存在しない。** iOS パッケージ・App のコンパイル/テストはローカルで再現できない。iOS 側を変更したら **必ず `ios-macos` CI を回して確認する**（このリポジトリでは実際に CI をコンパイラとして使って反復する運用）。
 - フェーズ分割の正本は `docs/roadmap.md`。Phase 3 で Supabase（Auth / 同期 / Edge Functions）が入る想定。将来 Deno/TypeScript の Edge Functions など Linux 上で動くコンポーネントが追加された時点で、その部分のみこの VM 上でセットアップ・実行可能になる。
+
+### MCP / プラグイン（AI 開発ツール設定）
+
+- リポジトリ標準の MCP サーバーは `.cursor/mcp.json` にコミット済み（**認証キー不要の HTTP 型のみ**を置く。秘密情報は置かない）: `context7`（ライブラリ最新ドキュメント）/ `cloudflare-docs`（R2・Workers 公式ドキュメント検索。CDN は R2 採用）/ `deepwiki`（OSS リポジトリへの Q&A）。IDE でこのリポジトリを開くと全員そのまま使える。
+- プロジェクトのプラグイン有効/無効は `.cursor/settings.json` で宣言する。web フロントエンド専用の `playwright` / `shadcn` / `open-design` は **本リポジトリでは無効**（iOS アプリ開発に不要。誤作動・接続エラーの騒音源になるため）。`semgrep-plugin`（静的解析）/ `cloudflare`（R2 構築。Phase 2 残スコープ）/ `supabase`（Phase 3）/ `mobbin`（UX リサーチ）は有効。
+- OAuth が必要なプラグイン（Cloudflare bindings / builds / observability、Supabase、Mobbin）は**各自が初回にブラウザでログイン**して使う（設定 → MCP の「Needs login」から）。
+- **Cloud Agents はリポジトリの `.cursor/mcp.json` を読まない**。Cloud Agent に MCP を足す場合は cursor.com ダッシュボード（個人またはチームの MCP 設定）で構成する（SSE 非対応・HTTP 推奨・OAuth はユーザー単位）。
 
 ### ブランチ運用（正本は `docs/development-workflow.md`）
 
@@ -39,10 +46,10 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ）の�
 
 ### 非自明な注意点（ハマりどころ）
 
-- iOS のユニットテスト（`PersistenceTests` / `ContentKitTests` / `ReviewFeatureTests` / `NotificationsKitTests` / `OnboardingFeatureTests` / `AppFeatureTests` / `CompositionFeatureTests`）は **ホストアプリを使わないロジックテスト**にしてある。SwiftPM の静的ライブラリ製品を bundle_loader 経由で解決するとリンクに失敗するため、テストターゲットは必要な製品を直接リンクする（`App/project.yml` 参照）。
+- iOS のユニットテスト（`PersistenceTests` / `ContentKitTests` / `ReviewFeatureTests` / `NotificationsKitTests` / `OnboardingFeatureTests` / `AppFeatureTests` / `CompositionFeatureTests` / `DriveModeFeatureTests`）は **ホストアプリを使わないロジックテスト**にしてある。SwiftPM の静的ライブラリ製品を bundle_loader 経由で解決するとリンクに失敗するため、テストターゲットは必要な製品を直接リンクする（`App/project.yml` 参照）。
 - `Packages/SnapSpeakCore/Package.swift` は `platforms` を明示している（swift-crypto の `SHA256` が macOS 10.15+ を要求するため。未指定だと macOS ビルドが落ちる）。
 - Bluetooth 系オーディオオプションは Xcode 16.4 SDK 準拠で `.allowBluetooth` を使用（`.allowBluetoothHFP` は新しい SDK 専用）。SDK 更新時に見直す。
-- シードの音声ファイル（`Resources/Seed/.../audio/*.m4a`）は現状 checksum 整合のための**ダミーバイト**で、実再生できない。`AVAudioFile` を使う実機フローは本番収録音声に差し替えてから。差し替え時は checksum / durationMs / captionSegments を再生成し `contentlint` で再検証する。
+- シードの音声ファイル（`Resources/Seed/.../audio/*.m4a`）は現状 checksum 整合のための**ダミーバイト**で、実再生できない。`AVAudioFile` を使う実機フローは本番収録音声に差し替えてから。差し替え時は checksum / durationMs / captionSegments を再生成し `contentlint` で再検証する。このためドライブモードの初期経路は **TTS（`AVSpeechSynthesizer`）フォールバックが実質の本線**になる（`docs/drive-mode-implementation-plan.md` §0 参照）。
 
 ### 不変条件（`docs/roadmap.md`「フェーズ横断の不変条件」より、コード変更時に厳守）
 

@@ -4,7 +4,7 @@ import Foundation
 public enum RecoveryEvent: Sendable, Equatable {
     case interruptionBegan
     case interruptionEnded(shouldResume: Bool)
-    case routeChange
+    case routeChange(oldDeviceUnavailable: Bool)
     case mediaServicesReset
     case configurationChange
 }
@@ -66,8 +66,8 @@ public actor RecoveryObserver {
                 forName: AVAudioSession.routeChangeNotification,
                 object: nil,
                 queue: nil
-            ) { _ in
-                handler(.routeChange)
+            ) { notification in
+                handler(Self.parseRouteChange(notification))
             }
         )
         box.tokens.append(
@@ -104,5 +104,11 @@ public actor RecoveryObserver {
             return .interruptionEnded(shouldResume: options.contains(.shouldResume))
         }
         return .interruptionBegan
+    }
+
+    static func parseRouteChange(_ notification: Notification) -> RecoveryEvent {
+        let value = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+        let reason = value.flatMap(AVAudioSession.RouteChangeReason.init(rawValue:))
+        return .routeChange(oldDeviceUnavailable: reason == .oldDeviceUnavailable)
     }
 }

@@ -142,6 +142,17 @@ extension PersistenceActor {
         return try modelContext.fetchCount(descriptor)
     }
 
+    /// 期間内の LessonAttempt（createdAt 昇順、半開区間 [start, end)）。
+    public func attempts(from start: Date, to end: Date) throws -> [LessonAttemptDTO] {
+        let startDate = start
+        let endDate = end
+        let descriptor = FetchDescriptor<LessonAttempt>(
+            predicate: #Predicate { $0.createdAt >= startDate && $0.createdAt < endDate },
+            sortBy: [SortDescriptor(\.createdAt)]
+        )
+        return try modelContext.fetch(descriptor).map(PersistenceMapping.attemptDTO)
+    }
+
     /// 試行が 1 件以上ある (courseId, itemId) の集合（次レッスン選定の入力）。
     public func attemptedItemRefs() throws -> Set<ItemRef> {
         let descriptor = FetchDescriptor<LessonAttempt>()

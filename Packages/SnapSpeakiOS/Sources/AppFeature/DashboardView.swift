@@ -145,6 +145,11 @@ public struct DashboardView: View {
         .chartYAxis {
             AxisMarks(position: .leading)
         }
+        .chartYScale(
+            domain: 0...DashboardPresentation.chartYScaleUpperBound(
+                completedItems: summary.dailyBars.map(\.completedItems)
+            )
+        )
     }
 
     private func modesCard(_ summary: ProgressSummary) -> some View {

@@ -17,6 +17,15 @@ struct DashboardPresentationTests {
         #expect(DashboardPresentation.barYEnd(completedItems: 1) == 1.0)
     }
 
+    @Test("Y 軸上限はピーク件数。全日 0 でも 1 にしてプレースホルダが伸びない")
+    func chartYScaleDoesNotCollapseToPlaceholder() {
+        #expect(DashboardPresentation.chartYScaleUpperBound(completedItems: [0, 0, 0]) == 1)
+        #expect(DashboardPresentation.chartYScaleUpperBound(completedItems: [0, 5, 2]) == 5)
+        #expect(DashboardPresentation.chartYScaleUpperBound(completedItems: []) == 1)
+        #expect(DashboardPresentation.chartYScaleUpperBound(completedItems: [1]) == 1)
+        #expect(DashboardPresentation.zeroBarPlaceholderYEnd < 1)
+    }
+
     @Test("モード別 % の指標名は率があるときだけ出す（ss-j36 B）")
     func showsMetricCaptionOnlyWhenRateExists() {
         #expect(DashboardPresentation.showsMetricCaption(hasRate: true))

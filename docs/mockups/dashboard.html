@@ -102,8 +102,8 @@
     }
     .bar.goal { background: var(--accent); }
     .bar.zero {
-      /* 0.15 / 5 件相当より少し大きめ。薄いバーとして欠測と区別する */
-      height: 16px;
+      /* yEnd 0.15 / Y上限 max(1, peak=5) → プロット高 160px の 3% */
+      height: 5px;
       background: color-mix(in srgb, var(--secondary) 45%, transparent);
     }
     .axis {

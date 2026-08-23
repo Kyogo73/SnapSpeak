@@ -15,6 +15,11 @@ public enum DashboardPresentation {
             : Double(completedItems)
     }
 
+    /// 全日 0 件でも Y 軸最大がプレースホルダ値に縮まないようにする。
+    public static func chartYScaleUpperBound(completedItems: [Int]) -> Double {
+        Double(max(1, completedItems.max() ?? 0))
+    }
+
     public static let shadowingMetricKey = "dashboard.modes.shadowing_metric"
     public static let compositionMetricKey = "dashboard.modes.composition_metric"
 

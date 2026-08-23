@@ -13,7 +13,7 @@ Overrides `MASTER.md` for `DashboardView.readyContent` (ux-design §4.8, beads `
 
 | Finding | Treatment |
 |---------|-----------|
-| 0-item day looks like a gap | `yEnd` placeholder 0.15 + `secondaryFill` 35% opacity + visible `0` |
+| 0-item day looks like a gap | `yEnd` placeholder 0.15 + `secondaryFill` 35% opacity + visible `0`. Y 軸は `max(1, peak)` で、全日 0 でもプレースホルダがフルバーに伸びない |
 | Bare `%` on mode rows | Caption `平均スクリプト一致率` / `正解率` under the score |
 | At-risk is flame outline only | Warning caption `今日まだ学習していません` |
 | 30-day window is implicit | `dashboard.window_note` as the third note line |

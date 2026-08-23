@@ -86,6 +86,6 @@ jobs:
 
   # TODO(将来対応 / 未着手): 署名付き iOS ビルドと TestFlight / App Store 提出の自動化。
   # - macOS ランナーで `xcodegen generate` → `xcodebuild archive` → `xcodebuild -exportArchive`。
-  # - App Store Connect API キー（Secrets）で notarize / upload（altool / Fastlane 相当）。
+  # - App Store Connect API キー（Secrets）で upload（altool / Fastlane 相当）。iOS に Apple notary（notarize）は不要。
   # 現時点では秘密情報を扱わず、実配布も行わない（署名・配布は手動）。ci.yml の ios-macos が
   # ビルド/テストのゲートを担う。導入時は GitHub Environments / OIDC で Secrets を管理する。

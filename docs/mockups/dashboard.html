@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DashboardView readyContent — Phase 1 後</title>
+  <style>
+    :root {
+      --title: 28px;
+      --headline: 17px;
+      --body: 17px;
+      --callout: 16px;
+      --caption: 12px;
+      --score: 22px;
+      --bg: #ffffff;
+      --card: #f2f2f7;
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --accent: #007aff;
+      --warning: #ff9500;
+      --radius: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --card: #1c1c1e;
+        --label: #ffffff;
+        --secondary: rgba(235, 235, 245, 0.60);
+        --accent: #0a84ff;
+        --warning: #ff9f0a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #c7c7cc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--label);
+    }
+    .stage {
+      max-width: 375px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: var(--bg);
+      padding: 16px;
+    }
+    h1.nav {
+      font-size: var(--title);
+      font-weight: 400;
+      margin: 8px 0 16px;
+    }
+    .stack { display: flex; flex-direction: column; gap: 16px; }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      width: 100%;
+    }
+    .card > * + * { margin-top: 8px; }
+    .headline { font-size: var(--headline); font-weight: 600; }
+    .body { font-size: var(--body); font-weight: 400; }
+    .caption { font-size: var(--caption); font-weight: 400; color: var(--secondary); }
+    .score { font-size: var(--score); font-variant-numeric: tabular-nums; font-weight: 400; }
+    .secondary { color: var(--secondary); }
+    .warning { color: var(--warning); }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+    }
+    .badge .flame { width: 22px; height: 22px; fill: none; stroke: var(--warning); stroke-width: 1.8; }
+    .badge .days { font-size: var(--headline); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .chart {
+      height: 180px;
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      padding-top: 20px;
+    }
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+    .bar-label {
+      font-size: var(--caption);
+      font-variant-numeric: tabular-nums;
+      color: var(--secondary);
+      margin-bottom: 4px;
+      min-height: 14px;
+      white-space: nowrap;
+    }
+    .bar-label .mark { color: var(--accent); }
+    .bar {
+      width: 70%;
+      border-radius: 3px 3px 0 0;
+      background: var(--secondary);
+    }
+    .bar.goal { background: var(--accent); }
+    .bar.zero {
+      /* yEnd 0.15 / Y上限 max(1, peak=5) → プロット高 160px の 3% */
+      height: 5px;
+      background: color-mix(in srgb, var(--secondary) 45%, transparent);
+    }
+    .axis {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .axis span {
+      flex: 1;
+      text-align: center;
+      font-size: var(--caption);
+      color: var(--secondary);
+    }
+    .mode + .mode { margin-top: 12px; }
+    .note { font-size: var(--caption); color: var(--secondary); }
+    .review-note {
+      max-width: 375px;
+      margin: 24px auto;
+      padding: 0 16px 32px;
+      font-size: 13px;
+      color: #3a3a3c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      .review-note { color: #e5e5ea; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <h1 class="nav">学習の進捗</h1>
+    <div class="stack">
+      <!-- streakCard -->
+      <section class="card" aria-label="ストリーク">
+        <div class="headline">ストリーク</div>
+        <div class="badge" aria-label="12 日連続で学習中" aria-describedby="streak-hint-missing">
+          <svg class="flame" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4-2 6-2 9 0 1.7 1.2 3 3 3s3-1.3 3-3c0-2 1-3 2-5 2 3 4 6 4 9.5A8 8 0 1 1 4 15.5C4 11 8 7 12 2z"/></svg>
+          <span class="days">12</span>
+        </div>
+        <div class="caption warning">今日まだ学習していません</div>
+        <div class="body">最長 20 日</div>
+        <div class="body">累計 40 日</div>
+      </section>
+
+      <!-- weekCard -->
+      <section class="card" aria-label="直近 7 日">
+        <div class="headline">直近 7 日</div>
+        <div class="chart" role="img" aria-label="直近 7 日の学習完了数の棒グラフ。合計 18 問">
+          <div class="bar-col">
+            <div class="bar-label">3</div>
+            <div class="bar" style="height: 54px;"></div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-label">0</div>
+            <div class="bar zero"></div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-label">5 <span class="mark" aria-hidden="true">✓</span></div>
+            <div class="bar goal" style="height: 90px;"></div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-label">2</div>
+            <div class="bar" style="height: 36px;"></div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-label">0</div>
+            <div class="bar zero"></div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-label">4 <span class="mark" aria-hidden="true">✓</span></div>
+            <div class="bar goal" style="height: 72px;"></div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-label">4 <span class="mark" aria-hidden="true">✓</span></div>
+            <div class="bar goal" style="height: 72px;"></div>
+          </div>
+        </div>
+        <div class="axis">
+          <span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span><span>日</span>
+        </div>
+        <div class="caption">合計 18 問</div>
+      </section>
+
+      <!-- modesCard -->
+      <section class="card" aria-label="モード別">
+        <div class="headline">モード別</div>
+        <div class="mode">
+          <div class="headline">シャドーイング</div>
+          <div class="score">82%</div>
+          <div class="caption">平均スクリプト一致率</div>
+          <div class="caption">12 件</div>
+        </div>
+        <div class="mode">
+          <div class="headline">瞬間英作文</div>
+          <div class="score">70%</div>
+          <div class="caption">正解率</div>
+          <div class="caption">8 件</div>
+        </div>
+      </section>
+
+      <!-- notesCard -->
+      <section class="card" aria-label="注記">
+        <div class="note">スクリプト一致率は語の再現度です。発音の正確さの評価ではありません</div>
+        <div class="note">集計はこの端末内の履歴のみを使用します</div>
+        <div class="note">モード別の平均は直近 30 学習日の集計です</div>
+      </section>
+    </div>
+  </div>
+  <p class="review-note">
+    DashboardView.readyContent（Phase 1: ss-j36 A–D + チャート a11y）。
+    0 件日は薄い最小バー、モード別は指標名 caption、at-risk はテキスト、注記 3 行、
+    達成日は値 + ✓、チャート aria-label は合計を含む要約。
+    幅 375px・prefers-color-scheme で確認。
+  </p>
+</body>
+</html>

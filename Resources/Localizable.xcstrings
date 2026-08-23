@@ -90,6 +90,8 @@
     "dashboard.modes.rate_value": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%1$lld%%" } } } },
     "dashboard.modes.samples": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%1$lld 件" } } } },
     "dashboard.modes.no_data": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "まだデータなし" } } } },
+    "dashboard.modes.shadowing_metric": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "平均スクリプト一致率" } } } },
+    "dashboard.modes.composition_metric": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "正解率" } } } },
     "dashboard.metric_note": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "スクリプト一致率は語の再現度です。発音の正確さの評価ではありません" } } } },
     "dashboard.local_note": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "集計はこの端末内の履歴のみを使用します" } } } },
     "dashboard.empty": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "まだ学習履歴がありません" } } } },

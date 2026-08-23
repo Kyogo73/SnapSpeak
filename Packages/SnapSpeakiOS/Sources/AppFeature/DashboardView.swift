@@ -135,24 +135,36 @@ public struct DashboardView: View {
                 .font(Typography.headline)
             modeRow(
                 titleKey: "dashboard.modes.shadowing",
+                metricKey: LocalizedStringKey(DashboardPresentation.shadowingMetricKey),
                 rate: summary.shadowingAverageMatchRate,
                 sampleCount: summary.shadowingSampleCount
             )
             modeRow(
                 titleKey: "dashboard.modes.composition",
+                metricKey: LocalizedStringKey(DashboardPresentation.compositionMetricKey),
                 rate: summary.compositionPassRate,
                 sampleCount: summary.compositionScoredCount
             )
         }
     }
 
-    private func modeRow(titleKey: LocalizedStringKey, rate: Double?, sampleCount: Int) -> some View {
+    private func modeRow(
+        titleKey: LocalizedStringKey,
+        metricKey: LocalizedStringKey,
+        rate: Double?,
+        sampleCount: Int
+    ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(titleKey)
                 .font(Typography.headline)
             if let rate {
                 Text(LocalizedFormat.string("dashboard.modes.rate_value", Int((rate * 100).rounded())))
                     .font(Typography.score)
+                if DashboardPresentation.showsMetricCaption(hasRate: true) {
+                    Text(metricKey)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
                 Text(LocalizedFormat.string("dashboard.modes.samples", sampleCount))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryFill)

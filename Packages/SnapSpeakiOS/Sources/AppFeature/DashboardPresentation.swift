@@ -14,4 +14,12 @@ public enum DashboardPresentation {
             ? zeroBarPlaceholderYEnd
             : Double(completedItems)
     }
+
+    public static let shadowingMetricKey = "dashboard.modes.shadowing_metric"
+    public static let compositionMetricKey = "dashboard.modes.composition_metric"
+
+    /// `no_data` 時は指標名だけ出すと空状態が曖昧になるため出さない。
+    public static func showsMetricCaption(hasRate: Bool) -> Bool {
+        hasRate
+    }
 }

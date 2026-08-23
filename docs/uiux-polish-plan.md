@@ -391,7 +391,7 @@ scheme `SnapSpeakiOSTests` の `build.targets` に `ShadowingFeatureTests: [test
 )
 ```
 
-そのうえで `ResultBreakdownTests.swift` を作成し、次を固定する:
+そのうえで `ResultBreakdownTests.swift` を作成し、`@testable import ShadowingFeature` から `ResultView.omittedWordCount` を直接呼んで次を固定する:
 - 単一区間 `AlignedSpan(startRefIndex: 2, endRefIndex: 5)` → 3 語
 - 複数区間 `[0..<2, 4..<7]` → 2 + 3 = 5 語
 - 空配列 → 0 語

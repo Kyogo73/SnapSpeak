@@ -37,6 +37,12 @@ light / dark は `prefers-color-scheme` で切り替える。
 | [dashboard-before.html](./dashboard-before.html) | Phase 1 前（ss-j36 A〜D が再現する現状） |
 | [dashboard.html](./dashboard.html) | Phase 1 後（0 件日プレースホルダ / 指標名 / at-risk テキスト / 30 日窓 / 達成日 ✓ / チャート要約） |
 
+## デザイン判断の参照
+
+- プロダクト全体: `design-system/snapspeak/MASTER.md`（ui-ux-pro-max。子供向けフォント / インディゴパレットは却下し iOS セマンティックトークンに固定）
+- この画面: `design-system/snapspeak/pages/dashboard.md`
+- Open Design はこの Cloud 環境では daemon 未接続のため使わない。視覚レビューは本ディレクトリの HTML。
+
 ## 免責
 
 モックはレビュー用アーティファクトである。実装の正本は SwiftUI コードと `docs/ux-design.md`。乖離を見つけたらモックを直す（モックが正本にならない）。

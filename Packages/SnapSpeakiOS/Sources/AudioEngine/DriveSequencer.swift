@@ -84,15 +84,15 @@ public actor DriveSequencer: DriveSequencing {
     }
 
     public func resume() async {
-        generation += 1
-        let gen = generation
+        guard var cursor, cursor.isPaused else { return }
         do {
             try session.activatePreview()
         } catch {
             emit(.paused(reason: .audioSessionFailure))
             return
         }
-        guard var cursor else { return }
+        generation += 1
+        let gen = generation
         resetItemTiming()
         let outputs = cursor.apply(.resume)
         self.cursor = cursor
@@ -140,9 +140,9 @@ public actor DriveSequencer: DriveSequencing {
     }
 
     private func pause(reason: DrivePauseReason) async {
+        guard var cursor, !cursor.isPaused else { return }
         generation += 1
         await haltPlayback(resetCursor: false)
-        guard var cursor else { return }
         _ = cursor.apply(.pause)
         self.cursor = cursor
         emit(.paused(reason: reason))

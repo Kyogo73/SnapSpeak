@@ -147,6 +147,39 @@ struct DriveSequencerSafetyTests {
         #expect(speech.resetCount == 1)
         #expect(files.resetCount == 1)
     }
+
+    @Test("再生中の resume は no-op で generation を進めない")
+    func resumeWhilePlayingDoesNotEmitResumed() async throws {
+        let speech = HangingSpeech()
+        let sequencer = DriveSequencer(
+            speech: speech,
+            filePlayer: ImmediateFilePlayer(),
+            clock: InstantClock(),
+            session: FakeAudioSession(),
+            assets: EmptyAssetResolver()
+        )
+        let collector = EventCollector(sequencer: sequencer)
+        await collector.start()
+        await sequencer.start(
+            script: announcementScript(),
+            announcementTexts: [.sessionIntro(dueCount: 0, newCount: 0, isRepeatFill: false, isEndless: false): "intro"],
+            outroText: { _ in "" },
+            assets: nil
+        )
+        await waitUntil { speech.speakCount == 1 }
+        await sequencer.resume()
+        await sequencer.resume()
+        try await Task.sleep(nanoseconds: 20_000_000)
+        #expect(collector.events.contains { $0 == .resumed } == false)
+        await sequencer.pause()
+        await waitUntil { collector.events.contains { $0 == .paused(reason: .user) } }
+        await sequencer.pause()
+        try await Task.sleep(nanoseconds: 20_000_000)
+        #expect(collector.events.filter { $0 == .paused(reason: .user) }.count == 1)
+        await sequencer.resume()
+        await waitUntil { collector.events.contains { $0 == .resumed } }
+        #expect(collector.events.contains { $0 == .resumed })
+    }
 }
 
 @Suite("RequestBoundContinuation")

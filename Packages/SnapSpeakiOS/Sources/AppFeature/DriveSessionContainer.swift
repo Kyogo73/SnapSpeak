@@ -78,6 +78,7 @@ struct DriveSessionContainer: View {
             speech: dependencies.speechSynthesis,
             files: dependencies.driveFilePlayer,
             onClose: {
+                viewModel.endListening()
                 Task { await viewModel.stop() }
                 onClose()
             },
@@ -106,6 +107,7 @@ struct DriveSessionContainer: View {
             refreshNowPlaying()
         }
         .onDisappear {
+            viewModel.endListening()
             dependencies.driveRemoteBridge.detach()
             Task { await dependencies.driveSequencer.stop() }
         }
@@ -126,7 +128,8 @@ struct DriveSessionContainer: View {
             artist: DriveAnnouncementText.nowPlayingArtist(
                 courseTitle: viewModel.currentCourseTitle,
                 completed: viewModel.completedCount,
-                planned: viewModel.plannedCount
+                planned: viewModel.plannedCount,
+                isEndless: viewModel.isEndless
             ),
             isPaused: paused
         )

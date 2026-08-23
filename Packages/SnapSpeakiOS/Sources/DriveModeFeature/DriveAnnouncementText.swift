@@ -43,10 +43,27 @@ public enum DriveAnnouncementText {
         localized("drive.nowplaying.title")
     }
 
-    public static func nowPlayingArtist(courseTitle: String, completed: Int, planned: Int) -> String {
-        let progress = LocalizedFormat.string("drive.glance.progress", completed, max(planned, 1))
-        if courseTitle.isEmpty { return progress }
-        return "\(courseTitle) \(progress)"
+    public static func nowPlayingArtist(
+        courseTitle: String,
+        completed: Int,
+        planned: Int,
+        isEndless: Bool = false
+    ) -> String {
+        if isEndless {
+            if courseTitle.isEmpty {
+                return LocalizedFormat.string("drive.glance.progress_count", completed)
+            }
+            return LocalizedFormat.string("drive.nowplaying.artist_endless", courseTitle, completed)
+        }
+        if courseTitle.isEmpty {
+            return LocalizedFormat.string("drive.glance.progress", completed, max(planned, 1))
+        }
+        return LocalizedFormat.string(
+            "drive.nowplaying.artist",
+            courseTitle,
+            completed,
+            max(planned, 1)
+        )
     }
 
     private static func localized(_ key: String) -> String {

@@ -7,6 +7,7 @@ public struct DriveGlanceView: View {
     public var paused: Bool
     public var completed: Int
     public var planned: Int
+    public var isEndless: Bool
     public var onTogglePause: () -> Void
     public var onStop: () -> Void
 
@@ -15,6 +16,7 @@ public struct DriveGlanceView: View {
         paused: Bool,
         completed: Int,
         planned: Int,
+        isEndless: Bool = false,
         onTogglePause: @escaping () -> Void,
         onStop: @escaping () -> Void
     ) {
@@ -22,6 +24,7 @@ public struct DriveGlanceView: View {
         self.paused = paused
         self.completed = completed
         self.planned = planned
+        self.isEndless = isEndless
         self.onTogglePause = onTogglePause
         self.onStop = onStop
     }
@@ -32,7 +35,7 @@ public struct DriveGlanceView: View {
                 Button("drive.glance.stop", action: onStop)
                     .frame(minWidth: 44, minHeight: 44)
                 Spacer()
-                Text(LocalizedFormat.string("drive.glance.progress", completed, max(planned, 1)))
+                Text(progressText)
                     .font(Typography.caption)
                     .monospacedDigit()
                     .foregroundStyle(Colors.secondaryFill)
@@ -54,6 +57,13 @@ public struct DriveGlanceView: View {
             .accessibilityLabel(paused ? "drive.glance.resume" : "drive.glance.pause")
         }
         .padding()
+    }
+
+    private var progressText: String {
+        if isEndless {
+            return LocalizedFormat.string("drive.glance.progress_count", completed)
+        }
+        return LocalizedFormat.string("drive.glance.progress", completed, max(planned, 1))
     }
 
     private var stateKey: LocalizedStringKey {

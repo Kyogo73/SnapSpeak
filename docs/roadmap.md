@@ -131,7 +131,7 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 
 > **実装状況（前倒し）**: 本 Phase のうち **SRS 復習キュー UI・ストリーク・デイリーゴール・ローカル通知リマインダー**、およびオンボーディング（新規設計）は Phase 1 実装直後に **前倒しで実装済み**（develop に反映済み）。UX 正本は [ux-design.md](./ux-design.md)、実装の記録は [phase2-retention-implementation-plan.md](./phase2-retention-implementation-plan.md)。DoD のチェックは実機確認を含むため未チェックのまま残す（実装完了 ≠ DoD 達成）。進捗ダッシュボードは実装済み（DoD の実機確認は未）。
 >
-> **前倒し追加（方針更新）**: プロダクトポジショニングを「運転中の語学学習を主要ユースケースの第一級とする」に更新した（product-overview 冒頭・§1）。これに伴い **ドライブモード MVP を本 Phase の前倒し項目として最優先で組み込む**（StoreKit / ダッシュボードより先に着手する。習慣の供給源が増えるほど課金の説得材料も増えるため）。UX 正本は [ux-design.md §10](./ux-design.md)、実装計画は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。
+> **前倒し追加（方針更新）**: プロダクトポジショニングを「運転中の語学学習を主要ユースケースの第一級とする」に更新した（product-overview 冒頭・§1）。これに伴い **ドライブモード MVP を本 Phase の前倒し項目として最優先で組み込む**（StoreKit より先に着手する。習慣の供給源が増えるほど課金の説得材料も増えるため）。UX 正本は [ux-design.md §10](./ux-design.md)、実装計画は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。
 >
 > **ドライブモード MVP 実装状況**: クライアント実装（`DriveKit` / `DriveModeFeature` / `DriveSequencer` / Settings / `UIBackgroundModes`）は完了。記録は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。DoD のチェックは実車 / 車載 Bluetooth 確認を含むため未チェックのまま残す（実装完了 ≠ DoD 達成）。
 >

@@ -6,6 +6,9 @@ import Foundation
 import HabitKit
 import Persistence
 import SRSKit
+import os
+
+private let driveSessionLogger = Logger(subsystem: "app.snapspeak", category: "drive")
 
 @MainActor
 public final class DriveSessionViewModel: ObservableObject {
@@ -45,6 +48,7 @@ public final class DriveSessionViewModel: ObservableObject {
     @Published public private(set) var phase: Phase = .idle
     @Published public private(set) var completedCount = 0
     @Published public private(set) var plannedCount = 0
+    @Published public private(set) var isEndless = false
     @Published public private(set) var loadFailed = false
     @Published public private(set) var isRepeatFill = false
     @Published public private(set) var dueCount = 0
@@ -63,6 +67,7 @@ public final class DriveSessionViewModel: ObservableObject {
     private var sessionUsedTTS = false
     private var skippedMissing = 0
     private var listenTask: Task<Void, Never>?
+    private var listenGeneration = 0
     private var startedAt = Date()
     private var itemOrder: [String] = []
     private var persistTail = Task<Void, Never> {}
@@ -100,6 +105,7 @@ public final class DriveSessionViewModel: ObservableObject {
             }
         )
         loadFailed = false
+        isEndless = settings.isEndless
         phase = .idle
     }
 
@@ -110,6 +116,7 @@ public final class DriveSessionViewModel: ObservableObject {
 
     public func applyLength(_ length: DriveScriptSettings.SessionLength) {
         settings.sessionLength = length
+        isEndless = settings.isEndless
     }
 
     public func start(courses: [StoredCourse]) async {
@@ -133,6 +140,7 @@ public final class DriveSessionViewModel: ObservableObject {
             return
         }
         plannedCount = script.itemPassCount
+        isEndless = script.loops
         analytics.track(
             .driveSessionStarted(
                 dueCount: dueCount,
@@ -141,8 +149,10 @@ public final class DriveSessionViewModel: ObservableObject {
             )
         )
         let stream = await sequencer.events()
+        listenGeneration += 1
+        let token = listenGeneration
         listenTask?.cancel()
-        listenTask = Task { await self.listen(to: stream) }
+        listenTask = Task { await self.listen(to: stream, token: token) }
         await sequencer.start(
             script: script,
             announcementTexts: DriveAnnouncementText.texts(for: script),
@@ -157,6 +167,13 @@ public final class DriveSessionViewModel: ObservableObject {
     public func pause() async { await sequencer.pause() }
     public func resume() async { await sequencer.resume() }
     public func stop() async { await sequencer.stop() }
+
+    /// 画面終了時に購読を切る。以降の遅延イベントは無視する。
+    public func endListening() {
+        listenGeneration += 1
+        listenTask?.cancel()
+        listenTask = nil
+    }
 
     public func openNote() {
         guard case .finished = phase, let note = finishedNote else { return }
@@ -186,13 +203,21 @@ public final class DriveSessionViewModel: ObservableObject {
         analytics.track(.driveNoteOpened(completedCount: count))
     }
 
-    private func listen(to stream: AsyncStream<DriveSequencerEvent>) async {
+    private func listen(to stream: AsyncStream<DriveSequencerEvent>, token: Int) async {
         for await event in stream {
-            handle(event)
+            guard !Task.isCancelled, token == listenGeneration else { return }
+            handle(event, token: token)
         }
     }
 
-    private func handle(_ event: DriveSequencerEvent) {
+    private func handle(_ event: DriveSequencerEvent, token: Int) {
+        guard token == listenGeneration else { return }
+        switch phase {
+        case .finished, .reviewing:
+            return
+        case .idle, .starting, .running:
+            break
+        }
         switch event {
         case let .phaseChanged(kind, itemRef):
             let index = itemIndex(for: itemRef)
@@ -205,27 +230,29 @@ public final class DriveSessionViewModel: ObservableObject {
         case let .itemCompleted(ref, usedTTS, elapsed):
             let createdAt = Date()
             sessionUsedTTS = sessionUsedTTS || usedTTS
-            completedCount += 1
-            let key = DrivePlanResolver.itemKey(courseId: ref.courseId, itemId: ref.itemId)
-            if let item = itemsByKey[key], let lookup = resolution.lookups[key] {
-                appendNote(item: item, lookup: lookup)
-            }
             enqueuePersist(ref: ref, usedTTS: usedTTS, elapsed: elapsed, createdAt: createdAt)
         case .itemSkipped:
             skippedMissing += 1
         case .paused:
-            if case let .running(kind, index, _) = phase {
-                phase = .running(phaseKind: kind, itemIndex: index, paused: true)
-            }
+            applyPauseFlag(true)
         case .resumed:
-            if case let .running(kind, index, _) = phase {
-                phase = .running(phaseKind: kind, itemIndex: index, paused: false)
-            }
-        case let .finished(endedByUser, count, usedTTSFallback):
-            completedCount = count
+            applyPauseFlag(false)
+        case let .finished(endedByUser, _, usedTTSFallback):
             sessionUsedTTS = sessionUsedTTS || usedTTSFallback
             pendingFinish = (endedByUser, sessionUsedTTS)
+            endListening()
             enqueueFinishIfReady()
+        }
+    }
+
+    private func applyPauseFlag(_ paused: Bool) {
+        switch phase {
+        case .finished, .reviewing:
+            return
+        case let .running(kind, index, _):
+            phase = .running(phaseKind: kind, itemIndex: index, paused: paused)
+        case .idle, .starting:
+            phase = .running(phaseKind: .sessionIntro, itemIndex: 0, paused: paused)
         }
     }
 
@@ -254,15 +281,47 @@ public final class DriveSessionViewModel: ObservableObject {
     private func persist(ref: DriveItemRef, usedTTS: Bool, elapsed: Int, createdAt: Date) async {
         let key = DrivePlanResolver.itemKey(courseId: ref.courseId, itemId: ref.itemId)
         guard let item = itemsByKey[key], let lookup = resolution.lookups[key] else { return }
-        _ = try? await recorder.record(
+        guard await recordAttempt(
             item: item,
             lookup: lookup,
             passIndex: ref.passIndex,
-            usedTTSFallback: usedTTS,
-            elapsedMs: elapsed,
-            createdAt: createdAt,
-            settings: settings
-        )
+            usedTTS: usedTTS,
+            elapsed: elapsed,
+            createdAt: createdAt
+        ) else { return }
+        completedCount += 1
+        appendNote(item: item, lookup: lookup)
+    }
+
+    private func recordAttempt(
+        item: DriveItem,
+        lookup: DrivePlanResolver.Lookup,
+        passIndex: Int,
+        usedTTS: Bool,
+        elapsed: Int,
+        createdAt: Date
+    ) async -> Bool {
+        for attempt in 1...2 {
+            do {
+                _ = try await recorder.record(
+                    item: item,
+                    lookup: lookup,
+                    passIndex: passIndex,
+                    usedTTSFallback: usedTTS,
+                    elapsedMs: elapsed,
+                    createdAt: createdAt,
+                    settings: settings
+                )
+                return true
+            } catch {
+                if attempt == 2 {
+                    driveSessionLogger.error(
+                        "drive attempt persist failed: \(error.localizedDescription, privacy: .public)"
+                    )
+                }
+            }
+        }
+        return false
     }
 
     private func confirmFinish() async {

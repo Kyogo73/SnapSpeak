@@ -60,6 +60,7 @@ public struct DriveSessionView: View {
                     paused: false,
                     completed: viewModel.completedCount,
                     planned: viewModel.plannedCount,
+                    isEndless: viewModel.isEndless,
                     onTogglePause: {},
                     onStop: { Task { await viewModel.stop() } }
                 )
@@ -69,6 +70,7 @@ public struct DriveSessionView: View {
                     paused: paused,
                     completed: viewModel.completedCount,
                     planned: viewModel.plannedCount,
+                    isEndless: viewModel.isEndless,
                     onTogglePause: {
                         Task {
                             if paused {

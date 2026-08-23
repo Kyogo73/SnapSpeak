@@ -224,4 +224,43 @@ struct DriveCursorTests {
         _ = cursor.apply(.pause)
         #expect(cursor.apply(.resume) == [.play(phaseIndex: 0)])
     }
+
+    @Test("再生中の resume は no-op で進行を壊さない")
+    func resumeWhilePlayingIsNoOpAndDoesNotStall() {
+        let script = DriveScriptBuilder.build(
+            items: [
+                DriveFixtures.composition(id: "a"),
+                DriveFixtures.composition(id: "b"),
+            ],
+            settings: DriveFixtures.settings(timing: DriveFixtures.cappedTiming(2))
+        )
+        var cursor = DriveCursor(script: script)
+        _ = cursor.start()
+        _ = cursor.apply(.phaseFinished)
+        #expect(cursor.isPaused == false)
+        #expect(cursor.apply(.resume).isEmpty)
+        #expect(cursor.isPaused == false)
+        let next = cursor.apply(.phaseFinished)
+        #expect(next.isEmpty == false)
+        let outputs = cursor.playThrough()
+        #expect(outputs.contains { if case .finished(endedByUser: false) = $0 { return true }; return false })
+        #expect(cursor.completedPassCount == script.itemPassCount)
+    }
+
+    @Test("pause 後の二重 resume は 2 回目が no-op で進行を壊さない")
+    func secondResumeAfterPauseIsNoOp() {
+        let script = DriveScriptBuilder.build(
+            items: [DriveFixtures.composition(id: "a")],
+            settings: DriveFixtures.onePassStandard
+        )
+        var cursor = DriveCursor(script: script)
+        #expect(cursor.start() == [.play(phaseIndex: 0)])
+        _ = cursor.apply(.pause)
+        #expect(cursor.apply(.resume) == [.play(phaseIndex: 0)])
+        #expect(cursor.isPaused == false)
+        #expect(cursor.apply(.resume).isEmpty)
+        let outputs = cursor.playThrough()
+        #expect(DriveCursor.completedRefs(in: outputs).count == 1)
+        #expect(outputs.contains { if case .finished(endedByUser: false) = $0 { return true }; return false })
+    }
 }

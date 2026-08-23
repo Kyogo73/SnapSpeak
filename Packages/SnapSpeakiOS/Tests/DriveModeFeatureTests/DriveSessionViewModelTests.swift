@@ -168,6 +168,111 @@ struct DriveSessionViewModelTests {
         #expect(viewModel.phase == .idle)
     }
 
+    @Test("starting 中の paused は実行中表示に上書きせず一時停止になる")
+    func pausedDuringStartIsKept() async throws {
+        let sequencer = FakeDriveSequencer()
+        sequencer.pauseOnStart = true
+        let persistence = try makeViewModelPersistence()
+        let viewModel = DriveSessionViewModel(
+            sequencer: sequencer,
+            recorder: DriveAttemptRecorder(persistence: persistence, analytics: RecordingAnalytics()),
+            analytics: RecordingAnalytics()
+        )
+        let course = try DriveTestSupport.shadowingCourse()
+        viewModel.prepare(
+            plan: SessionPlan(
+                reviews: [DriveTestSupport.due(courseId: "course_a", itemId: "item_ok")],
+                deferredDueCount: 0,
+                newLesson: nil
+            ),
+            courses: [DriveTestSupport.stored(course)],
+            settings: DriveScriptSettings.standard
+        )
+        await viewModel.start(courses: [DriveTestSupport.stored(course)])
+        await waitUntil {
+            if case let .running(_, _, paused) = viewModel.phase { return paused }
+            return false
+        }
+        if case let .running(_, _, paused) = viewModel.phase {
+            #expect(paused)
+        } else {
+            Issue.record("expected running paused after audio session failure")
+        }
+    }
+
+    @Test("finished 後および endListening 後の itemCompleted は追記しない")
+    func lateItemCompletedIsIgnored() async throws {
+        let sequencer = FakeDriveSequencer()
+        let persistence = try makeViewModelPersistence()
+        let viewModel = DriveSessionViewModel(
+            sequencer: sequencer,
+            recorder: DriveAttemptRecorder(persistence: persistence, analytics: RecordingAnalytics()),
+            analytics: RecordingAnalytics()
+        )
+        let course = try DriveTestSupport.shadowingCourse()
+        viewModel.prepare(
+            plan: SessionPlan(
+                reviews: [DriveTestSupport.due(courseId: "course_a", itemId: "item_ok")],
+                deferredDueCount: 0,
+                newLesson: nil
+            ),
+            courses: [DriveTestSupport.stored(course)],
+            settings: DriveScriptSettings.standard
+        )
+        await viewModel.start(courses: [DriveTestSupport.stored(course)])
+        sequencer.emit(.finished(endedByUser: true, completedCount: 0, usedTTSFallback: false))
+        await waitUntil {
+            if case .finished = viewModel.phase { return true }
+            return false
+        }
+        let ref = DriveItemRef(courseId: "course_a", itemId: "item_ok", skill: .shadowing, passIndex: 0)
+        sequencer.emit(.itemCompleted(ref, usedTTSFallback: false, elapsedMs: 1_000))
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        #expect(viewModel.completedCount == 0)
+        #expect(try await persistence.latestAttempt() == nil)
+
+        viewModel.endListening()
+        sequencer.emit(.itemCompleted(ref, usedTTSFallback: false, elapsedMs: 1_000))
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        #expect(viewModel.completedCount == 0)
+        #expect(try await persistence.latestAttempt() == nil)
+    }
+
+    @Test("セッション完了数は sequencer の count ではなく永続化成功分")
+    func completedCountFollowsPersistedAttemptsNotSequencerCount() async throws {
+        let sequencer = FakeDriveSequencer()
+        let persistence = try makeViewModelPersistence()
+        let analytics = RecordingAnalytics()
+        let viewModel = DriveSessionViewModel(
+            sequencer: sequencer,
+            recorder: DriveAttemptRecorder(persistence: persistence, analytics: analytics),
+            analytics: analytics
+        )
+        let course = try DriveTestSupport.shadowingCourse()
+        viewModel.prepare(
+            plan: SessionPlan(
+                reviews: [DriveTestSupport.due(courseId: "course_a", itemId: "item_ok")],
+                deferredDueCount: 0,
+                newLesson: nil
+            ),
+            courses: [DriveTestSupport.stored(course)],
+            settings: DriveScriptSettings.standard
+        )
+        await viewModel.start(courses: [DriveTestSupport.stored(course)])
+        let ref = DriveItemRef(courseId: "course_a", itemId: "item_ok", skill: .shadowing, passIndex: 0)
+        sequencer.emit(.itemCompleted(ref, usedTTSFallback: false, elapsedMs: 1_200))
+        sequencer.emit(.finished(endedByUser: false, completedCount: 99, usedTTSFallback: false))
+        await waitUntil {
+            if case .finished = viewModel.phase { return true }
+            return false
+        }
+        #expect(viewModel.completedCount == 1)
+        #expect(analytics.events.contains {
+            if case let .driveSessionCompleted(count, _, _, _) = $0 { return count == 1 }
+            return false
+        })
+    }
+
     @Test("noteOpened は drive_note_opened を送る")
     func noteOpenedTracksEvent() async throws {
         let sequencer = FakeDriveSequencer()
@@ -214,6 +319,7 @@ final class FakeDriveSequencer: DriveSequencing, @unchecked Sendable {
     private(set) var didStart = false
     private(set) var pauseCount = 0
     private(set) var resumeCount = 0
+    var pauseOnStart = false
 
     init() {
         let pair = AsyncStream.makeStream(of: DriveSequencerEvent.self)
@@ -234,6 +340,9 @@ final class FakeDriveSequencer: DriveSequencing, @unchecked Sendable {
         _ = outroText
         _ = assets
         didStart = true
+        if pauseOnStart {
+            continuation.yield(.paused(reason: .audioSessionFailure))
+        }
     }
 
     func pause() async { pauseCount += 1 }

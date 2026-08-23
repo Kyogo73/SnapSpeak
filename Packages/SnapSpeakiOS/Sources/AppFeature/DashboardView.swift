@@ -183,12 +183,11 @@ public struct DashboardView: View {
 
     private var notesCard: some View {
         CardContainer {
-            Text("dashboard.metric_note")
-                .font(Typography.caption)
-                .foregroundStyle(Colors.secondaryFill)
-            Text("dashboard.local_note")
-                .font(Typography.caption)
-                .foregroundStyle(Colors.secondaryFill)
+            ForEach(DashboardPresentation.noteKeys, id: \.self) { key in
+                Text(LocalizedStringKey(key))
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.secondaryFill)
+            }
         }
     }
 

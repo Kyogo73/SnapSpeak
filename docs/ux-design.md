@@ -395,8 +395,9 @@ flowchart TD
 │ │ 瞬間英作文      70%  ・  8 件 │ │
 │ └────────────────────────────┘ │
 │ ┌────────────────────────────┐ │
-│ │ スクリプト一致率は語の再現度   │ │  ← caption 2 行
+│ │ スクリプト一致率は語の再現度   │ │  ← caption 3 行
 │ │ 集計はこの端末内の履歴のみ     │ │
+│ │ モード別平均は直近 30 学習日   │ │
 │ └────────────────────────────┘ │
 └────────────────────────────────┘
 ```
@@ -409,7 +410,7 @@ flowchart TD
 | | 週間完了 | 上記 7 学習日の完了合計（`dashboard.week.total`） |
 | モード別 | シャドーイング | 直近 30 学習日の `scriptMatchRate` 単純平均。件数併記。0 件は `dashboard.modes.no_data` |
 | | 瞬間英作文 | 同窓の `pass / (pass + fail)`。`unscored` は分母に入れない |
-| 注記 | caption 2 行 | `dashboard.metric_note`（語の再現度であり発音の正確さではない）と `dashboard.local_note`（この端末内の履歴のみ） |
+| 注記 | caption 3 行 | `dashboard.metric_note`（語の再現度であり発音の正確さではない）と `dashboard.local_note`（この端末内の履歴のみ）と `dashboard.window_note`（直近 30 学習日窓である旨） |
 | a11y | チャート | 全体に `dashboard.week.title`。各バーは日付ラベル + `dashboard.bar.value_label`（n 問）。goalMet なら `dashboard.bar.goal_met` を値に追記 |
 | Dynamic Type | | 固定高さはチャート（180pt 程度）のみ。カードは縦積みで崩れない |
 

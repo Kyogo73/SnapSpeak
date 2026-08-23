@@ -31,4 +31,14 @@ struct DashboardPresentationTests {
         #expect(DashboardPresentation.showsAtRiskCaption(isAtRisk: false) == false)
         #expect(DashboardPresentation.atRiskCaptionKey == "streak.at_risk")
     }
+
+    @Test("注記は 30 学習日窓を含む 3 行（ss-j36 D）")
+    func noteKeysIncludeThirtyDayWindow() {
+        #expect(DashboardPresentation.noteKeys == [
+            "dashboard.metric_note",
+            "dashboard.local_note",
+            "dashboard.window_note",
+        ])
+        #expect(DashboardPresentation.noteKeys.count == 3)
+    }
 }

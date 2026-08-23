@@ -94,6 +94,7 @@
     "dashboard.modes.composition_metric": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "正解率" } } } },
     "dashboard.metric_note": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "スクリプト一致率は語の再現度です。発音の正確さの評価ではありません" } } } },
     "dashboard.local_note": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "集計はこの端末内の履歴のみを使用します" } } } },
+    "dashboard.window_note": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "モード別の平均は直近 30 学習日の集計です" } } } },
     "dashboard.empty": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "まだ学習履歴がありません" } } } },
     "dashboard.load_failed": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "進捗を読み込めませんでした" } } } },
     "dashboard.retry": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "再読み込み" } } } },

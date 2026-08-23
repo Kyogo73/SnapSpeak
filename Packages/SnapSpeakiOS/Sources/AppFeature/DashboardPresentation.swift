@@ -28,4 +28,10 @@ public enum DashboardPresentation {
     public static func showsAtRiskCaption(isAtRisk: Bool) -> Bool {
         isAtRisk
     }
+
+    public static let noteKeys = [
+        "dashboard.metric_note",
+        "dashboard.local_note",
+        "dashboard.window_note",
+    ]
 }

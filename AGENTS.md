@@ -29,6 +29,8 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運�
 - プロジェクトのプラグイン有効/無効は `.cursor/settings.json` で宣言する。web フロントエンド専用の `playwright` / `shadcn` は **本リポジトリでは無効**（iOS アプリ開発に不要。誤作動・接続エラーの騒音源になるため）。`semgrep-plugin`（静的解析）/ `cloudflare`（R2 構築。Phase 2 残スコープ）/ `supabase`（Phase 3）/ `open-design`（デザイン制作。ローカルの od デーモン 127.0.0.1:7456 が前提）は有効。`mobbin` はプロジェクトとしての指定なし（各自の既定に従う）。
 - OAuth が必要なプラグイン（Cloudflare bindings / builds / observability、Supabase、Mobbin）は**各自が初回にブラウザでログイン**して使う（設定 → MCP の「Needs login」から）。
 - **Cloud Agents はリポジトリの `.cursor/mcp.json` を読まない**。Cloud Agent に MCP を足す場合は cursor.com ダッシュボード（個人またはチームの MCP 設定）で構成する（SSE 非対応・HTTP 推奨・OAuth はユーザー単位）。
+- **Cloud VM にはプラグインの実体（スキル・フック）は配信されない**（2026-08-23 実測: plugin manifest が空）。プラグインは MCP ツール部分のみ利用可 — HTTP 型（Context7 / Cloudflare-docs）は即時、OAuth 型（Cloudflare bindings 等 / Supabase）はダッシュボードでの認証後、stdio 型（Semgrep / Open-design 等）は VM に CLI が無いため不可。superpowers 等のスキルはローカル IDE 専用。
+- Cloud VM で beads（`bd`）を使う場合（VM には未導入）: `npm i -g --prefix ~/.local "@beads/bd"` の後 `export PATH="$HOME/.local/bin:$PATH"`。初回のみ `bd init -p ss --skip-agents --skip-hooks --non-interactive` を実行し、init が勝手に作る自動コミット（.gitignore 変更）を `git reset --mixed HEAD~1 && git checkout -- .gitignore` で取り消してから `bd config set no-db true` にする（`.beads/issues.jsonl` が正本。Dolt DB は使わない）。
 
 ### ブランチ運用（正本は `docs/development-workflow.md`）
 

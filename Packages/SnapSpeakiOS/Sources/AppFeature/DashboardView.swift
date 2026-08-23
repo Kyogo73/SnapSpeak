@@ -75,6 +75,11 @@ public struct DashboardView: View {
                 ),
                 accessibilityHint: summary.streak.isAtRisk ? "streak.at_risk" : nil
             )
+            if DashboardPresentation.showsAtRiskCaption(isAtRisk: summary.streak.isAtRisk) {
+                Text("streak.at_risk")
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.warning)
+            }
             Text(LocalizedFormat.string("dashboard.streak.longest", summary.streak.longestStreakDays))
                 .font(Typography.body)
             Text(LocalizedFormat.string("dashboard.streak.total", summary.streak.totalStudyDays))

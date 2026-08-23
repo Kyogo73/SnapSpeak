@@ -24,4 +24,11 @@ struct DashboardPresentationTests {
         #expect(DashboardPresentation.shadowingMetricKey == "dashboard.modes.shadowing_metric")
         #expect(DashboardPresentation.compositionMetricKey == "dashboard.modes.composition_metric")
     }
+
+    @Test("ストリーク at-risk はテキストでも出す（ss-j36 C）")
+    func showsAtRiskCaptionWhenAtRisk() {
+        #expect(DashboardPresentation.showsAtRiskCaption(isAtRisk: true))
+        #expect(DashboardPresentation.showsAtRiskCaption(isAtRisk: false) == false)
+        #expect(DashboardPresentation.atRiskCaptionKey == "streak.at_risk")
+    }
 }

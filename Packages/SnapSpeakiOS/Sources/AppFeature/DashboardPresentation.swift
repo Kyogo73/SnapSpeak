@@ -22,4 +22,10 @@ public enum DashboardPresentation {
     public static func showsMetricCaption(hasRate: Bool) -> Bool {
         hasRate
     }
+
+    public static let atRiskCaptionKey = "streak.at_risk"
+
+    public static func showsAtRiskCaption(isAtRisk: Bool) -> Bool {
+        isAtRisk
+    }
 }

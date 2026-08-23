@@ -26,7 +26,7 @@ SnapSpeak（iPhone 向けシャドーイング＋瞬間英作文アプリ。運�
 ### MCP / プラグイン（AI 開発ツール設定）
 
 - リポジトリ標準の MCP サーバーは `.cursor/mcp.json` にコミット済み（**認証キー不要の HTTP 型のみ**を置く。秘密情報は置かない）: `context7`（ライブラリ最新ドキュメント）/ `cloudflare-docs`（R2・Workers 公式ドキュメント検索。CDN は R2 採用）/ `deepwiki`（OSS リポジトリへの Q&A）。IDE でこのリポジトリを開くと全員そのまま使える。
-- プロジェクトのプラグイン有効/無効は `.cursor/settings.json` で宣言する。web フロントエンド専用の `playwright` / `shadcn` / `open-design` は **本リポジトリでは無効**（iOS アプリ開発に不要。誤作動・接続エラーの騒音源になるため）。`semgrep-plugin`（静的解析）/ `cloudflare`（R2 構築。Phase 2 残スコープ）/ `supabase`（Phase 3）/ `mobbin`（UX リサーチ）は有効。
+- プロジェクトのプラグイン有効/無効は `.cursor/settings.json` で宣言する。web フロントエンド専用の `playwright` / `shadcn` は **本リポジトリでは無効**（iOS アプリ開発に不要。誤作動・接続エラーの騒音源になるため）。`semgrep-plugin`（静的解析）/ `cloudflare`（R2 構築。Phase 2 残スコープ）/ `supabase`（Phase 3）/ `open-design`（デザイン制作。ローカルの od デーモン 127.0.0.1:7456 が前提）は有効。`mobbin` はプロジェクトとしての指定なし（各自の既定に従う）。
 - OAuth が必要なプラグイン（Cloudflare bindings / builds / observability、Supabase、Mobbin）は**各自が初回にブラウザでログイン**して使う（設定 → MCP の「Needs login」から）。
 - **Cloud Agents はリポジトリの `.cursor/mcp.json` を読まない**。Cloud Agent に MCP を足す場合は cursor.com ダッシュボード（個人またはチームの MCP 設定）で構成する（SSE 非対応・HTTP 推奨・OAuth はユーザー単位）。
 

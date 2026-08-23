@@ -9,9 +9,6 @@
     "supabase": {
       "enabled": true
     },
-    "mobbin": {
-      "enabled": true
-    },
     "playwright": {
       "enabled": false
     },
@@ -19,7 +16,7 @@
       "enabled": false
     },
     "open-design": {
-      "enabled": false
+      "enabled": true
     }
   }
 }

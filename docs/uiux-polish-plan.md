@@ -308,7 +308,7 @@ git commit -m "fix(dashboard): チャート全体の a11y 要約と達成日の�
 
 **Interfaces:**
 - Consumes: `ShadowingScore`（ScoringKit）の既存プロパティ `omissions: [AlignedSpan]` / `hesitations: Int` / `wpm: Double` / `delayMsMedian: Int?` / `delayGranularity: DelayGranularity`。core は変更しない。
-- Produces: `static func omittedWordCount(_ omissions: [AlignedSpan]) -> Int`（抜け語数の算出。後続タスク・テストが利用）。新規 i18n キー `result.breakdown.omissions`（「抜け %lld 語」）/ `result.breakdown.hesitations`（「言い淀み %lld 回」）/ `result.breakdown.wpm`（「WPM %.1f」）/ `result.breakdown.delay`（「遅延 中央値 %lld ms」）/ `result.breakdown.delay_approx`（「遅延は文単位の概算です」）。
+- Produces: `ResultView` の **internal** `static func omittedWordCount(_ omissions: [AlignedSpan]) -> Int`（抜け語数。`private` にはしない。`ShadowingFeatureTests` から `@testable import ShadowingFeature` で参照する）。新規 i18n キー `result.breakdown.omissions`（「抜け %lld 語」）/ `result.breakdown.hesitations`（「言い淀み %lld 回」）/ `result.breakdown.wpm`（「WPM %.1f」）/ `result.breakdown.delay`（「遅延 中央値 %lld ms」）/ `result.breakdown.delay_approx`（「遅延は文単位の概算です」）。
 
 - [ ] **Step 1: i18n キーを追加**
 
@@ -316,14 +316,17 @@ git commit -m "fix(dashboard): チャート全体の a11y 要約と達成日の�
 
 - [ ] **Step 2: 抜け語数の算出ロジックを実装する**
 
-`score.omissions` は `[AlignedSpan]` で、各要素は連続した抜け区間（半開区間 `[startRefIndex, endRefIndex)`、ScoringKit `AlignedSpan` / `HesitationDetector` 実装どおり）。`omissions.count` は「区間数」であり「抜けた語数」ではないため、語数は次の純関数で算出する（`ResultView.swift` 内の private ヘルパか、テスト可能な static func として `ShadowingFeature` に置く）:
+`score.omissions` は `[AlignedSpan]` で、各要素は連続した抜け区間（半開区間 `[startRefIndex, endRefIndex)`、ScoringKit `AlignedSpan` / `HesitationDetector` 実装どおり）。`omissions.count` は「区間数」であり「抜けた語数」ではないため、語数は次の純関数で算出する。**アクセス制御は internal static に固定する**（`private` ヘルパ案は採らない。テスト対象なので `@testable import ShadowingFeature` から `ResultView.omittedWordCount` を呼べること）:
 
 ```swift
 /// 抜けた語数 = 各区間の (endRefIndex - startRefIndex) の合計（半開区間）。
+/// internal（省略時も internal）。private にはしない。
 static func omittedWordCount(_ omissions: [AlignedSpan]) -> Int {
     omissions.reduce(0) { $0 + max(0, $1.endRefIndex - $1.startRefIndex) }
 }
 ```
+
+テストは `@testable import ShadowingFeature` のうえ `ResultView.omittedWordCount(...)` を直接呼ぶ。
 
 - [ ] **Step 3: `ShadowingFeatureTests` を新設し、抜け語数テストを追加する**
 
@@ -447,7 +450,7 @@ git commit -m "feat(shadowing): 結果画面に抜け・言い淀み・WPM・遅
 
 **Interfaces:**
 - Consumes: 既存の `ShadowingUseCaseError` / `CompositionUseCaseError`。`microphoneDenied` は既存フェーズのまま `.failed` に落とさない。
-- Produces: 各 ViewModel にネストした同型の失敗種別（`ShadowingLessonViewModel.FailureKind` / `CompositionSessionViewModel.FailureKind`。ケースは `load` / `playback` / `scoring`）。`CompositionFeature` が `ShadowingFeature` に依存しないよう、共有型は作らない。両 ViewModel の `.failed` を `failed(String)` から `failed(FailureKind)` に変える。採点失敗からの復帰は `retryAfterScoringFailure()`（シャドーイングは `.ready`、瞬間英作文は `.prompt`。採点 API は再実行しない）。新規 i18n キー `lesson.error.load`（「教材の読み込みに失敗しました。もう一度お試しください」）/ `lesson.error.playback`（「録音または再生に失敗しました。もう一度お試しください」）/ `lesson.error.scoring`（「採点に失敗しました。もう一度お試しください」）。
+- Produces: 各 ViewModel にネストした同型の失敗種別（`ShadowingLessonViewModel.FailureKind` / `CompositionSessionViewModel.FailureKind`。ケースは `load` / `playback` / `scoring`）。`CompositionFeature` が `ShadowingFeature` に依存しないよう、共有型は作らない。両 ViewModel の `.failed` を `failed(String)` から `failed(FailureKind)` に変える。採点失敗からの復帰は `retryAfterScoringFailure()`（シャドーイングは `asrReady ? .ready : .degradedNoASR`、瞬間英作文は `.prompt`。採点 API は再実行しない）。新規 i18n キー `lesson.error.load`（「教材の読み込みに失敗しました。もう一度お試しください」）/ `lesson.error.playback`（「録音または再生に失敗しました。もう一度お試しください」）/ `lesson.error.scoring`（「採点に失敗しました。もう一度お試しください」）。
 
 写像（`ShadowingLessonViewModel`）:
 - `load()` の course/item 欠落 → `.failed(.load)`
@@ -467,7 +470,7 @@ git commit -m "feat(shadowing): 結果画面に抜け・言い淀み・WPM・遅
 
 - [ ] **Step 2: 失敗種別の型と ViewModel の写像を実装**
 
-各 ViewModel に `public enum FailureKind: Sendable, Equatable { case load, playback, scoring }` をネスト定義する。Interfaces の写像表どおり `.failed(FailureKind)` に変更し、生の `String(describing:)` は破棄する。`microphoneDenied` は既存フェーズを維持する。加えて `retryAfterScoringFailure()` を実装する（シャドーイング: `score = nil` のうえ `phase = .ready`。瞬間英作文: `outcome = nil`・`recordingURL = nil` のうえ `phase = .prompt`。`stopAndScore` / `submitTyped` / `finishSpeaking` は呼ばない）。
+各 ViewModel に `public enum FailureKind: Sendable, Equatable { case load, playback, scoring }` をネスト定義する。Interfaces の写像表どおり `.failed(FailureKind)` に変更し、生の `String(describing:)` は破棄する。`microphoneDenied` は既存フェーズを維持する。加えて `retryAfterScoringFailure()` を実装する。シャドーイングは `score = nil` のうえ **`phase = asrReady ? .ready : .degradedNoASR`**（常に `.ready` にすると ASR 不可時の警告バナーが消える。`ShadowingLessonView` は `.degradedNoASR` のときだけ `DegradedBanner(titleKey: "degraded.no_asr")` を出す）。瞬間英作文は `outcome = nil`・`recordingURL = nil` のうえ `phase = .prompt`。`stopAndScore` / `submitTyped` / `finishSpeaking` は呼ばない。
 
 - [ ] **Step 3: テストが通ることを確認（hostless は CI）**
 
@@ -481,9 +484,13 @@ Interfaces の 3 キー（`lesson.error.load` / `lesson.error.playback` / `lesso
 - `.load` → `common.retry` で `load()` 再試行
 - `.playback` → シャドーイングは `start()`、瞬間英作文は `startSpeaking()`（録音・再生のやり直し）
 - `.scoring` → **採点を再実行しない。** 各 ViewModel に `retryAfterScoringFailure()` を追加する。
-  - シャドーイング: `score = nil` にして `phase = .ready` に戻す。再試行ボタンはこのメソッドだけを呼び、ユーザーは既存の開始操作で**再録音**する。
+  - シャドーイング: `score = nil` にし、`phase = asrReady ? .ready : .degradedNoASR` に戻す。再試行ボタンはこのメソッドだけを呼び、ユーザーは既存の開始操作で**再録音**する。`.degradedNoASR` 復帰時は既存の `DegradedBanner(titleKey: "degraded.no_asr")` が再表示されること。
   - 瞬間英作文: `outcome = nil`、`recordingURL = nil` にして `phase = .prompt` に戻す。`typedText` は残してよく、ユーザーがキーボード再送信またはマイクから**再入力 / 再録音**する。
-  - テストで固定する: 採点失敗後の retry が `stopAndScore` / `submitTyped` / `finishSpeaking` を呼ばないこと、および `phase` が `.ready` / `.prompt` になること。
+  - テストで固定する（両経路必須）:
+    - 採点失敗後の retry が `stopAndScore` / `submitTyped` / `finishSpeaking` を呼ばないこと。
+    - シャドーイング `asrReady == true`: retry 後 `phase == .ready`。
+    - シャドーイング `asrReady == false`（`prepare` が ASR 不可を返す既存 degraded 経路）: retry 後 `phase == .degradedNoASR`（`.ready` ではない）。
+    - 瞬間英作文: retry 後 `phase == .prompt`。
 
 - [ ] **Step 6: 検証**
 
@@ -900,13 +907,14 @@ git commit -m "feat(review): サマリの目標達成にリング演出（Reduce
 
 **Files:**
 - Modify: `Packages/SnapSpeakiOS/Sources/AppFeature/HomeView.swift`（`habitCard`）
+- Modify: `Resources/Localizable.xcstrings`
 
 **Interfaces:**
-- Produces: なし。
+- Produces: 新規 i18n キー `home.habit.loading`（「今日の進捗を読み込んでいます」）。
 
 - [ ] **Step 1: loading 中のプレースホルダ（`TodayState.loading` に限定）**
 
-`habitCard` は現在 `if let snapshot = today.snapshot` で、nil の間はカードごと消える。ただし `snapshot == nil` をすべて loading と扱うと、**初回読み込み失敗（`TodayState.failed`）でもプレースホルダが残ってしまう**（Important 指摘）。プレースホルダは `today.state == .loading` のときに限定する:
+`habitCard` は現在 `if let snapshot = today.snapshot` で、nil の間はカードごと消える。ただし `snapshot == nil` をすべて loading と扱うと、**初回読み込み失敗（`TodayState.failed`）でもプレースホルダが残ってしまう**。プレースホルダは `today.state == .loading` のときに限定する:
 
 ```swift
 if let snapshot = today.snapshot {
@@ -918,7 +926,20 @@ if let snapshot = today.snapshot {
 // （.failed は todayCard 側の load_failed + retry が既に表示される）
 ```
 
-loading 中は同じ `CardContainer` 内に `StreakBadge` 相当の高さと `ProgressRing` の枠（`Colors.secondaryFill.opacity(0.25)` の円）を持つプレースホルダを表示して、出現時のレイアウトシフトを防ぐ（`content-jumping`）。プレースホルダは `accessibilityHidden(true)`（読み上げは既存の ProgressView に任せる）。
+`HomeView` には読み上げを任せる既存の `ProgressView` は無い。プレースホルダ全体を `accessibilityHidden(true)` にすると loading が VoiceOver に伝わらない。同じ `CardContainer` 内に次を置く:
+- CLS 防止の骨格: `StreakBadge` 相当の高さと `ProgressRing` の枠（`Colors.secondaryFill.opacity(0.25)` の円）。骨格は `accessibilityHidden(true)`。
+- アクセシブルな loading: `ProgressView()` を追加し、`.accessibilityLabel("home.habit.loading")` を付ける（装飾だけのプレースホルダにしない）。
+
+```swift
+CardContainer {
+    ProgressView()
+        .accessibilityLabel("home.habit.loading")
+    Circle()
+        .stroke(Colors.secondaryFill.opacity(0.25), lineWidth: 8)
+        .frame(width: 56, height: 56)
+        .accessibilityHidden(true)
+}
+```
 
 - [ ] **Step 2: 検証**
 
@@ -927,7 +948,7 @@ loading 中は同じ `CardContainer` 内に `StreakBadge` 相当の高さと `Pr
 - [ ] **Step 3: Commit**
 
 ```bash
-git add Packages/SnapSpeakiOS/Sources/AppFeature/HomeView.swift docs/mockups/home.html
+git add Packages/SnapSpeakiOS/Sources/AppFeature/HomeView.swift Resources/Localizable.xcstrings docs/mockups/home.html
 git commit -m "fix(home): habitCard の loading 中プレースホルダでレイアウトシフトを防止"
 ```
 

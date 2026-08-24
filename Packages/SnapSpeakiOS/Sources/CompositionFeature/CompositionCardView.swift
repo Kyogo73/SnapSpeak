@@ -45,11 +45,13 @@ public struct CompositionCardView: View {
                     }
                 case .result:
                     resultBlock
-                case .failed:
+                case let .failed(kind):
                     Text("common.error")
                         .font(Typography.headline)
-                    SecondaryButton("common.retry") {
-                        Task { await viewModel.load() }
+                    Text(failureMessageKey(kind))
+                        .font(Typography.body)
+                    PrimaryButton("common.retry") {
+                        Task { await retryFailed(kind) }
                     }
                 case .loading, .scoring:
                     ProgressView()
@@ -88,6 +90,28 @@ public struct CompositionCardView: View {
             if let onCompleted {
                 PrimaryButton("review.session.next", systemImage: "arrow.right", action: onCompleted)
             }
+        }
+    }
+
+    private func failureMessageKey(_ kind: CompositionSessionViewModel.FailureKind) -> LocalizedStringKey {
+        switch kind {
+        case .load:
+            return "lesson.error.load"
+        case .playback:
+            return "lesson.error.playback"
+        case .scoring:
+            return "lesson.error.scoring"
+        }
+    }
+
+    private func retryFailed(_ kind: CompositionSessionViewModel.FailureKind) async {
+        switch kind {
+        case .load:
+            await viewModel.load()
+        case .playback:
+            await viewModel.startSpeaking()
+        case .scoring:
+            viewModel.retryAfterScoringFailure()
         }
     }
 }

@@ -41,11 +41,14 @@ public struct ShadowingLessonView: View {
                     .frame(minHeight: 44)
                 ratePicker
                 controls
-                if case let .failed(message) = viewModel.phase {
+                if case let .failed(kind) = viewModel.phase {
                     Text("common.error")
                         .font(Typography.headline)
-                    Text(message)
-                        .font(Typography.caption)
+                    Text(failureMessageKey(kind))
+                        .font(Typography.body)
+                    PrimaryButton("common.retry") {
+                        Task { await retryFailed(kind) }
+                    }
                 }
                 if case .microphoneDenied = viewModel.phase {
                     Text("shadowing.mic_denied")
@@ -117,6 +120,28 @@ public struct ShadowingLessonView: View {
                 .frame(minHeight: 44)
         default:
             EmptyView()
+        }
+    }
+
+    private func failureMessageKey(_ kind: ShadowingLessonViewModel.FailureKind) -> LocalizedStringKey {
+        switch kind {
+        case .load:
+            return "lesson.error.load"
+        case .playback:
+            return "lesson.error.playback"
+        case .scoring:
+            return "lesson.error.scoring"
+        }
+    }
+
+    private func retryFailed(_ kind: ShadowingLessonViewModel.FailureKind) async {
+        switch kind {
+        case .load:
+            await viewModel.load()
+        case .playback:
+            await viewModel.start()
+        case .scoring:
+            viewModel.retryAfterScoringFailure()
         }
     }
 }

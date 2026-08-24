@@ -8,7 +8,13 @@ import SwiftUI
 
 @MainActor
 public final class ShadowingLessonViewModel: ObservableObject {
-    public enum Phase {
+    public enum FailureKind: Sendable, Equatable {
+        case load
+        case playback
+        case scoring
+    }
+
+    public enum Phase: Sendable, Equatable {
         case loading
         case ready
         case playing
@@ -17,7 +23,7 @@ public final class ShadowingLessonViewModel: ObservableObject {
         case completed
         case degradedNoASR
         case microphoneDenied
-        case failed(String)
+        case failed(FailureKind)
     }
 
     @Published public private(set) var phase: Phase = .loading
@@ -60,7 +66,7 @@ public final class ShadowingLessonViewModel: ObservableObject {
         phase = .loading
         let courses = await courseStore.allCourses()
         guard let stored = courses.first(where: { $0.course.id == courseId }) else {
-            phase = .failed("missing-course")
+            phase = .failed(.load)
             return
         }
         let match = stored.course.units
@@ -69,7 +75,7 @@ public final class ShadowingLessonViewModel: ObservableObject {
             .items
             .first(where: { $0.id == itemId })
         guard let match else {
-            phase = .failed("missing-item")
+            phase = .failed(.load)
             return
         }
         self.stored = stored
@@ -100,7 +106,7 @@ public final class ShadowingLessonViewModel: ObservableObject {
         } catch ShadowingUseCaseError.microphoneDenied {
             phase = .microphoneDenied
         } catch {
-            phase = .failed(String(describing: error))
+            phase = .failed(.playback)
         }
     }
 
@@ -110,8 +116,10 @@ public final class ShadowingLessonViewModel: ObservableObject {
         do {
             try await useCase.startPreviewPlayback(item: item, stored: stored, rate: rate)
             phase = .microphoneDenied
+        } catch ShadowingUseCaseError.microphoneDenied {
+            phase = .microphoneDenied
         } catch {
-            phase = .failed(String(describing: error))
+            phase = .failed(.playback)
         }
     }
 
@@ -136,7 +144,12 @@ public final class ShadowingLessonViewModel: ObservableObject {
                 phase = .scored
             }
         } catch {
-            phase = .failed(String(describing: error))
+            phase = .failed(.scoring)
         }
+    }
+
+    public func retryAfterScoringFailure() {
+        score = nil
+        phase = asrReady ? .ready : .degradedNoASR
     }
 }

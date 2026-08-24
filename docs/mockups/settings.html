@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SettingsView — リセット確認と保存失敗</title>
+  <style>
+    :root {
+      --title: 28px;
+      --headline: 17px;
+      --body: 17px;
+      --caption: 12px;
+      --bg: #f2f2f7;
+      --row: #ffffff;
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --accent: #007aff;
+      --danger: #ff3b30;
+      --separator: rgba(60, 60, 67, 0.18);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --row: #1c1c1e;
+        --label: #ffffff;
+        --secondary: rgba(235, 235, 245, 0.60);
+        --accent: #0a84ff;
+        --danger: #ff453a;
+        --separator: rgba(84, 84, 88, 0.65);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #c7c7cc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--label);
+    }
+    .wrap {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px;
+      padding: 16px 0;
+    }
+    .stage {
+      width: 375px;
+      min-height: 100vh;
+      background: var(--bg);
+      padding-bottom: 32px;
+      position: relative;
+    }
+    h1.nav { font-size: var(--title); font-weight: 400; margin: 8px 16px 16px; }
+    .section { margin: 0 16px 20px; }
+    .section-title { font-size: 13px; color: var(--secondary); padding: 0 4px 6px; }
+    .group { background: var(--row); border-radius: 10px; overflow: hidden; }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      padding: 8px 16px;
+      font-size: var(--body);
+      border-top: 1px solid var(--separator);
+    }
+    .row:first-child { border-top: 0; }
+    .secondary { color: var(--secondary); font-size: var(--caption); }
+    .link { color: var(--accent); }
+    .fail {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 8px 16px;
+      font-size: var(--caption);
+      color: var(--danger);
+      border-top: 1px solid var(--separator);
+    }
+    .retry {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 16px;
+      color: var(--accent);
+      font-size: var(--body);
+      border-top: 1px solid var(--separator);
+    }
+    .done {
+      padding: 8px 16px 12px;
+      font-size: var(--caption);
+      color: var(--secondary);
+      border-top: 1px solid var(--separator);
+    }
+    .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); }
+    .sheet {
+      position: absolute; left: 8px; right: 8px; bottom: 16px;
+      background: var(--bg); border-radius: 14px; padding: 16px 12px 12px; text-align: center;
+    }
+    .sheet h2 { font-size: var(--headline); margin: 0 0 8px; }
+    .sheet p { font-size: 13px; color: var(--secondary); margin: 0 0 16px; }
+    .sheet-btn {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 44px; border-radius: 10px; background: var(--row);
+      margin-top: 8px; font-size: var(--body);
+    }
+    .sheet-btn.destructive { color: var(--danger); font-weight: 600; }
+    .review-note {
+      max-width: 800px; margin: 8px auto 32px; padding: 0 16px;
+      font-size: 13px; color: #3a3a3c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) { .review-note { color: #e5e5ea; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="stage" aria-label="save-failed">
+      <h1 class="nav">設定</h1>
+      <div class="section">
+        <div class="group">
+          <div class="row"><span>字幕を表示</span><span class="secondary">ON</span></div>
+          <div class="row"><span>母語 (L1)</span><span class="secondary">ja</span></div>
+          <div class="row"><span>学習言語 (L2)</span><span class="secondary">en</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">継続</div>
+        <div class="group">
+          <div class="row"><span>1 日の目標</span><span class="secondary">ふつう（10 問/日）</span></div>
+          <div class="row"><span>リマインダー</span><span class="secondary">OFF</span></div>
+          <div class="fail">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 3 2 21h20L12 3zm0 6 1 7h-2l1-7zm0 11a1.2 1.2 0 1 0 0-2.4A1.2 1.2 0 0 0 12 20z"/>
+            </svg>
+            設定の保存に失敗しました。
+          </div>
+          <div class="retry">やり直す</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="reset-confirm">
+      <h1 class="nav">設定</h1>
+      <div class="section">
+        <div class="group">
+          <div class="row">
+            <span>インストールID</span>
+            <span class="secondary">A1B2C3D4-E5F6-7890-ABCD-EF1234567890</span>
+          </div>
+          <div class="row link">インストールIDをリセット</div>
+          <div class="done">リセットしました</div>
+          <div class="row link">プライバシー</div>
+          <div class="row link">ダウンロード管理</div>
+        </div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <h2>インストール ID をリセットしますか？</h2>
+        <p>分析上の識別子が新しくなります。学習履歴は変わりません。</p>
+        <div class="sheet-btn destructive">リセット</div>
+        <div class="sheet-btn">閉じる</div>
+      </div>
+    </section>
+  </div>
+  <p class="review-note">
+    SettingsView（Task 15）。インストール ID リセットは confirmationDialog。
+    実行後は settings.reset_done を caption で一時表示。
+    save_failed は三角アイコン + common.retry（minHeight 44）。
+    幅 375px・prefers-color-scheme で確認。
+  </p>
+</body>
+</html>

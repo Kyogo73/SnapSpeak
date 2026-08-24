@@ -79,6 +79,13 @@ public actor DownloadManager {
         }
     }
 
+    /// 指定コースのディスク上の合計バイト数（存在しない場合は 0）。
+    public func courseSizeOnDisk(courseId: String) -> Int64 {
+        let directory = contentRoot.appendingPathComponent(courseId, isDirectory: true)
+        guard fileManager.fileExists(atPath: directory.path) else { return 0 }
+        return directorySize(directory) ?? 0
+    }
+
     /// Drops oldest downloaded courses until `maxBytes` is met. Seed content is not under `contentRoot`.
     public func evictLRU(maxBytes: Int64, lastUsed: [String: Date]) throws {
         let courses = (try? fileManager.contentsOfDirectory(

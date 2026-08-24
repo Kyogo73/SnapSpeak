@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OnboardingFlowView — welcome / goal</title>
+  <style>
+    :root {
+      --title: 28px;
+      --headline: 17px;
+      --body: 17px;
+      --callout: 16px;
+      --caption: 12px;
+      --bg: #ffffff;
+      --card: #f2f2f7;
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --accent: #007aff;
+      --danger-bg: rgba(255, 59, 48, 0.12);
+      --radius: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --card: #1c1c1e;
+        --label: #ffffff;
+        --secondary: rgba(235, 235, 245, 0.60);
+        --accent: #0a84ff;
+        --danger-bg: rgba(255, 69, 58, 0.12);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #c7c7cc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--label);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px;
+      padding: 16px 0 8px;
+    }
+    .stage {
+      width: 375px;
+      min-height: 100vh;
+      background: var(--bg);
+      padding: 0 0 24px;
+      position: relative;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding-top: 12px;
+    }
+    .step .caption { font-size: var(--caption); color: var(--secondary); }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--secondary);
+    }
+    .dot.on { background: var(--accent); }
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 24px;
+      min-height: 620px;
+    }
+    .goal-content { gap: 20px; }
+    .title { font-size: var(--title); font-weight: 400; text-align: center; }
+    .goal-content .title { text-align: left; }
+    .body { font-size: var(--body); }
+    .secondary { color: var(--secondary); }
+    .center { text-align: center; }
+    .icon {
+      width: 56px;
+      height: 56px;
+      margin: 48px auto 0;
+      color: var(--accent);
+    }
+    .points { display: flex; flex-direction: column; gap: 8px; font-size: var(--body); }
+    .point { display: flex; align-items: center; gap: 8px; }
+    .spacer { flex: 1; }
+    .primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      font-size: var(--headline);
+      font-weight: 600;
+    }
+    .skip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      font-size: var(--body);
+    }
+    .picker { display: flex; flex-direction: column; }
+    .picker-row {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      font-size: var(--body);
+      border-bottom: 1px solid color-mix(in srgb, var(--secondary) 25%, transparent);
+    }
+    .picker-row.selected { font-weight: 600; color: var(--accent); }
+    .toggle, .time {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      font-size: var(--body);
+    }
+    .switch {
+      width: 51px;
+      height: 31px;
+      border-radius: 16px;
+      background: var(--accent);
+    }
+    .banner {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--danger-bg);
+      font-size: var(--callout);
+    }
+    .banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .review-note {
+      max-width: 800px;
+      margin: 24px auto;
+      padding: 0 16px 32px;
+      font-size: 13px;
+      color: #3a3a3c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      .review-note { color: #e5e5ea; }
+    }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <section class="stage" aria-label="welcome">
+      <div class="step">
+        <span class="caption">1 / 2</span>
+        <span class="dot on" aria-hidden="true"></span>
+        <span class="dot" aria-hidden="true"></span>
+      </div>
+      <div class="content">
+        <div class="spacer"></div>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M12 3v10"/>
+          <rect x="9" y="13" width="6" height="8" rx="3"/>
+          <path d="M4 10c0 4 3.5 7 8 7s8-3 8-7"/>
+        </svg>
+        <div class="title">聞いて、まねて、即座に話す</div>
+        <div class="body secondary center">シャドーイングと瞬間英作文を、1 日 10 分から。</div>
+        <div class="points">
+          <div class="point">お手本に声を重ねるシャドーイング</div>
+          <div class="point">日本語を見て即座に英語で言う瞬間英作文</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="primary">はじめる</div>
+        <div class="skip">あとで設定する</div>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="goal">
+      <div class="banner" role="status">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3 2 21h20L12 3zm0 6 1 7h-2l1-7zm0 11a1.2 1.2 0 1 0 0-2.4A1.2 1.2 0 0 0 12 20z"/>
+        </svg>
+        保存に失敗しました。もう一度お試しください。
+      </div>
+      <div class="step">
+        <span class="caption">2 / 2</span>
+        <span class="dot" aria-hidden="true"></span>
+        <span class="dot on" aria-hidden="true"></span>
+      </div>
+      <div class="content goal-content">
+        <div class="title">1 日の目標を決めましょう</div>
+        <div class="body secondary">続けやすい小さな目標がおすすめです。あとから設定でいつでも変えられます。</div>
+        <div class="picker" role="radiogroup" aria-label="1 日の目標">
+          <div class="picker-row">かるめ（5 問/日）</div>
+          <div class="picker-row selected">ふつう（10 問/日）</div>
+          <div class="picker-row">しっかり（20 問/日）</div>
+        </div>
+        <div class="toggle">
+          <span>毎日リマインドする</span>
+          <span class="switch" aria-hidden="true"></span>
+        </div>
+        <div class="time">
+          <span>リマインド時刻</span>
+          <span class="secondary">21:00</span>
+        </div>
+        <div class="spacer"></div>
+        <div class="primary">最初のレッスンを始める</div>
+        <div class="skip">あとで設定する</div>
+      </div>
+    </section>
+  </div>
+  <p class="review-note">
+    OnboardingFlowView（Task 11）。ステップは caption「1 / 2」+ 8pt Circle 2 つ（選択=accent）。
+    目標 Picker は radiogroup + group_label「1 日の目標」。
+    saveFailed バナーは三角アイコン併置。バナー上に再試行ボタンは置かない（主ボタン再タップ）。
+    幅 375px・prefers-color-scheme で確認。
+  </p>
+</body>
+</html>

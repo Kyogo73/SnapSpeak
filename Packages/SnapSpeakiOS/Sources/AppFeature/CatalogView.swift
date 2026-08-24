@@ -6,10 +6,19 @@ import SwiftUI
 public struct CatalogView: View {
     @Binding var path: [LessonCoordinate]
     public var courses: [StoredCourse]
+    public var entitlement: EntitlementResolver
+    public var onLockedItem: (LessonCoordinate) -> Void
 
-    public init(path: Binding<[LessonCoordinate]>, courses: [StoredCourse]) {
+    public init(
+        path: Binding<[LessonCoordinate]>,
+        courses: [StoredCourse],
+        entitlement: EntitlementResolver,
+        onLockedItem: @escaping (LessonCoordinate) -> Void
+    ) {
         _path = path
         self.courses = courses
+        self.entitlement = entitlement
+        self.onLockedItem = onLockedItem
     }
 
     public var body: some View {
@@ -35,19 +44,40 @@ public struct CatalogView: View {
                             .font(Typography.headline)
                         ForEach(unit.lessons, id: \.id) { lesson in
                             ForEach(lesson.items, id: \.id) { item in
+                                let coordinate = LessonCoordinate(
+                                    courseId: stored.course.id,
+                                    lessonId: lesson.id,
+                                    itemId: item.id,
+                                    mode: lesson.mode
+                                )
+                                let locked = entitlement.access(
+                                    courseId: stored.course.id,
+                                    isFirstUnit: unit.id == stored.course.units.first?.id,
+                                    skillIsComposition: lesson.mode == .composition
+                                ) == .locked
                                 Button {
-                                    path.append(
-                                        LessonCoordinate(
-                                            courseId: stored.course.id,
-                                            lessonId: lesson.id,
-                                            itemId: item.id,
-                                            mode: lesson.mode
-                                        )
-                                    )
+                                    if locked {
+                                        onLockedItem(coordinate)
+                                    } else {
+                                        path.append(coordinate)
+                                    }
                                 } label: {
-                                    Label(item.id, systemImage: icon(for: lesson.mode))
-                                        .frame(minHeight: 44)
+                                    HStack {
+                                        Label(item.id, systemImage: icon(for: lesson.mode))
+                                        if locked {
+                                            Spacer()
+                                            Image(systemName: "lock.fill")
+                                            Text("catalog.locked")
+                                                .font(Typography.caption)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                                 }
+                                .accessibilityLabel(
+                                    locked
+                                        ? LocalizedFormat.string("catalog.locked_item_a11y", item.id)
+                                        : item.id
+                                )
                             }
                         }
                     }

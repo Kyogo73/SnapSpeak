@@ -11,6 +11,8 @@ public struct HomeView: View {
     public var courses: [StoredCourse]
     @ObservedObject var today: TodayViewModel
     public var onContinueLearning: () -> Void
+    public var onOpenLesson: (LessonCoordinate) -> Void
+    public var onStartToday: () -> Void
     public var onOpenDrive: () -> Void
     public var onQuickStartDrive: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -20,6 +22,8 @@ public struct HomeView: View {
         courses: [StoredCourse],
         today: TodayViewModel,
         onContinueLearning: @escaping () -> Void,
+        onOpenLesson: @escaping (LessonCoordinate) -> Void,
+        onStartToday: @escaping () -> Void,
         onOpenDrive: @escaping () -> Void,
         onQuickStartDrive: @escaping () -> Void
     ) {
@@ -27,6 +31,8 @@ public struct HomeView: View {
         self.courses = courses
         self.today = today
         self.onContinueLearning = onContinueLearning
+        self.onOpenLesson = onOpenLesson
+        self.onStartToday = onStartToday
         self.onOpenDrive = onOpenDrive
         self.onQuickStartDrive = onQuickStartDrive
     }
@@ -148,13 +154,7 @@ public struct HomeView: View {
                         .font(Typography.caption)
                         .foregroundStyle(Colors.secondaryFill)
                 }
-                PrimaryButton("home.today.start") {
-                    Task {
-                        if await today.regeneratePlanThenStart() {
-                            path.append(.review)
-                        }
-                    }
-                }
+                PrimaryButton("home.today.start", action: onStartToday)
             }
         }
     }
@@ -178,9 +178,7 @@ public struct HomeView: View {
             PrimaryButton("streak.broken.restart") {
                 Task {
                     await today.dismissRecovery()
-                    if await today.regeneratePlanThenStart() {
-                        path.append(.review)
-                    }
+                    onStartToday()
                 }
             }
             SecondaryButton("home.recovery.dismiss") {
@@ -218,7 +216,7 @@ public struct HomeView: View {
     private func continueCard(_ lesson: LessonCoordinate) -> some View {
         CardContainer {
             Button {
-                path.append(.lesson(lesson))
+                onOpenLesson(lesson)
             } label: {
                 Label("home.continue", systemImage: "play.circle.fill")
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)

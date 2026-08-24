@@ -19,7 +19,9 @@ public final class AppDependencies: ObservableObject {
     public let downloads: DownloadManager
     public let manifest: ManifestService
     public let analytics: LocalAnalytics
-    public let entitlement: EntitlementResolver
+    public let store: StoreActor
+    @Published public private(set) var entitlement: EntitlementResolver
+    @Published public private(set) var offerings: [StoreOffering]
     public let seed: SeedInstaller
     public let settings: UserSettingsDTO
     public let shadowingUseCase: LiveShadowingUseCase
@@ -41,7 +43,9 @@ public final class AppDependencies: ObservableObject {
         downloads: DownloadManager,
         manifest: ManifestService,
         analytics: LocalAnalytics,
+        store: StoreActor,
         entitlement: EntitlementResolver,
+        offerings: [StoreOffering] = [],
         seed: SeedInstaller,
         settings: UserSettingsDTO,
         shadowingUseCase: LiveShadowingUseCase,
@@ -62,7 +66,9 @@ public final class AppDependencies: ObservableObject {
         self.downloads = downloads
         self.manifest = manifest
         self.analytics = analytics
+        self.store = store
         self.entitlement = entitlement
+        self.offerings = offerings
         self.seed = seed
         self.settings = settings
         self.shadowingUseCase = shadowingUseCase
@@ -100,6 +106,7 @@ public final class AppDependencies: ObservableObject {
         let courseStore = CourseStore(seed: seed, downloadsRoot: contentRoot)
         let downloads = DownloadManager(downloader: downloader, contentRoot: contentRoot)
         let manifest = ManifestService(downloader: downloader)
+        let store = StoreActor(persistence: persistence)
         let entitlement = EntitlementResolver()
 
         let shadowing = LiveShadowingUseCase(
@@ -137,6 +144,7 @@ public final class AppDependencies: ObservableObject {
             downloads: downloads,
             manifest: manifest,
             analytics: analytics,
+            store: store,
             entitlement: entitlement,
             seed: seed,
             settings: settings,
@@ -155,5 +163,64 @@ public final class AppDependencies: ObservableObject {
 
     public func loadSettings() async -> UserSettingsDTO {
         (try? await persistence.loadOrCreateSettings()) ?? settings
+    }
+
+    private var didStartStore = false
+
+    public func startStore() async {
+        if didStartStore {
+            await refreshEntitlementUsage()
+            return
+        }
+        didStartStore = true
+        await store.start()
+        await refreshEntitlementUsage()
+        apply(await store.currentSnapshot())
+        Task { [weak self] in
+            guard let self else { return }
+            for await snapshot in await self.store.snapshots() {
+                self.apply(snapshot)
+            }
+        }
+    }
+
+    public func refreshEntitlementUsage() async {
+        let count = (try? await persistence.compositionAttemptCount(now: Date())) ?? 0
+        await store.updateCompositionsUsedToday(count)
+        apply(await store.currentSnapshot())
+    }
+
+    public func purchase(productID: String) async -> StorePurchaseOutcome {
+        let outcome = await store.purchase(productID: productID)
+        apply(await store.currentSnapshot())
+        track(outcome)
+        return outcome
+    }
+
+    public func restorePurchases() async -> StorePurchaseOutcome {
+        let outcome = await store.restore()
+        apply(await store.currentSnapshot())
+        if case let .failed(code) = outcome {
+            analytics.track(.purchaseFailed(code: code))
+        }
+        return outcome
+    }
+
+    private func apply(_ snapshot: StoreSnapshot) {
+        entitlement = snapshot.resolver
+        offerings = snapshot.offerings
+    }
+
+    private func track(_ outcome: StorePurchaseOutcome) {
+        switch outcome {
+        case let .success(productID):
+            analytics.track(.purchaseSucceeded(productId: productID))
+        case .cancelled:
+            analytics.track(.purchaseFailed(code: "cancelled"))
+        case .pending:
+            analytics.track(.purchaseFailed(code: "pending"))
+        case let .failed(code):
+            analytics.track(.purchaseFailed(code: code))
+        }
     }
 }

@@ -44,8 +44,8 @@ public struct ResultView: View {
     }
 
     /// 抜けた語数 = 各区間の (endRefIndex - startRefIndex) の合計（半開区間）。
-    /// internal（省略時も internal）。private にはしない。
-    static func omittedWordCount(_ omissions: [AlignedSpan]) -> Int {
+    /// internal（省略時も internal）。private にはしない。View 隔離に依存しない純関数。
+    nonisolated static func omittedWordCount(_ omissions: [AlignedSpan]) -> Int {
         omissions.reduce(0) { $0 + max(0, $1.endRefIndex - $1.startRefIndex) }
     }
 }

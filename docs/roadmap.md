@@ -135,7 +135,9 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 >
 > **ドライブモード MVP 実装状況**: クライアント実装（`DriveKit` / `DriveModeFeature` / `DriveSequencer` / Settings / `UIBackgroundModes`）は完了。記録は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。DoD のチェックは実車 / 車載 Bluetooth 確認を含むため未チェックのまま残す（実装完了 ≠ DoD 達成）。
 >
-> 本 Phase の**残スコープ**は、ドライブモードの実機 DoD、StoreKit 2 / Paywall / 無料制限、コンテンツ拡充の本格運用、品質閾値の再校正、ダウンロード管理 UI の強化である。
+> **StoreKit 2 / Paywall 実装状況**: クライアント実装（`EntitlementResolver` 無料制限・`StoreActor`・Paywall・ゲート）は完了。記録は [storekit-implementation-plan.md](./storekit-implementation-plan.md)。サンドボックス DoD は未確認。
+>
+> 本 Phase の**残スコープ**は、ドライブモードの実機 DoD、StoreKit サンドボックス DoD、コンテンツ拡充の本格運用、品質閾値の再校正、ダウンロード管理 UI の強化である。
 
 ### 目的
 

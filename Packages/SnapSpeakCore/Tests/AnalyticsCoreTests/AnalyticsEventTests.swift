@@ -28,3 +28,19 @@ import Testing
     #expect(note == .driveNoteOpened(completedCount: 4))
     #expect(note != .driveNoteOpened(completedCount: 0))
 }
+
+@Test func paywallEventsCarryCodesOnly() {
+    let shown = AnalyticsEvent.paywallShown(reason: "catalog")
+    let succeeded = AnalyticsEvent.purchaseSucceeded(productId: "app.snapspeak.pro.monthly")
+    let failed = AnalyticsEvent.purchaseFailed(code: "payment_cancelled")
+    let limit = AnalyticsEvent.limitReached(kind: "composition")
+
+    #expect(shown == .paywallShown(reason: "catalog"))
+    #expect(shown != .paywallShown(reason: "review"))
+    #expect(succeeded == .purchaseSucceeded(productId: "app.snapspeak.pro.monthly"))
+    #expect(succeeded != .purchaseSucceeded(productId: "app.snapspeak.pro.yearly"))
+    #expect(failed == .purchaseFailed(code: "payment_cancelled"))
+    #expect(failed != .purchaseFailed(code: "unknown"))
+    #expect(limit == .limitReached(kind: "composition"))
+    #expect(limit != .limitReached(kind: "unit"))
+}

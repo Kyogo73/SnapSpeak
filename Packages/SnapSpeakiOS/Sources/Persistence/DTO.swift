@@ -110,6 +110,28 @@ public struct ReviewEventWrite: Sendable, Equatable {
     }
 }
 
+public struct EntitlementCacheDTO: Sendable, Equatable {
+    public var isPro: Bool
+    public var expirationDate: Date?
+    public var billingRetryExpired: Bool
+    public var inGracePeriod: Bool
+    public var updatedAt: Date
+
+    public init(
+        isPro: Bool,
+        expirationDate: Date?,
+        billingRetryExpired: Bool,
+        inGracePeriod: Bool,
+        updatedAt: Date
+    ) {
+        self.isPro = isPro
+        self.expirationDate = expirationDate
+        self.billingRetryExpired = billingRetryExpired
+        self.inGracePeriod = inGracePeriod
+        self.updatedAt = updatedAt
+    }
+}
+
 public struct DownloadedCourseDTO: Sendable, Equatable, Identifiable {
     public var id: String { courseId }
     public var courseId: String

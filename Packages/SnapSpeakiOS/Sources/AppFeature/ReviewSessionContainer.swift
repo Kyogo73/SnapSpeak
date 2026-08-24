@@ -1,4 +1,5 @@
 import CompositionFeature
+import ContentKit
 import HabitKit
 import ReviewFeature
 import ShadowingFeature
@@ -8,17 +9,19 @@ struct ReviewSessionContainer: View {
     @StateObject private var session: ReviewSessionViewModel
     @State private var afterSnapshot: TodaySnapshot?
     let snapshot: TodaySnapshot
-    let dependencies: AppDependencies
+    @ObservedObject var dependencies: AppDependencies
+    let courses: [StoredCourse]
     let onClose: () -> Void
     let onContinueLearning: () -> Void
-    let onItemCompleted: () -> Void
+    let onItemCompleted: () async -> Void
 
     init(
         snapshot: TodaySnapshot,
         dependencies: AppDependencies,
+        courses: [StoredCourse],
         onClose: @escaping () -> Void,
         onContinueLearning: @escaping () -> Void,
-        onItemCompleted: @escaping () -> Void
+        onItemCompleted: @escaping () async -> Void
     ) {
         _session = StateObject(
             wrappedValue: ReviewSessionViewModel(
@@ -29,6 +32,7 @@ struct ReviewSessionContainer: View {
         )
         self.snapshot = snapshot
         self.dependencies = dependencies
+        self.courses = courses
         self.onClose = onClose
         self.onContinueLearning = onContinueLearning
         self.onItemCompleted = onItemCompleted
@@ -70,45 +74,77 @@ struct ReviewSessionContainer: View {
 
     @ViewBuilder
     private func itemView(for entry: ReviewEntry, actions: ReviewItemCallbacks) -> some View {
+        let locked = ContentAccess.access(
+            resolver: dependencies.entitlement,
+            courses: courses,
+            courseId: entry.courseId,
+            lessonId: entry.lessonId,
+            skillIsComposition: entry.mode == .composition
+        ) == .locked
         Group {
-            switch entry.mode {
-            case .shadowing:
-                ShadowingLessonView(
-                    viewModel: ShadowingLessonViewModel(
-                        courseId: entry.courseId,
-                        lessonId: entry.lessonId,
-                        itemId: entry.itemId,
-                        useCase: dependencies.shadowingUseCase,
-                        courseStore: dependencies.courseStore,
-                        captionsEnabled: dependencies.settings.captionsEnabled,
-                        defaultRate: dependencies.settings.defaultRate
-                    ),
-                    onCompleted: {
-                        onItemCompleted()
-                        actions.complete()
-                    },
-                    onSkipped: {
-                        onItemCompleted()
-                        actions.skip()
-                    }
+            if locked {
+                PaywallView(
+                    dependencies: dependencies,
+                    reason: "review",
+                    onClose: { actions.skip() }
                 )
-            case .composition:
-                CompositionCardView(
-                    viewModel: CompositionSessionViewModel(
-                        courseId: entry.courseId,
-                        lessonId: entry.lessonId,
-                        itemId: entry.itemId,
-                        useCase: dependencies.compositionUseCase,
-                        courseStore: dependencies.courseStore
-                    ),
-                    onCompleted: {
-                        onItemCompleted()
-                        actions.complete()
-                    }
-                )
+                .task {
+                    dependencies.analytics.track(
+                        .limitReached(
+                            kind: ContentAccess.limitKind(
+                                resolver: dependencies.entitlement,
+                                skillIsComposition: entry.mode == .composition
+                            )
+                        )
+                    )
+                }
+            } else {
+                switch entry.mode {
+                case .shadowing:
+                    ShadowingLessonView(
+                        viewModel: ShadowingLessonViewModel(
+                            courseId: entry.courseId,
+                            lessonId: entry.lessonId,
+                            itemId: entry.itemId,
+                            useCase: dependencies.shadowingUseCase,
+                            courseStore: dependencies.courseStore,
+                            captionsEnabled: dependencies.settings.captionsEnabled,
+                            defaultRate: dependencies.settings.defaultRate
+                        ),
+                        onCompleted: {
+                            Task {
+                                await onItemCompleted()
+                                actions.complete()
+                            }
+                        },
+                        onSkipped: {
+                            Task {
+                                await onItemCompleted()
+                                actions.skip()
+                            }
+                        }
+                    )
+                case .composition:
+                    CompositionCardView(
+                        viewModel: CompositionSessionViewModel(
+                            courseId: entry.courseId,
+                            lessonId: entry.lessonId,
+                            itemId: entry.itemId,
+                            useCase: dependencies.compositionUseCase,
+                            courseStore: dependencies.courseStore
+                        ),
+                        onCompleted: {
+                            Task {
+                                await onItemCompleted()
+                                actions.complete()
+                            }
+                        }
+                    )
+                }
             }
         }
         .task {
+            guard !locked else { return }
             try? await dependencies.persistence.recordLastOpenedLesson(
                 courseId: entry.courseId,
                 lessonId: entry.lessonId,

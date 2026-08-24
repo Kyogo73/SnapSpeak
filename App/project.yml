@@ -297,6 +297,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.AppFeatureTests
 schemes:
   SnapSpeak:
+    storeKitConfiguration: SnapSpeak.storekit
     build:
       targets:
         SnapSpeak: all

@@ -1,0 +1,103 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "E5F6A7B8",
+      "localizations" : [
+        {
+          "description" : "SnapSpeak Pro の全コースと瞬間英作文無制限",
+          "displayName" : "SnapSpeak Pro",
+          "locale" : "ja"
+        },
+        {
+          "description" : "All courses and unlimited composition",
+          "displayName" : "SnapSpeak Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "SnapSpeak Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "C9D0E1F2",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "すべてのコースと瞬間英作文を制限なく",
+              "displayName" : "月額プラン",
+              "locale" : "ja"
+            },
+            {
+              "description" : "All courses and unlimited composition",
+              "displayName" : "Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.snapspeak.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "E5F6A7B8",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "A3B4C5D6",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "すべてのコースと瞬間英作文を制限なく",
+              "displayName" : "年額プラン",
+              "locale" : "ja"
+            },
+            {
+              "description" : "All courses and unlimited composition",
+              "displayName" : "Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.snapspeak.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro Yearly",
+          "subscriptionGroupID" : "E5F6A7B8",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

@@ -6,10 +6,19 @@ import SwiftUI
 public struct CatalogView: View {
     @Binding var path: [LessonCoordinate]
     public var courses: [StoredCourse]
+    public var entitlement: EntitlementResolver
+    public var onLockedItem: (LessonCoordinate) -> Void
 
-    public init(path: Binding<[LessonCoordinate]>, courses: [StoredCourse]) {
+    public init(
+        path: Binding<[LessonCoordinate]>,
+        courses: [StoredCourse],
+        entitlement: EntitlementResolver,
+        onLockedItem: @escaping (LessonCoordinate) -> Void
+    ) {
         _path = path
         self.courses = courses
+        self.entitlement = entitlement
+        self.onLockedItem = onLockedItem
     }
 
     public var body: some View {
@@ -35,30 +44,53 @@ public struct CatalogView: View {
                             .font(Typography.headline)
                         ForEach(unit.lessons, id: \.id) { lesson in
                             ForEach(lesson.items, id: \.id) { item in
+                                let coordinate = LessonCoordinate(
+                                    courseId: stored.course.id,
+                                    lessonId: lesson.id,
+                                    itemId: item.id,
+                                    mode: lesson.mode
+                                )
+                                let locked = ContentAccess.access(
+                                    resolver: entitlement,
+                                    courses: courses,
+                                    coordinate: coordinate
+                                ) == .locked
+                                let headline = itemHeadline(item)
                                 Button {
-                                    path.append(
-                                        LessonCoordinate(
-                                            courseId: stored.course.id,
-                                            lessonId: lesson.id,
-                                            itemId: item.id,
-                                            mode: lesson.mode
-                                        )
-                                    )
-                                } label: {
-                                    Label {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(itemHeadline(item))
-                                                .font(Typography.headline)
-                                                .multilineTextAlignment(.leading)
-                                            Text(modeTitleKey(for: lesson.mode))
-                                                .font(Typography.caption)
-                                                .foregroundStyle(Colors.secondaryFill)
-                                        }
-                                    } icon: {
-                                        Image(systemName: icon(for: lesson.mode))
+                                    if locked {
+                                        onLockedItem(coordinate)
+                                    } else {
+                                        path.append(coordinate)
                                     }
-                                    .frame(minHeight: 44)
+                                } label: {
+                                    HStack {
+                                        Label {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(headline)
+                                                    .font(Typography.headline)
+                                                    .multilineTextAlignment(.leading)
+                                                Text(modeTitleKey(for: lesson.mode))
+                                                    .font(Typography.caption)
+                                                    .foregroundStyle(Colors.secondaryFill)
+                                            }
+                                        } icon: {
+                                            Image(systemName: icon(for: lesson.mode))
+                                        }
+                                        if locked {
+                                            Spacer()
+                                            Image(systemName: "lock.fill")
+                                                .accessibilityHidden(true)
+                                            Text("catalog.locked")
+                                                .font(Typography.caption)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                                 }
+                                .accessibilityLabel(
+                                    locked
+                                        ? LocalizedFormat.string("catalog.locked_item_a11y", headline)
+                                        : headline
+                                )
                             }
                         }
                     }

@@ -137,7 +137,7 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 >
 > **StoreKit 2 / Paywall 実装状況**: クライアント実装（`EntitlementResolver` 無料制限・`StoreActor`・Paywall・ゲート）は完了。記録は [storekit-implementation-plan.md](./storekit-implementation-plan.md)。サンドボックス DoD は未確認。
 >
-> 本 Phase の**残スコープ**は、ドライブモードの実機 DoD、StoreKit サンドボックス DoD、コンテンツ拡充の本格運用、品質閾値の再校正、ダウンロード管理 UI の強化である。
+> 本 Phase の**残スコープ**は、ドライブモードの実機 DoD、StoreKit サンドボックス DoD、コンテンツ拡充の本格運用、品質閾値の再校正、ダウンロード更新バッジ / LRU 説明である。
 
 ### 目的
 
@@ -153,9 +153,9 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 - 進捗ダッシュボード: 連続学習日（学習日境界 04:00）、週間完了、モード別平均スクリプト一致率（個人データはローカル）— **実装済み**（ホーム表示に加えグラフ類ダッシュボードも実装。実機確認は未）
 - ストリーク表示。欠かした日の扱い（端末タイムゾーン、04:00 境界）— **前倒し実装済み**（休み 1 日の橋渡し救済を含む。ux-design §2.3）
 - ローカル通知リマインダー（学習時刻のユーザー設定。過剰通知を避ける既定オフまたは控えめ）— **前倒し実装済み**（1 日 1 本・3 日先読み・冪等同期。ux-design §6）
-- StoreKit 2 サブスクリプション。無料制限と Paywall（価格・期間・提供内容・復元・規約・プライバシーリンク）
+- StoreKit 2 サブスクリプション。無料制限と Paywall（価格・期間・提供内容・復元・規約・プライバシーリンク）— **クライアント実装済み**（商品未設定時は全 unlock。サンドボックス DoD は未）
 - コンテンツ拡充: 追加 Course/Unit を CDN 配信。ダウンロード済みはオフライン学習
-- ダウンロード管理 UI の強化（容量、削除、更新ありバッジ、LRU 説明）
+- ダウンロード管理 UI の強化（容量、削除、更新ありバッジ、LRU 説明）— **容量・タイトル・削除確認は実装済み**（更新バッジ / LRU は未）
 - 区間リピートの任意 A-B は優先度中。DoD 必須ではない
 
 ### 技術タスク
@@ -163,8 +163,8 @@ SRS 本格化、進捗ダッシュボード、ストリーク / リマインダ�
 - SRSKit のスケジュールをキュー UI と接続。`ReviewEvent` 追記と fold。タイムゾーン変更耐性 — **前倒し実装済み**（`HabitKit.SessionPlanner` + `ReviewFeature`）
 - 通知: `UserNotifications`、権限リクエストのタイミング（価値理解後）— **前倒し実装済み**（`NotificationsKit`。オンボーディングとリマインダー ON 操作の just-in-time 要求）
 - ドライブモード: core 新モジュール `DriveKit`（音声スクリプト生成とカーソル状態機械の純関数。Linux テスト）、iOS 新モジュール `DriveModeFeature`（開始 / グランスビュー / ドライブノート）、`AudioEngine` 拡張（連続再生シーケンサ・`AVSpeechSynthesizer` TTS フォールバック・割り込み自動再開・`MPRemoteCommandCenter` / NowPlaying）、`UserSettings` のドライブ設定フィールド、`UIBackgroundModes: audio`。実装分解は [drive-mode-implementation-plan.md](./drive-mode-implementation-plan.md)。既存 `SessionPlanner` / `appendAttemptEvaluatingHabit` / unscored 設計を再利用し二重実装しない — **実装済み**
-- StoreKit 2: 起動時に verified な `Transaction.currentEntitlements` を走査、`Transaction.updates` を常時購読し検証後 `finish()`、失効・返金・Billing Retry / Grace Period、Restore は明示操作から `AppStore.sync()`
-- 無料制限エンタイトルメントを ContentKit の解決レイヤに置き、プレイヤーは「開ける/開けない」だけを見る
+- StoreKit 2: 起動時に verified な `Transaction.currentEntitlements` を走査、`Transaction.updates` を常時購読し検証後 `finish()`、失効・返金・Billing Retry / Grace Period、Restore は明示操作から `AppStore.sync()` — **実装済み**
+- 無料制限エンタイトルメントを ContentKit の解決レイヤに置き、プレイヤーは「開ける/開けない」だけを見る — **実装済み**
 - 品質閾値をコーパスと実データで再校正（言語・長さ・confidence 別 `GradingPolicy`）
 - Analytics: 制限到達、Paywall 表示、購入成功/失敗。生レシートや音声は送らない
 - ダッシュボード集計は PersistenceActor 経由

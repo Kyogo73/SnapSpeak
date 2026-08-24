@@ -79,6 +79,16 @@ enum PersistenceMapping {
         )
     }
 
+    static func entitlementDTO(_ model: EntitlementCache) -> EntitlementCacheDTO {
+        EntitlementCacheDTO(
+            isPro: model.isPro,
+            expirationDate: model.expirationDate,
+            billingRetryExpired: model.billingRetryExpired,
+            inGracePeriod: model.inGracePeriod,
+            updatedAt: model.updatedAt
+        )
+    }
+
     static func downloadedDTO(_ model: DownloadedCourse) -> DownloadedCourseDTO {
         DownloadedCourseDTO(
             courseId: model.courseId,

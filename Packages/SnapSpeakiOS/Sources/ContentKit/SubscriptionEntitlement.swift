@@ -1,6 +1,6 @@
 import Foundation
 
-public enum SubscriptionRenewalState: Sendable, Equatable {
+public enum EntitlementRenewalKind: Sendable, Equatable {
     case subscribed
     case inGracePeriod
     case inBillingRetryPeriod
@@ -33,7 +33,7 @@ public struct SubscriptionEntitlement: Sendable, Equatable {
         revocationDate: Date?,
         expirationDate: Date?,
         now: Date,
-        renewalState: SubscriptionRenewalState?
+        renewalState: EntitlementRenewalKind?
     ) -> SubscriptionEntitlement {
         if revocationDate != nil {
             return SubscriptionEntitlement(isPro: false, expirationDate: expirationDate)

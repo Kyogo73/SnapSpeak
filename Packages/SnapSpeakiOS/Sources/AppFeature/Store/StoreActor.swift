@@ -134,7 +134,7 @@ public actor StoreActor {
     }
 
     private func evaluate(_ transaction: Transaction) async -> SubscriptionEntitlement {
-        let renewalState: SubscriptionRenewalState?
+        let renewalState: EntitlementRenewalKind?
         if let status = await subscriptionStatus(for: transaction) {
             renewalState = Self.renewalState(from: status)
         } else {
@@ -150,7 +150,7 @@ public actor StoreActor {
 
     private static func renewalState(
         from status: Product.SubscriptionInfo.Status
-    ) -> SubscriptionRenewalState? {
+    ) -> EntitlementRenewalKind? {
         switch status.state {
         case .subscribed: return .subscribed
         case .inGracePeriod: return .inGracePeriod

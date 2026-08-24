@@ -14,6 +14,8 @@
 - 先行計画書フォーマット: [dashboard-implementation-plan.md](./dashboard-implementation-plan.md) / [quality-pass-plan.md](./quality-pass-plan.md)
 - 既知指摘: beads `ss-j36`（ダッシュボードのデザインレビュー 4 件 A〜D。Phase 1 タスク群に組み込み済み）
 
+**実装状況（2026-08-24）:** Task 1–11 / 13–16 は develop 入り（#32 ダッシュボード、#33 学習フロー、#35 表層）。残タスクは 12（ホーム drive カードの押下フィードバック）と 17–21（サマリ祝い・ホーム CLS・ドライブナビ / ノート a11y・プライバシー外部リンク）。リリース必須ではない。
+
 ## Global Constraints
 
 **この節は全タスクに暗黙適用される。違反する変更はレビューで差し戻す。**

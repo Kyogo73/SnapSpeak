@@ -120,6 +120,7 @@
     "shadowing.play_preview": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "お手本を聞く" } } } },
     "composition.hint": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "ヒントを見る" } } } },
     "common.close": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "閉じる" } } } },
+    "common.cancel": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "キャンセル" } } } },
     "common.error": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "エラーが起きました" } } } },
     "common.retry": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "やり直す" } } } },
     "common.stop": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "停止" } } } },

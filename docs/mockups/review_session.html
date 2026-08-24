@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReviewSessionView — プログレスバーと離脱確認</title>
+  <style>
+    :root {
+      --title: 28px;
+      --headline: 17px;
+      --body: 17px;
+      --caption: 12px;
+      --bg: #ffffff;
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --accent: #007aff;
+      --track: rgba(60, 60, 67, 0.18);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --label: #ffffff;
+        --secondary: rgba(235, 235, 245, 0.60);
+        --accent: #0a84ff;
+        --track: rgba(84, 84, 88, 0.65);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #c7c7cc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--label);
+    }
+    .wrap { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; padding: 16px 0; }
+    .stage {
+      width: 375px; min-height: 100vh; background: var(--bg);
+      padding: 8px 16px 32px; position: relative;
+    }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 44px; font-size: 17px; font-weight: 600;
+    }
+    .close { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .progress-text {
+      font-size: var(--headline); font-weight: 600; font-variant-numeric: tabular-nums;
+      text-align: center; margin: 8px 0;
+    }
+    .bar { height: 4px; background: var(--track); border-radius: 2px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; width: 25%; background: var(--accent); }
+    .item {
+      margin-top: 16px; padding: 16px; border-radius: 16px; background: #f2f2f7;
+    }
+    @media (prefers-color-scheme: dark) { .item { background: #1c1c1e; } }
+    .item .body { font-size: var(--body); }
+    .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); }
+    .sheet {
+      position: absolute; left: 8px; right: 8px; bottom: 16px;
+      background: #f2f2f7; border-radius: 14px; padding: 16px 12px 12px; text-align: center;
+    }
+    @media (prefers-color-scheme: dark) { .sheet { background: #1c1c1e; } }
+    .sheet h2 { font-size: var(--headline); margin: 0 0 8px; }
+    .sheet p { font-size: 13px; color: var(--secondary); margin: 0 0 16px; }
+    .sheet-btn {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 44px; border-radius: 10px; background: var(--bg);
+      margin-top: 8px; font-size: var(--body);
+    }
+    .review-note {
+      max-width: 800px; margin: 8px auto 32px; padding: 0 16px;
+      font-size: 13px; color: #3a3a3c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) { .review-note { color: #e5e5ea; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="stage" aria-label="running">
+      <div class="nav">
+        <div class="close" aria-label="閉じる">✕</div>
+        <span>復習</span>
+        <div class="close"></div>
+      </div>
+      <div class="progress-text">3 / 12</div>
+      <div class="bar" aria-hidden="true"><span></span></div>
+      <div class="item">
+        <div class="body">Hi, I'm running a bit late. Could we start in ten minutes?</div>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="leave">
+      <div class="nav">
+        <div class="close" aria-label="閉じる">✕</div>
+        <span>復習</span>
+        <div class="close"></div>
+      </div>
+      <div class="progress-text">3 / 12</div>
+      <div class="bar" aria-hidden="true"><span></span></div>
+      <div class="item">
+        <div class="body">Hi, I'm running a bit late. Could we start in ten minutes?</div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <h2>セッションを終了しますか？</h2>
+        <p>完了した分は保存されています。</p>
+        <div class="sheet-btn">終了する</div>
+        <div class="sheet-btn">キャンセル</div>
+      </div>
+    </section>
+  </div>
+  <p class="review-note">
+    ReviewSessionView（Task 16）。進捗テキスト直下に ProgressView（tint accent、a11y hidden）。
+    離脱確認のキャンセルは common.cancel「キャンセル」。leave_confirm に destructive role は付けない。
+    幅 375px・prefers-color-scheme で確認。
+  </p>
+</body>
+</html>

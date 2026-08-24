@@ -89,7 +89,7 @@ public struct ReviewSessionView<ItemContent: View>: View {
             titleVisibility: .visible
         ) {
             Button("review.session.leave_confirm") { onClose() }
-            Button("common.close", role: .cancel) {}
+            Button("common.cancel", role: .cancel) {}
         } message: {
             Text("review.session.leave_message")
         }
@@ -106,6 +106,9 @@ public struct ReviewSessionView<ItemContent: View>: View {
                 .accessibilityLabel(
                     LocalizedFormat.string("review.session.progress_a11y", index + 1, total)
                 )
+            ProgressView(value: Double(index + 1), total: Double(total))
+                .tint(Colors.accent)
+                .accessibilityHidden(true)
             if let entry = viewModel.current {
                 itemContent(
                     entry,

@@ -12,7 +12,10 @@ public enum AnalyticsEvent: Sendable, Equatable {
         routeCategory: String?
     )
     case downloadFailed(courseId: String)
-    // Phase 2 reserved event IDs (not produced in Phase 1): paywall_shown, purchase_succeeded
+    case paywallShown(reason: String)
+    case purchaseSucceeded(productId: String)
+    case purchaseFailed(code: String)
+    case limitReached(kind: String)
     case onboardingStarted
     case onboardingCompleted(goalItems: Int, reminderEnabled: Bool, skippedGoal: Bool)
     case onboardingSkipped(step: String)

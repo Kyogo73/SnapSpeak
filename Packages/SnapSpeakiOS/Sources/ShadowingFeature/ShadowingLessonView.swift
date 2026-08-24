@@ -112,6 +112,9 @@ public struct ShadowingLessonView: View {
                 Task { await viewModel.start() }
             }
         case .playing:
+            Label("recording.indicator", systemImage: "record.circle.fill")
+                .font(Typography.callout)
+                .foregroundStyle(Colors.danger)
             PrimaryButton("shadowing.stop", systemImage: "stop.fill") {
                 Task { await viewModel.stopAndScore() }
             }

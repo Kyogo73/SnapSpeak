@@ -124,6 +124,7 @@
     "lesson.error.scoring": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "採点に失敗しました。もう一度お試しください" } } } },
     "common.retry": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "やり直す" } } } },
     "common.stop": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "停止" } } } },
+    "recording.indicator": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "録音中" } } } },
     "onboarding.welcome.title": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "聞いて、まねて、即座に話す" } } } },
     "onboarding.welcome.subtitle": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "シャドーイングと瞬間英作文を、1 日 10 分から。" } } } },
     "onboarding.welcome.point_shadowing": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "お手本に声を重ねるシャドーイング" } } } },

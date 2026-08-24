@@ -40,6 +40,9 @@ public struct CompositionCardView: View {
                         viewModel.revealHint()
                     }
                 case .recording:
+                    Label("recording.indicator", systemImage: "record.circle.fill")
+                        .font(Typography.callout)
+                        .foregroundStyle(Colors.danger)
                     PrimaryButton("common.stop", systemImage: "stop.fill") {
                         Task { await viewModel.finishSpeaking() }
                     }

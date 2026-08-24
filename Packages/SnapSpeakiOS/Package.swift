@@ -242,6 +242,22 @@ let package = Package(
             swiftSettings: swift6
         ),
         .testTarget(
+            name: "ShadowingFeatureTests",
+            dependencies: [
+                "Analytics",
+                "AudioEngine",
+                "ContentKit",
+                "Persistence",
+                "ShadowingFeature",
+                "SpeechKit",
+                .product(name: "ContentCore", package: "SnapSpeakCore"),
+                .product(name: "LanguageKit", package: "SnapSpeakCore"),
+                .product(name: "ScoringKit", package: "SnapSpeakCore"),
+                .product(name: "SRSKit", package: "SnapSpeakCore"),
+            ],
+            swiftSettings: swift6
+        ),
+        .testTarget(
             name: "AudioEngineTests",
             dependencies: [
                 "AudioEngine",

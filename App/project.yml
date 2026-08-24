@@ -191,6 +191,37 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.CompositionFeatureTests
+  ShadowingFeatureTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Packages/SnapSpeakiOS/Tests/ShadowingFeatureTests
+    dependencies:
+      - package: SnapSpeakiOS
+        product: ShadowingFeature
+      - package: SnapSpeakiOS
+        product: Persistence
+      - package: SnapSpeakiOS
+        product: SpeechKit
+      - package: SnapSpeakiOS
+        product: Analytics
+      - package: SnapSpeakiOS
+        product: AudioEngine
+      - package: SnapSpeakiOS
+        product: ContentKit
+      - package: SnapSpeakCore
+        product: ContentCore
+      - package: SnapSpeakCore
+        product: LanguageKit
+      - package: SnapSpeakCore
+        product: ScoringKit
+      - package: SnapSpeakCore
+        product: SRSKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.snapspeak.ShadowingFeatureTests
   AudioEngineTests:
     type: bundle.unit-test
     platform: iOS
@@ -280,6 +311,7 @@ schemes:
         NotificationsKitTests: [test]
         OnboardingFeatureTests: [test]
         CompositionFeatureTests: [test]
+        ShadowingFeatureTests: [test]
         AudioEngineTests: [test]
         DriveModeFeatureTests: [test]
         AppFeatureTests: [test]
@@ -292,6 +324,7 @@ schemes:
         - NotificationsKitTests
         - OnboardingFeatureTests
         - CompositionFeatureTests
+        - ShadowingFeatureTests
         - AudioEngineTests
         - DriveModeFeatureTests
         - AppFeatureTests

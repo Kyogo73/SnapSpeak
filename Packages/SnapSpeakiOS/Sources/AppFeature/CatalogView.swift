@@ -55,6 +55,7 @@ public struct CatalogView: View {
                                     courses: courses,
                                     coordinate: coordinate
                                 ) == .locked
+                                let headline = itemHeadline(item)
                                 Button {
                                     if locked {
                                         onLockedItem(coordinate)
@@ -63,10 +64,22 @@ public struct CatalogView: View {
                                     }
                                 } label: {
                                     HStack {
-                                        Label(item.id, systemImage: icon(for: lesson.mode))
+                                        Label {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(headline)
+                                                    .font(Typography.headline)
+                                                    .multilineTextAlignment(.leading)
+                                                Text(modeTitleKey(for: lesson.mode))
+                                                    .font(Typography.caption)
+                                                    .foregroundStyle(Colors.secondaryFill)
+                                            }
+                                        } icon: {
+                                            Image(systemName: icon(for: lesson.mode))
+                                        }
                                         if locked {
                                             Spacer()
                                             Image(systemName: "lock.fill")
+                                                .accessibilityHidden(true)
                                             Text("catalog.locked")
                                                 .font(Typography.caption)
                                         }
@@ -75,8 +88,8 @@ public struct CatalogView: View {
                                 }
                                 .accessibilityLabel(
                                     locked
-                                        ? LocalizedFormat.string("catalog.locked_item_a11y", item.id)
-                                        : item.id
+                                        ? LocalizedFormat.string("catalog.locked_item_a11y", headline)
+                                        : headline
                                 )
                             }
                         }
@@ -92,5 +105,28 @@ public struct CatalogView: View {
         case .shadowing: return "waveform"
         case .composition: return "text.bubble"
         }
+    }
+
+    private func modeTitleKey(for mode: LessonMode) -> LocalizedStringKey {
+        switch mode {
+        case .shadowing: return "shadowing.title"
+        case .composition: return "composition.title"
+        }
+    }
+
+    /// Labels use passage.text / sentencePair.l1. LessonV1 has no title.
+    private func itemHeadline(_ item: ItemV1) -> String {
+        if let text = item.passage?.text, !text.isEmpty {
+            return truncatedPassage(text)
+        }
+        if let l1 = item.sentencePair?.l1, !l1.isEmpty {
+            return l1
+        }
+        return item.id
+    }
+
+    private func truncatedPassage(_ text: String) -> String {
+        guard text.count > 40 else { return text }
+        return String(text.prefix(40)) + "…"
     }
 }

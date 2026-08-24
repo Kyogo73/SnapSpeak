@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CatalogView — item 本文表示</title>
+  <style>
+    :root {
+      --title: 28px;
+      --headline: 17px;
+      --body: 17px;
+      --caption: 12px;
+      --bg: #ffffff;
+      --grouped: #f2f2f7;
+      --row: #ffffff;
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --accent: #007aff;
+      --separator: rgba(60, 60, 67, 0.18);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --grouped: #000000;
+        --row: #1c1c1e;
+        --label: #ffffff;
+        --secondary: rgba(235, 235, 245, 0.60);
+        --accent: #0a84ff;
+        --separator: rgba(84, 84, 88, 0.65);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #c7c7cc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--label);
+    }
+    .stage {
+      width: 375px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: var(--grouped);
+      padding: 8px 0 32px;
+    }
+    h1.nav {
+      font-size: var(--title);
+      font-weight: 400;
+      margin: 8px 16px 16px;
+    }
+    .section-title {
+      font-size: 13px;
+      color: var(--secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      padding: 8px 20px;
+    }
+    .unit {
+      font-size: var(--headline);
+      font-weight: 600;
+      padding: 10px 16px 6px;
+      background: var(--row);
+    }
+    .list {
+      background: var(--row);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+      padding: 8px 16px;
+      border-top: 1px solid var(--separator);
+    }
+    .icon {
+      width: 22px;
+      height: 22px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .texts { min-width: 0; }
+    .headline {
+      font-size: var(--headline);
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .caption {
+      font-size: var(--caption);
+      color: var(--secondary);
+      margin-top: 2px;
+    }
+    .review-note {
+      max-width: 375px;
+      margin: 24px auto;
+      padding: 0 16px 32px;
+      font-size: 13px;
+      color: #3a3a3c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      .review-note { color: #e5e5ea; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <h1 class="nav">コース一覧</h1>
+    <div class="section-title">日常英会話</div>
+    <div class="unit">あいさつと予定調整</div>
+    <div class="list">
+      <div class="row">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M3 12c2-3 4-4 5-4s2 2 4 4 3 4 4 4 3-1 5-4"/>
+        </svg>
+        <div class="texts">
+          <div class="headline">Hi, I'm running a bit late. Could we sta…</div>
+          <div class="caption">シャドーイング</div>
+        </div>
+      </div>
+      <div class="row">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M3 12c2-3 4-4 5-4s2 2 4 4 3 4 4 4 3-1 5-4"/>
+        </svg>
+        <div class="texts">
+          <div class="headline">Thanks for waiting. The meeting room is …</div>
+          <div class="caption">シャドーイング</div>
+        </div>
+      </div>
+      <div class="row">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M3 12c2-3 4-4 5-4s2 2 4 4 3 4 4 4 3-1 5-4"/>
+        </svg>
+        <div class="texts">
+          <div class="headline">Let me check my calendar and get back to…</div>
+          <div class="caption">シャドーイング</div>
+        </div>
+      </div>
+      <div class="row">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M4 6h12a3 3 0 0 1 3 3v8H7a3 3 0 0 1-3-3V6z"/>
+          <path d="M7 18v2h10"/>
+        </svg>
+        <div class="texts">
+          <div class="headline">少し遅れます。10分後に始められますか。</div>
+          <div class="caption">瞬間英作文</div>
+        </div>
+      </div>
+      <div class="row">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M4 6h12a3 3 0 0 1 3 3v8H7a3 3 0 0 1-3-3V6z"/>
+          <path d="M7 18v2h10"/>
+        </svg>
+        <div class="texts">
+          <div class="headline">待ってくれてありがとう。</div>
+          <div class="caption">瞬間英作文</div>
+        </div>
+      </div>
+      <div class="row">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M4 6h12a3 3 0 0 1 3 3v8H7a3 3 0 0 1-3-3V6z"/>
+          <path d="M7 18v2h10"/>
+        </svg>
+        <div class="texts">
+          <div class="headline">会議室は3階です。</div>
+          <div class="caption">瞬間英作文</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="review-note">
+    CatalogView（Task 13）。各 item 行を維持（lesson 集約なし）。
+    headline = passage.text（40 文字 + …）/ sentencePair.l1。
+    caption = shadowing.title / composition.title。LessonV1.title は使わない。
+    幅 375px・prefers-color-scheme で確認。
+  </p>
+</body>
+</html>

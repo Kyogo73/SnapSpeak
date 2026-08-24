@@ -6,13 +6,19 @@ import SwiftUI
 
 @MainActor
 public final class CompositionSessionViewModel: ObservableObject {
-    public enum Phase {
+    public enum FailureKind: Sendable, Equatable {
+        case load
+        case playback
+        case scoring
+    }
+
+    public enum Phase: Sendable, Equatable {
         case loading
         case prompt
         case recording
         case scoring
         case result
-        case failed(String)
+        case failed(FailureKind)
     }
 
     @Published public private(set) var phase: Phase = .loading
@@ -21,6 +27,7 @@ public final class CompositionSessionViewModel: ObservableObject {
     @Published public private(set) var outcome: CompositionOutcome?
     @Published public private(set) var microphoneDenied = false
     @Published public var usedHint = false
+    @Published public private(set) var hintText: String?
 
     public let courseId: String
     public let lessonId: String
@@ -51,7 +58,7 @@ public final class CompositionSessionViewModel: ObservableObject {
         phase = .loading
         let courses = await courseStore.allCourses()
         guard let stored = courses.first(where: { $0.course.id == courseId }) else {
-            phase = .failed("missing-course")
+            phase = .failed(.load)
             return
         }
         let match = stored.course.units
@@ -60,7 +67,7 @@ public final class CompositionSessionViewModel: ObservableObject {
             .items
             .first(where: { $0.id == itemId })
         guard let match else {
-            phase = .failed("missing-item")
+            phase = .failed(.load)
             return
         }
         self.stored = stored
@@ -85,7 +92,7 @@ public final class CompositionSessionViewModel: ObservableObject {
             )
             phase = .result
         } catch {
-            phase = .failed(String(describing: error))
+            phase = .failed(.scoring)
         }
     }
 
@@ -99,7 +106,7 @@ public final class CompositionSessionViewModel: ObservableObject {
             microphoneDenied = true
             phase = .prompt
         } catch {
-            phase = .prompt
+            phase = .failed(.playback)
         }
     }
 
@@ -118,11 +125,22 @@ public final class CompositionSessionViewModel: ObservableObject {
             )
             phase = .result
         } catch {
-            phase = .failed(String(describing: error))
+            phase = .failed(.scoring)
         }
+    }
+
+    public func retryAfterScoringFailure() {
+        outcome = nil
+        recordingURL = nil
+        phase = .prompt
     }
 
     public func revealHint() {
         usedHint = true
+        guard let first = item?.sentencePair?.acceptable.first, !first.isEmpty else {
+            hintText = nil
+            return
+        }
+        hintText = first.split(separator: " ").first.map(String.init)
     }
 }

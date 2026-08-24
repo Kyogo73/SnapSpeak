@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ResultView — スコア内訳</title>
+  <style>
+    :root {
+      --title: 28px;
+      --headline: 17px;
+      --body: 17px;
+      --caption: 12px;
+      --score: 22px;
+      --bg: #ffffff;
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --accent: #007aff;
+      --success: #34c759;
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --label: #ffffff;
+        --secondary: rgba(235, 235, 245, 0.60);
+        --accent: #0a84ff;
+        --success: #30d158;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #c7c7cc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--label);
+    }
+    .stage {
+      max-width: 375px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: var(--bg);
+      padding: 16px;
+    }
+    .stack {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .title { font-size: var(--title); font-weight: 400; margin: 0; }
+    .headline { font-size: var(--headline); font-weight: 600; }
+    .body { font-size: var(--body); font-weight: 400; }
+    .caption { font-size: var(--caption); font-weight: 400; color: var(--secondary); }
+    .secondary { color: var(--secondary); }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 8px 12px;
+      color: var(--success);
+    }
+    .badge .mark { font-size: 22px; line-height: 1; }
+    .score { font-size: var(--score); font-variant-numeric: tabular-nums; }
+    .breakdown {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: var(--body);
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 44px;
+      border-radius: var(--radius);
+      font-size: var(--headline);
+      font-weight: 600;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+    .review-note {
+      max-width: 375px;
+      margin: 24px auto;
+      padding: 0 16px 32px;
+      font-size: 13px;
+      color: #3a3a3c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      .review-note { color: #e5e5ea; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <!-- ResultView body: VStack leading spacing 16 -->
+    <div class="stack">
+      <h1 class="title">結果</h1>
+      <div class="badge" aria-label="スクリプト一致率" aria-valuetext="82%">
+        <span class="mark" aria-hidden="true">✓</span>
+        <span class="score">82%</span>
+      </div>
+      <div class="headline">スクリプト一致率</div>
+      <div class="body secondary">発音の上手さではなく、お手本の語をどれだけ再現できたかの割合です。</div>
+      <div class="breakdown">
+        <div>抜け 3 語</div>
+        <div>言い淀み 2 回</div>
+        <div>WPM 85.5</div>
+        <div>遅延 中央値 420 ms</div>
+        <div class="caption">遅延は文単位の概算です</div>
+      </div>
+      <div class="btn btn-primary">もう一度</div>
+      <div class="btn btn-secondary">閉じる</div>
+    </div>
+  </div>
+  <p class="review-note">
+    ResultView（Task 7）。ScoreBadge + script_match_rate_help の後に
+    抜け語数 / 言い淀み / WPM / 遅延中央値。delayGranularity == sentenceApproximate のとき
+    result.breakdown.delay_approx を caption で表示。
+    幅 375px・prefers-color-scheme で確認。
+  </p>
+</body>
+</html>

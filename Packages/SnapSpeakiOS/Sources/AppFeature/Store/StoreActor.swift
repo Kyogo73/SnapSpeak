@@ -133,39 +133,32 @@ public actor StoreActor {
         publish()
     }
 
-    private func evaluate(_ transaction: Transaction) async -> EntitlementVerdict {
-        if transaction.revocationDate != nil {
-            return EntitlementVerdict(isPro: false, expirationDate: transaction.expirationDate)
-        }
+    private func evaluate(_ transaction: Transaction) async -> SubscriptionEntitlement {
+        let renewalState: SubscriptionRenewalState?
         if let status = await subscriptionStatus(for: transaction) {
-            switch status.state {
-            case .subscribed:
-                return EntitlementVerdict(isPro: true, expirationDate: transaction.expirationDate)
-            case .inGracePeriod:
-                return EntitlementVerdict(
-                    isPro: true,
-                    expirationDate: transaction.expirationDate,
-                    inGracePeriod: true
-                )
-            case .inBillingRetryPeriod:
-                if let expiration = transaction.expirationDate, expiration > Date() {
-                    return EntitlementVerdict(isPro: true, expirationDate: expiration)
-                }
-                return EntitlementVerdict(
-                    isPro: false,
-                    expirationDate: transaction.expirationDate,
-                    billingRetryExpired: true
-                )
-            case .expired, .revoked:
-                return EntitlementVerdict(isPro: false, expirationDate: transaction.expirationDate)
-            default:
-                return EntitlementVerdict(isPro: false, expirationDate: transaction.expirationDate)
-            }
+            renewalState = Self.renewalState(from: status)
+        } else {
+            renewalState = nil
         }
-        if let expiration = transaction.expirationDate {
-            return EntitlementVerdict(isPro: expiration > Date(), expirationDate: expiration)
+        return SubscriptionEntitlement.evaluate(
+            revocationDate: transaction.revocationDate,
+            expirationDate: transaction.expirationDate,
+            now: Date(),
+            renewalState: renewalState
+        )
+    }
+
+    private static func renewalState(
+        from status: Product.SubscriptionInfo.Status
+    ) -> SubscriptionRenewalState? {
+        switch status.state {
+        case .subscribed: return .subscribed
+        case .inGracePeriod: return .inGracePeriod
+        case .inBillingRetryPeriod: return .inBillingRetryPeriod
+        case .expired: return .expired
+        case .revoked: return .revoked
+        default: return nil
         }
-        return EntitlementVerdict(isPro: true)
     }
 
     private func subscriptionStatus(
@@ -278,24 +271,5 @@ public actor StoreActor {
             }
         }
         return "error_\((error as NSError).code)"
-    }
-}
-
-private struct EntitlementVerdict {
-    var isPro: Bool
-    var expirationDate: Date?
-    var billingRetryExpired: Bool
-    var inGracePeriod: Bool
-
-    init(
-        isPro: Bool,
-        expirationDate: Date? = nil,
-        billingRetryExpired: Bool = false,
-        inGracePeriod: Bool = false
-    ) {
-        self.isPro = isPro
-        self.expirationDate = expirationDate
-        self.billingRetryExpired = billingRetryExpired
-        self.inGracePeriod = inGracePeriod
     }
 }

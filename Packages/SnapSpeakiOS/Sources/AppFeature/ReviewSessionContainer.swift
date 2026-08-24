@@ -13,7 +13,7 @@ struct ReviewSessionContainer: View {
     let courses: [StoredCourse]
     let onClose: () -> Void
     let onContinueLearning: () -> Void
-    let onItemCompleted: () -> Void
+    let onItemCompleted: () async -> Void
 
     init(
         snapshot: TodaySnapshot,
@@ -21,7 +21,7 @@ struct ReviewSessionContainer: View {
         courses: [StoredCourse],
         onClose: @escaping () -> Void,
         onContinueLearning: @escaping () -> Void,
-        onItemCompleted: @escaping () -> Void
+        onItemCompleted: @escaping () async -> Void
     ) {
         _session = StateObject(
             wrappedValue: ReviewSessionViewModel(
@@ -112,12 +112,16 @@ struct ReviewSessionContainer: View {
                             defaultRate: dependencies.settings.defaultRate
                         ),
                         onCompleted: {
-                            onItemCompleted()
-                            actions.complete()
+                            Task {
+                                await onItemCompleted()
+                                actions.complete()
+                            }
                         },
                         onSkipped: {
-                            onItemCompleted()
-                            actions.skip()
+                            Task {
+                                await onItemCompleted()
+                                actions.skip()
+                            }
                         }
                     )
                 case .composition:
@@ -130,8 +134,10 @@ struct ReviewSessionContainer: View {
                             courseStore: dependencies.courseStore
                         ),
                         onCompleted: {
-                            onItemCompleted()
-                            actions.complete()
+                            Task {
+                                await onItemCompleted()
+                                actions.complete()
+                            }
                         }
                     )
                 }

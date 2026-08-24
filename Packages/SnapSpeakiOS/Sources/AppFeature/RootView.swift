@@ -159,10 +159,8 @@ public struct RootView: View {
                         Task { await todayViewModel.refresh() }
                     },
                     onItemCompleted: {
-                        Task {
-                            await dependencies.refreshEntitlementUsage()
-                            await todayViewModel.refresh()
-                        }
+                        await dependencies.refreshEntitlementUsage()
+                        await todayViewModel.refresh()
                     }
                 )
             } else {

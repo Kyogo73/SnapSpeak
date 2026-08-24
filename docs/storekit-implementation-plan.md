@@ -37,11 +37,12 @@
 3. `Transaction.currentEntitlements` を走査し、**verified のみ**採用する。
 4. `Transaction.updates` を購読し、検証後に entitlement を更新して **必ず `finish()`** する。
 
-状態:
+状態（判定の正本は `ContentKit.SubscriptionEntitlement`）:
 
 - Grace Period（`.inGracePeriod`）は Pro を維持する。
-- Billing Retry で期限切れなら Pro を落とす。
-- `revocationDate` / `.revoked` は Pro を落とす。
+- Billing Retry で期限切れなら Pro を落とす。期限前なら Pro を維持する。
+- `revocationDate` / `.revoked` / `.expired` は Pro を落とす。
+- subscription status が取れないときは、verified な現行 entitlement を Pro のままにし、期限切れなら Grace とみなす。Billing Retry 期限切れは status があるときだけ落とす。
 
 Restore は Paywall の明示ボタンからのみ `AppStore.sync()` する。
 

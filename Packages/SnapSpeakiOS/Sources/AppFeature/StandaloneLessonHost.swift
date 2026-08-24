@@ -24,8 +24,8 @@ struct StandaloneLessonHost: View {
             Task {
                 await dependencies.refreshEntitlementUsage()
                 await today?.refresh()
+                dismiss()
             }
-            dismiss()
         }
         Group {
             if isLocked {

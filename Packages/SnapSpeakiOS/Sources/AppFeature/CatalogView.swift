@@ -50,10 +50,10 @@ public struct CatalogView: View {
                                     itemId: item.id,
                                     mode: lesson.mode
                                 )
-                                let locked = entitlement.access(
-                                    courseId: stored.course.id,
-                                    isFirstUnit: unit.id == stored.course.units.first?.id,
-                                    skillIsComposition: lesson.mode == .composition
+                                let locked = ContentAccess.access(
+                                    resolver: entitlement,
+                                    courses: courses,
+                                    coordinate: coordinate
                                 ) == .locked
                                 Button {
                                     if locked {

@@ -133,43 +133,50 @@ public actor StoreActor {
         publish()
     }
 
-    private func evaluate(_ transaction: Transaction) async -> (
-        isPro: Bool,
-        expirationDate: Date?,
-        billingRetryExpired: Bool,
-        inGracePeriod: Bool
-    ) {
+    private func evaluate(_ transaction: Transaction) async -> EntitlementVerdict {
         if transaction.revocationDate != nil {
-            return (false, transaction.expirationDate, false, false)
+            return EntitlementVerdict(isPro: false, expirationDate: transaction.expirationDate)
         }
         if let status = await subscriptionStatus(for: transaction) {
             switch status.state {
             case .subscribed:
-                return (true, transaction.expirationDate, false, false)
+                return EntitlementVerdict(isPro: true, expirationDate: transaction.expirationDate)
             case .inGracePeriod:
-                return (true, transaction.expirationDate, false, true)
+                return EntitlementVerdict(
+                    isPro: true,
+                    expirationDate: transaction.expirationDate,
+                    inGracePeriod: true
+                )
             case .inBillingRetryPeriod:
                 if let expiration = transaction.expirationDate, expiration > Date() {
-                    return (true, expiration, false, false)
+                    return EntitlementVerdict(isPro: true, expirationDate: expiration)
                 }
-                return (false, transaction.expirationDate, true, false)
+                return EntitlementVerdict(
+                    isPro: false,
+                    expirationDate: transaction.expirationDate,
+                    billingRetryExpired: true
+                )
             case .expired, .revoked:
-                return (false, transaction.expirationDate, false, false)
+                return EntitlementVerdict(isPro: false, expirationDate: transaction.expirationDate)
             default:
-                return (false, transaction.expirationDate, false, false)
+                return EntitlementVerdict(isPro: false, expirationDate: transaction.expirationDate)
             }
         }
         if let expiration = transaction.expirationDate {
-            return (expiration > Date(), expiration, false, false)
+            return EntitlementVerdict(isPro: expiration > Date(), expirationDate: expiration)
         }
-        return (true, nil, false, false)
+        return EntitlementVerdict(isPro: true)
     }
 
     private func subscriptionStatus(
         for transaction: Transaction
     ) async -> Product.SubscriptionInfo.Status? {
-        let product = products.first { $0.id == transaction.productID }
-            ?? (try? await Product.products(for: [transaction.productID]).first)
+        let product: Product?
+        if let cached = products.first(where: { $0.id == transaction.productID }) {
+            product = cached
+        } else {
+            product = try? await Product.products(for: [transaction.productID]).first
+        }
         guard let statuses = try? await product?.subscription?.status else { return nil }
         return statuses.first { status in
             if case let .verified(statusTransaction) = status.transaction {
@@ -271,5 +278,24 @@ public actor StoreActor {
             }
         }
         return "error_\((error as NSError).code)"
+    }
+}
+
+private struct EntitlementVerdict {
+    var isPro: Bool
+    var expirationDate: Date?
+    var billingRetryExpired: Bool
+    var inGracePeriod: Bool
+
+    init(
+        isPro: Bool,
+        expirationDate: Date? = nil,
+        billingRetryExpired: Bool = false,
+        inGracePeriod: Bool = false
+    ) {
+        self.isPro = isPro
+        self.expirationDate = expirationDate
+        self.billingRetryExpired = billingRetryExpired
+        self.inGracePeriod = inGracePeriod
     }
 }

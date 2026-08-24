@@ -38,6 +38,8 @@ public struct OnboardingGoalView: View {
             }
             .pickerStyle(.inline)
             .labelsHidden()
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("onboarding.goal.group_label")
             Toggle("onboarding.goal.reminder_toggle", isOn: $reminderEnabled)
                 .frame(minHeight: 44)
             if reminderEnabled {

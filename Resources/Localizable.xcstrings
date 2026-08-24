@@ -122,6 +122,8 @@
     "onboarding.welcome.point_composition": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "日本語を見て即座に英語で言う瞬間英作文" } } } },
     "onboarding.welcome.start": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "はじめる" } } } },
     "onboarding.skip": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "あとで設定する" } } } },
+    "onboarding.step": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "%1$lld / %2$lld" } } } },
+    "onboarding.goal.group_label": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "1 日の目標" } } } },
     "onboarding.goal.title": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "1 日の目標を決めましょう" } } } },
     "onboarding.goal.subtitle": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "続けやすい小さな目標がおすすめです。あとから設定でいつでも変えられます。" } } } },
     "onboarding.goal.preset_light": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "かるめ（5 問/日）" } } } },

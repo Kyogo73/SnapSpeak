@@ -27,6 +27,7 @@ public final class CompositionSessionViewModel: ObservableObject {
     @Published public private(set) var outcome: CompositionOutcome?
     @Published public private(set) var microphoneDenied = false
     @Published public var usedHint = false
+    @Published public private(set) var hintText: String?
 
     public let courseId: String
     public let lessonId: String
@@ -136,5 +137,10 @@ public final class CompositionSessionViewModel: ObservableObject {
 
     public func revealHint() {
         usedHint = true
+        guard let first = item?.sentencePair?.acceptable.first, !first.isEmpty else {
+            hintText = nil
+            return
+        }
+        hintText = first.split(separator: " ").first.map(String.init)
     }
 }

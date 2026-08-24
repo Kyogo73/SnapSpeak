@@ -39,6 +39,14 @@ public struct CompositionCardView: View {
                     SecondaryButton("composition.hint", systemImage: "lightbulb") {
                         viewModel.revealHint()
                     }
+                    if let hint = viewModel.hintText {
+                        LabeledContent {
+                            Text(hint)
+                        } label: {
+                            Text("composition.hint_label")
+                        }
+                        .font(Typography.body)
+                    }
                 case .recording:
                     Label("recording.indicator", systemImage: "record.circle.fill")
                         .font(Typography.callout)

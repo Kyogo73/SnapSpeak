@@ -117,6 +117,7 @@
     "composition.type_instead": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "音声認識できないため採点していません。キーボードで入力できます。" } } } },
     "shadowing.play_preview": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "お手本を聞く" } } } },
     "composition.hint": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "ヒントを見る" } } } },
+    "composition.hint_label": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "ヒント" } } } },
     "common.close": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "閉じる" } } } },
     "common.error": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "エラーが起きました" } } } },
     "lesson.error.load": { "localizations": { "ja": { "stringUnit": { "state": "translated", "value": "教材の読み込みに失敗しました。もう一度お試しください" } } } },

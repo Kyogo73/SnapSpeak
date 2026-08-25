@@ -6,23 +6,24 @@
   <title>ReviewSummaryView — 達成リング</title>
   <style>
     :root {
-      --title: 28px; --headline: 17px; --body: 17px; --bg: #fff; --label: #000;
-      --secondary: rgba(60,60,67,.60); --accent: #007aff; --success: #34c759;
+      --title: 28px; --headline: 17px; --body: 17px; --bg: #f3f6f4; --label: #000;
+      --secondary: rgba(60,60,67,.60); --accent: #0f766e; --success: #34c759;
     }
     @media (prefers-color-scheme: dark) {
-      :root { --bg: #000; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #0a84ff; --success: #30d158; }
+      :root { --bg: #0c1211; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #5eead4; --success: #30d158; }
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: #c7c7cc; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; color: var(--label); }
     .wrap { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; padding: 16px 0; }
     .stage { width: 375px; min-height: 100vh; background: var(--bg); padding: 16px; }
-    h1 { font-size: var(--title); font-weight: 400; }
-    .headline { font-size: var(--headline); font-weight: 600; }
+    h1 { font-size: var(--title); font-weight: 400; font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; }
+    .headline { font-size: var(--headline); font-weight: 600; font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; }
     .body { font-size: var(--body); color: var(--secondary); }
     .ok { color: var(--success); font-weight: 600; }
     .ring { width: 56px; height: 56px; margin: 8px auto; border: 8px solid var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-    .cta { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; margin-top: 16px; }
-    .ghost { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; margin-top: 8px; }
+    .cta { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 14px; background: var(--accent); color: #fff; font-weight: 600; margin-top: 16px; }
+    @media (prefers-color-scheme: dark) { .cta { color: #042f2e; } }
+    .ghost { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; margin-top: 8px; }
     .label { font-size: 13px; color: var(--secondary); }
   </style>
 </head>

@@ -9,17 +9,18 @@ iOS シミュレータを持たない環境で視覚レビューを回すため�
 | SwiftUI | HTML / CSS |
 |---------|------------|
 | ビュー階層（`VStack` / `HStack` / `ZStack`） | flexbox（`flex-direction: column` / `row` / 重ねは `position`） |
-| `Typography.title` | 28px system-ui（regular） |
-| `Typography.headline` | 17px system-ui（semibold） |
+| `Typography.title` | 28px `ui-rounded`（regular） |
+| `Typography.headline` | 17px `ui-rounded`（semibold） |
 | `Typography.body` | 17px system-ui（regular） |
 | `Typography.callout` | 16px system-ui（regular） |
 | `Typography.caption` | 12px system-ui（regular） |
-| `Typography.score` | 22px system-ui（`font-variant-numeric: tabular-nums`） |
-| `Colors.accent` | iOS システムアクセント（light `#007AFF` / dark `#0A84FF`） |
+| `Typography.score` | 22px `ui-rounded`（`font-variant-numeric: tabular-nums`） |
+| `Colors.accent` | 教育ティール（light `#0F766E` / dark `#5EEAD4`） |
+| `Colors.onAccent` | light `#FFFFFF` / dark `#042F2E` |
 | `Colors.secondaryFill` | iOS `secondaryLabel`（light `rgba(60,60,67,0.60)` / dark `rgba(235,235,245,0.60)`） |
 | `Colors.warning` | iOS orange（light `#FF9500` / dark `#FF9F0A`） |
-| `Colors.background` | iOS `systemBackground` |
-| `CardContainer` | 角丸 16px + `secondarySystemBackground` + padding 16px |
+| `Colors.background` | 暖色キャンバス（light `#F3F6F4` / dark `#0C1211`） |
+| `CardContainer` | 角丸 22px continuous + `cardFill` `#FFFEFB` / `#16201E` + 1pt stroke + 弱い影 + padding 18px |
 | 文言 | `Resources/Localizable.xcstrings` の ja 値を転記 |
 
 light / dark は `prefers-color-scheme` で切り替える。

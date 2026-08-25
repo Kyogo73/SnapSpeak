@@ -25,8 +25,15 @@ public struct PrivacyView: View {
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryFill)
                 if let url = URL(string: "https://snapspeak.app/privacy") {
-                    Link("privacy.policy", destination: url)
-                        .frame(minHeight: 44)
+                    Link(destination: url) {
+                        HStack {
+                            Text("privacy.policy")
+                            Image(systemName: "arrow.up.right.square")
+                                .accessibilityHidden(true)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityHint("privacy.policy_external_hint")
                 }
                 PrimaryButton("privacy.open_settings", systemImage: "gear") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {

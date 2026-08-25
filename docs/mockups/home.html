@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HomeView — ドライブカード / loading / 回復</title>
+  <style>
+    :root {
+      --title: 28px; --headline: 17px; --body: 17px; --caption: 12px;
+      --bg: #f2f2f7; --card: #ffffff; --label: #000; --secondary: rgba(60,60,67,.60);
+      --accent: #007aff; --warning: #ff9500; --radius: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000; --card: #1c1c1e; --label: #fff; --secondary: rgba(235,235,245,.60);
+        --accent: #0a84ff; --warning: #ff9f0a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #c7c7cc; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; color: var(--label); }
+    .wrap { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; padding: 16px 0; }
+    .stage { width: 375px; min-height: 100vh; background: var(--bg); padding: 8px 16px 32px; }
+    h1.nav { font-size: var(--title); font-weight: 400; margin: 8px 0 16px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+    .row { display: flex; align-items: center; min-height: 44px; gap: 8px; }
+    .grow { flex: 1; }
+    .headline { font-size: var(--headline); font-weight: 600; }
+    .body { font-size: var(--body); }
+    .caption { font-size: var(--caption); color: var(--secondary); }
+    .warn { font-size: var(--caption); color: var(--warning); }
+    .chev { color: var(--secondary); }
+    .ring { width: 56px; height: 56px; border: 8px solid rgba(60,60,67,.15); border-radius: 50%; }
+    .cta { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; }
+    .ghost { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; }
+    .label { font-size: 13px; color: var(--secondary); margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="stage">
+      <p class="label">ready / at-risk</p>
+      <h1 class="nav">今日の学習</h1>
+      <div class="card">
+        <div class="row">
+          <div class="grow">
+            <div class="headline">3 日連続</div>
+            <div class="warn">今日やらないと途切れます</div>
+          </div>
+          <div class="ring" aria-hidden="true"></div>
+        </div>
+        <div class="caption">今日 2 / 10 問</div>
+      </div>
+      <div class="card"><div class="row"><span class="grow">進捗を見る</span><span class="chev" aria-hidden="true">›</span></div></div>
+      <div class="card">
+        <div class="headline">今日の学習</div>
+        <div class="caption">復習 4 件と新しいレッスン</div>
+        <div class="cta">今日の学習を始める</div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="grow">
+            <div class="headline">ドライブモード</div>
+            <div class="body caption">運転中は音声だけで練習</div>
+          </div>
+          <span class="chev" aria-hidden="true">›</span>
+        </div>
+        <div class="cta">すぐ始める</div>
+      </div>
+      <div class="card"><div class="row"><span class="grow">続きから始める</span><span class="chev" aria-hidden="true">›</span></div></div>
+    </section>
+    <section class="stage">
+      <p class="label">loading</p>
+      <h1 class="nav">今日の学習</h1>
+      <div class="card">
+        <div class="row">
+          <div class="grow caption" role="status">今日の進捗を読み込んでいます</div>
+          <div class="ring" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+    <section class="stage">
+      <p class="label">recovery</p>
+      <h1 class="nav">今日の学習</h1>
+      <div class="card">
+        <div class="headline">連続記録が途切れました</div>
+        <div class="body">これまでに 12 日学習しました</div>
+        <div class="caption">最長 8 日</div>
+        <div class="cta">今日の 1 問から再開する</div>
+        <div class="ghost">閉じる</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

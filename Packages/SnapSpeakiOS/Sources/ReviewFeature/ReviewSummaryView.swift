@@ -13,6 +13,8 @@ public struct ReviewSummaryView: View {
     public var streakTo: Int
     public var onBackHome: () -> Void
     public var onContinue: () -> Void
+    @State private var ringProgress: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(
         completedCount: Int,
@@ -69,9 +71,18 @@ public struct ReviewSummaryView: View {
                     .font(Typography.body)
             }
             if didMeetGoal {
-                Label("review.summary.goal_met", systemImage: "checkmark.circle.fill")
-                    .font(Typography.headline)
-                    .foregroundStyle(Colors.success)
+                VStack(spacing: 12) {
+                    ProgressRing(
+                        progress: ringProgress,
+                        accessibilityLabel: "home.goal.ring_label",
+                        accessibilityValueText: goalRingValueText
+                    )
+                    .frame(maxWidth: .infinity)
+                    .onAppear(perform: startGoalRingIfNeeded)
+                    Label("review.summary.goal_met", systemImage: "checkmark.circle.fill")
+                        .font(Typography.headline)
+                        .foregroundStyle(Colors.success)
+                }
             }
             if streakTo > streakFrom {
                 Text(LocalizedFormat.string("review.summary.streak_extended", streakFrom, streakTo))
@@ -81,6 +92,26 @@ public struct ReviewSummaryView: View {
             SecondaryButton("home.today.extra", action: onContinue)
             }
             .padding()
+        }
+    }
+
+    private var goalRingValueText: String {
+        LocalizedFormat.string(
+            "home.goal.progress",
+            completedItemsAfter ?? completedCount,
+            goalItems ?? max(completedItemsAfter ?? completedCount, 1)
+        )
+    }
+
+    private func startGoalRingIfNeeded() {
+        guard didMeetGoal else { return }
+        if reduceMotion {
+            ringProgress = 1
+            return
+        }
+        ringProgress = 0
+        withAnimation(.easeOut(duration: 0.6)) {
+            ringProgress = 1
         }
     }
 }

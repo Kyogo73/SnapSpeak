@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReviewSummaryView — 達成リング</title>
+  <style>
+    :root {
+      --title: 28px; --headline: 17px; --body: 17px; --bg: #fff; --label: #000;
+      --secondary: rgba(60,60,67,.60); --accent: #007aff; --success: #34c759;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #000; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #0a84ff; --success: #30d158; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #c7c7cc; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; color: var(--label); }
+    .wrap { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; padding: 16px 0; }
+    .stage { width: 375px; min-height: 100vh; background: var(--bg); padding: 16px; }
+    h1 { font-size: var(--title); font-weight: 400; }
+    .headline { font-size: var(--headline); font-weight: 600; }
+    .body { font-size: var(--body); color: var(--secondary); }
+    .ok { color: var(--success); font-weight: 600; }
+    .ring { width: 56px; height: 56px; margin: 8px auto; border: 8px solid var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .cta { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; margin-top: 16px; }
+    .ghost { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; margin-top: 8px; }
+    .label { font-size: 13px; color: var(--secondary); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="stage">
+      <p class="label">didMeetGoal / motion on</p>
+      <h1>今日のまとめ</h1>
+      <p class="headline">8 問できました</p>
+      <p class="body">今日 2 → 10 / 10 問</p>
+      <div class="ring" aria-label="今日の目標の進捗" aria-valuetext="今日 10 / 10 問">✓</div>
+      <p class="ok">✓ 今日の目標を達成しました</p>
+      <p>連続 2 → 3 日</p>
+      <div class="cta">ホームに戻る</div>
+      <div class="ghost">続けて学習する</div>
+    </section>
+    <section class="stage">
+      <p class="label">Reduce Motion — 最初から完成リング</p>
+      <h1>今日のまとめ</h1>
+      <p class="headline">8 問できました</p>
+      <div class="ring" aria-hidden="false">✓</div>
+      <p class="ok">✓ 今日の目標を達成しました</p>
+    </section>
+  </div>
+</body>
+</html>

@@ -23,6 +23,8 @@ public struct SettingsView: View {
     @State private var driveRepeats = 2
     @State private var didLoad = false
     @State private var saveFailed = false
+    @State private var confirmReset = false
+    @State private var showResetDone = false
     @Environment(\.scenePhase) private var scenePhase
 
     public init(path: Binding<[SettingsDestination]>, today: TodayViewModel? = nil) {
@@ -58,9 +60,17 @@ public struct SettingsView: View {
                     .frame(minHeight: 44)
                 }
                 if saveFailed {
-                    Text("settings.save_failed")
-                        .font(Typography.caption)
-                        .foregroundStyle(Colors.danger)
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .accessibilityHidden(true)
+                        Text("settings.save_failed")
+                    }
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.danger)
+                    Button("common.retry") {
+                        Task { await persistHabitSettings() }
+                    }
+                    .frame(minHeight: 44)
                 }
                 if reminderDenied {
                     Text("settings.reminder_denied")
@@ -81,9 +91,14 @@ public struct SettingsView: View {
                     .textSelection(.enabled)
             }
             Button("settings.reset_install_id") {
-                installID = InstallID.reset().uuidString
+                confirmReset = true
             }
             .frame(minHeight: 44)
+            if showResetDone {
+                Text("settings.reset_done")
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.secondaryFill)
+            }
             Button("settings.privacy") {
                 path.append(.privacy)
             }
@@ -94,6 +109,23 @@ public struct SettingsView: View {
             .frame(minHeight: 44)
         }
         .navigationTitle("settings.title")
+        .confirmationDialog(
+            "settings.reset_confirm_title",
+            isPresented: $confirmReset,
+            titleVisibility: .visible
+        ) {
+            Button("settings.reset_confirm", role: .destructive) {
+                installID = InstallID.reset().uuidString
+                showResetDone = true
+                Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    showResetDone = false
+                }
+            }
+            Button("common.close", role: .cancel) {}
+        } message: {
+            Text("settings.reset_confirm_message")
+        }
         .task {
             installID = InstallID.current().uuidString
             await loadFromStore()

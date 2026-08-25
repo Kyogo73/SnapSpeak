@@ -26,6 +26,14 @@ public struct LocalAnalytics: AnalyticsClient {
             )
         case let .downloadFailed(courseId):
             logger.log("download_failed course=\(courseId, privacy: .public)")
+        case let .paywallShown(reason):
+            logger.log("paywall_shown reason=\(reason, privacy: .public)")
+        case let .purchaseSucceeded(productId):
+            logger.log("purchase_succeeded product=\(productId, privacy: .public)")
+        case let .purchaseFailed(code):
+            logger.log("purchase_failed code=\(code, privacy: .public)")
+        case let .limitReached(kind):
+            logger.log("limit_reached kind=\(kind, privacy: .public)")
         case .onboardingStarted:
             logger.log("onboarding_started")
         case let .onboardingCompleted(goalItems, reminderEnabled, skippedGoal):

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DownloadsView — タイトル・容量・削除確認</title>
+  <style>
+    :root {
+      --title: 28px;
+      --headline: 17px;
+      --body: 17px;
+      --caption: 12px;
+      --bg: #f2f2f7;
+      --row: #ffffff;
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --accent: #007aff;
+      --danger: #ff3b30;
+      --sheet: #f2f2f7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --row: #1c1c1e;
+        --label: #ffffff;
+        --secondary: rgba(235, 235, 245, 0.60);
+        --accent: #0a84ff;
+        --danger: #ff453a;
+        --sheet: #1c1c1e;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #c7c7cc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--label);
+    }
+    .row-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px;
+      padding: 16px 0;
+    }
+    .stage {
+      width: 375px;
+      min-height: 100vh;
+      background: var(--bg);
+      padding: 8px 0 32px;
+      position: relative;
+    }
+    h1.nav {
+      font-size: var(--title);
+      font-weight: 400;
+      margin: 8px 16px 16px;
+    }
+    .card {
+      background: var(--row);
+      margin: 0 16px;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .headline { font-size: var(--headline); font-weight: 600; }
+    .meta {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      margin-top: 8px;
+      font-size: var(--caption);
+      color: var(--secondary);
+    }
+    .secondary-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      margin-top: 8px;
+      border: 1px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+      border-radius: 10px;
+      font-size: var(--headline);
+      font-weight: 600;
+    }
+    .scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+    }
+    .sheet {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 16px;
+      background: var(--sheet);
+      border-radius: 14px;
+      padding: 16px 12px 12px;
+      text-align: center;
+    }
+    .sheet h2 { font-size: var(--headline); margin: 0 0 8px; }
+    .sheet p { font-size: 13px; color: var(--secondary); margin: 0 0 16px; }
+    .sheet-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      border-radius: 10px;
+      background: var(--row);
+      margin-top: 8px;
+      font-size: var(--body);
+    }
+    .sheet-btn.destructive { color: var(--danger); font-weight: 600; }
+    .review-note {
+      max-width: 800px;
+      margin: 8px auto 32px;
+      padding: 0 16px;
+      font-size: 13px;
+      color: #3a3a3c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      .review-note { color: #e5e5ea; }
+    }
+  </style>
+</head>
+<body>
+  <div class="row-wrap">
+    <section class="stage" aria-label="list">
+      <h1 class="nav">ダウンロード</h1>
+      <div class="card">
+        <div class="headline">日常英会話</div>
+        <div class="meta">
+          <span>再取得可能な教材です。バックアップ対象外です。</span>
+          <span>128 KB</span>
+        </div>
+        <div class="secondary-btn">削除</div>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="confirm">
+      <h1 class="nav">ダウンロード</h1>
+      <div class="card">
+        <div class="headline">日常英会話</div>
+        <div class="meta">
+          <span>再取得可能な教材です。バックアップ対象外です。</span>
+          <span>128 KB</span>
+        </div>
+        <div class="secondary-btn">削除</div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <h2>このコースを削除しますか？</h2>
+        <p>ダウンロード済みの音声と教材を端末から削除します。学習履歴は残ります。</p>
+        <div class="sheet-btn destructive">削除</div>
+        <div class="sheet-btn">閉じる</div>
+      </div>
+    </section>
+  </div>
+  <p class="review-note">
+    DownloadsView（Task 14）。タイトルは LocalizedTitle.resolve（ContentCore）。
+    容量は DownloadManager.courseSizeOnDisk + ByteCountFormatter.countStyle=.file を常時表示。
+    削除は confirmationDialog（destructive「削除」/ cancel「閉じる」）。
+    幅 375px・prefers-color-scheme で確認。
+  </p>
+</body>
+</html>

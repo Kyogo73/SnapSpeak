@@ -6,6 +6,12 @@ name: Release PR
 # 補足: GITHUB_TOKEN で作成した PR には pull_request トリガーの CI が走らないが、
 # head が develop 本体のため、develop への push で走った CI（同一 SHA のチェック）が
 # そのまま PR の必須チェックとして評価される。
+#
+# 権限について:
+# - 下記 permissions: は必要（無いと Resource not accessible by integration になる）。
+# - それだけでは不十分。リポジトリ設定「Allow GitHub Actions to create and approve
+#   pull requests」がオフだと GraphQL が createPullRequest を拒否する（workflow YAML
+#   では直せない。手順は docs/development-workflow.md §5.1）。
 on:
   push:
     branches: [develop]
@@ -36,18 +42,56 @@ jobs:
             echo "Release PR #$existing already open; the PR diff follows develop automatically"
             exit 0
           fi
-          if ! gh pr create \
-            --base main \
-            --head develop \
-            --title "release: develop を main へ反映" \
-            --body "$(printf '%s\n' \
-              '## 目的' \
-              '' \
-              'テスト環境（develop）で検証済みの変更を本番（main）へ反映する。' \
-              '' \
-              '- 差分は Files changed タブを正とする（develop への push で自動更新される）' \
-              '- マージすると Release ワークフローが自動で semver タグとドラフト GitHub Release を作成する' \
-              '- 運用手順の正本: docs/development-workflow.md §5')"; then
-            echo "::error title=リリース PR を自動作成できませんでした::リポジトリ設定で GitHub Actions の PR 作成を許可してください: Settings → Actions → General → Workflow permissions → 'Allow GitHub Actions to create and approve pull requests' にチェック。設定後は develop への次の push で自動作成されます（手動で develop → main の PR を作成しても可）。"
+
+          set +e
+          create_log="$(
+            gh pr create \
+              --base main \
+              --head develop \
+              --title "release: develop を main へ反映" \
+              --body "$(printf '%s\n' \
+                '## 目的' \
+                '' \
+                'テスト環境（develop）で検証済みの変更を本番（main）へ反映する。' \
+                '' \
+                '- 差分は Files changed タブを正とする（develop への push で自動更新される）' \
+                '- マージすると Release ワークフローが自動で semver タグとドラフト GitHub Release を作成する' \
+                '- 運用手順の正本: docs/development-workflow.md §5')" \
+              2>&1
+          )"
+          create_status=$?
+          set -e
+          printf '%s\n' "$create_log"
+
+          if [ "$create_status" -eq 0 ]; then
+            exit 0
+          fi
+
+          repo="${GITHUB_REPOSITORY}"
+          settings_url="https://github.com/${repo}/settings/actions"
+          if printf '%s' "$create_log" | grep -Fq "GitHub Actions is not permitted to create or approve pull requests"; then
+            {
+              echo "::error title=リリース PR を自動作成できませんでした::GITHUB_TOKEN による PR 作成がリポジトリ設定で拒否されています。workflow の permissions: では直せません。"
+              echo ""
+              echo "根本原因: リポジトリ設定「Allow GitHub Actions to create and approve pull requests」がオフです。"
+              echo "GraphQL は createPullRequest を拒否します（permissions: pull-requests: write だけでは不足）。"
+              echo ""
+              echo "ユーザー操作（リポジトリ管理者）:"
+              echo "  1. ${settings_url}"
+              echo "     または GitHub UI: Settings → Actions → General → Workflow permissions"
+              echo "  2. 「Allow GitHub Actions to create and approve pull requests」にチェック"
+              echo "  3. Save を押す"
+              echo "  4. 設定後は develop への次の push でこのワークフローが自動作成する"
+              echo ""
+              echo "組織リポジトリでチェックがグレーアウトしている場合は、先に組織設定を有効化する:"
+              echo "  https://github.com/organizations/<ORG>/settings/actions"
+              echo "  → Actions → General → Workflow permissions → 同じチェック"
+              echo ""
+              echo "回避策: 手動で develop → main のリリース PR を作成してもよい。"
+              echo "正本: docs/development-workflow.md §5.1"
+            } >&2
             exit 1
           fi
+
+          echo "::error title=リリース PR を自動作成できませんでした::gh pr create が失敗しました。上のログを確認してください。手動で develop → main の PR を作成してもよい。"
+          exit 1

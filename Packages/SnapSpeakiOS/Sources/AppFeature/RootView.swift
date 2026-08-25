@@ -2,6 +2,7 @@ import ContentCore
 import ContentKit
 import HabitKit
 import OnboardingFeature
+import ReviewFeature
 import SwiftUI
 
 public struct RootView: View {
@@ -15,6 +16,7 @@ public struct RootView: View {
     @State private var selectedTab: AppTab = .home
     @State private var showOnboarding = false
     @State private var driveSession: DriveSessionLaunch?
+    @State private var paywall: PaywallRequest?
 
     public init() {}
 
@@ -28,7 +30,12 @@ public struct RootView: View {
             .tag(AppTab.home)
 
             NavigationStack(path: $catalogPath) {
-                CatalogView(path: $catalogPath, courses: courses)
+                CatalogView(
+                    path: $catalogPath,
+                    courses: courses,
+                    entitlement: dependencies.entitlement,
+                    onLockedItem: { presentPaywall(reason: "catalog", coordinate: $0) }
+                )
                     .navigationDestination(for: LessonCoordinate.self, destination: lessonDestination)
             }
             .tabItem { Label("tab.catalog", systemImage: "books.vertical") }
@@ -51,7 +58,19 @@ public struct RootView: View {
         .task { await bootstrap() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                Task { await todayViewModel?.refresh() }
+                Task {
+                    await dependencies.refreshEntitlementUsage()
+                    await todayViewModel?.refresh()
+                }
+            }
+        }
+        .sheet(item: $paywall) { request in
+            NavigationStack {
+                PaywallView(
+                    dependencies: dependencies,
+                    reason: request.reason,
+                    onClose: { paywall = nil }
+                )
             }
         }
         .onReceive(dependencies.reminderRouter.$homeRevealToken) { token in
@@ -76,7 +95,7 @@ public struct RootView: View {
                 },
                 onOpenLesson: { coordinate in
                     driveSession = nil
-                    homePath.append(.lesson(coordinate))
+                    openLesson(coordinate, reason: "lesson")
                     Task { await todayViewModel?.refresh() }
                 }
             )
@@ -90,7 +109,7 @@ public struct RootView: View {
                     showOnboarding = false
                     Task { await todayViewModel?.refresh() }
                     if startFirstLesson, let lesson = firstLesson {
-                        homePath.append(.lesson(lesson))
+                        openLesson(lesson, reason: "first_lesson")
                     }
                 }
             )
@@ -105,6 +124,8 @@ public struct RootView: View {
                 courses: courses,
                 today: todayViewModel,
                 onContinueLearning: { selectedTab = .catalog },
+                onOpenLesson: { openLesson($0, reason: "continue") },
+                onStartToday: { Task { await startTodayOrPaywall() } },
                 onOpenDrive: { Task { await presentDrive(immediate: false) } },
                 onQuickStartDrive: { Task { await presentDrive(immediate: true) } }
             )
@@ -127,6 +148,7 @@ public struct RootView: View {
                 ReviewSessionContainer(
                     snapshot: snapshot,
                     dependencies: dependencies,
+                    courses: courses,
                     onClose: {
                         homePath.removeAll { $0 == .review }
                         Task { await todayViewModel.refresh() }
@@ -137,7 +159,8 @@ public struct RootView: View {
                         Task { await todayViewModel.refresh() }
                     },
                     onItemCompleted: {
-                        Task { await todayViewModel.refresh() }
+                        await dependencies.refreshEntitlementUsage()
+                        await todayViewModel.refresh()
                     }
                 )
             } else {
@@ -153,6 +176,7 @@ public struct RootView: View {
         StandaloneLessonHost(
             coordinate: coordinate,
             dependencies: dependencies,
+            courses: courses,
             today: todayViewModel
         )
     }
@@ -167,9 +191,65 @@ public struct RootView: View {
             )
         }
         courses = await dependencies.courseStore.allCourses()
+        await dependencies.startStore()
         let settings = (try? await dependencies.persistence.loadOrCreateSettings()) ?? dependencies.settings
         showOnboarding = settings.onboardingCompletedAt == nil
         await todayViewModel?.refresh()
+    }
+
+    private func openLesson(_ coordinate: LessonCoordinate, reason: String) {
+        Task {
+            await dependencies.refreshEntitlementUsage()
+            if ContentAccess.access(
+                resolver: dependencies.entitlement,
+                courses: courses,
+                coordinate: coordinate
+            ) == .locked {
+                presentPaywall(reason: reason, coordinate: coordinate)
+            } else {
+                homePath.append(.lesson(coordinate))
+            }
+        }
+    }
+
+    private func startTodayOrPaywall() async {
+        await dependencies.refreshEntitlementUsage()
+        guard await todayViewModel?.regeneratePlanThenStart() == true else { return }
+        if let first = firstTodayCoordinate(),
+           ContentAccess.access(
+               resolver: dependencies.entitlement,
+               courses: courses,
+               coordinate: first
+           ) == .locked {
+            presentPaywall(reason: "today_start", coordinate: first)
+            return
+        }
+        homePath.append(.review)
+    }
+
+    private func firstTodayCoordinate() -> LessonCoordinate? {
+        guard let plan = todayViewModel?.snapshot?.plan else { return nil }
+        let resolved = ReviewSessionViewModel.resolveEntries(plan: plan, courses: courses)
+        guard let first = resolved.entries.first else { return nil }
+        return LessonCoordinate(
+            courseId: first.courseId,
+            lessonId: first.lessonId,
+            itemId: first.itemId,
+            mode: first.mode
+        )
+    }
+
+    private func presentPaywall(reason: String, coordinate: LessonCoordinate?) {
+        let skillIsComposition = coordinate?.mode == .composition
+        dependencies.analytics.track(
+            .limitReached(
+                kind: ContentAccess.limitKind(
+                    resolver: dependencies.entitlement,
+                    skillIsComposition: skillIsComposition
+                )
+            )
+        )
+        paywall = PaywallRequest(reason: reason)
     }
 
     private var firstLesson: LessonCoordinate? {

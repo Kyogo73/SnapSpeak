@@ -1188,7 +1188,7 @@ flowchart LR
 - **CDN 配信は必須**。採用は **Cloudflare R2**（S3 互換オブジェクトストレージ + Cloudflare CDN）。選定理由: (1) egress 無料で、同じ音声を多数ユーザーが反復ダウンロードするワークロードに強い、(2) 無料枠（ストレージ 10GB・読み取り月 1,000 万回）で Phase 1〜2 のコンテンツ量が収まる、(3) S3 互換 API のため本書の設計（immutable release / checksum / キャッシュ戦略）が無変更で載る。シードは障害時・初回オフラインの保証。
   - バケットは公開読み取り + 独自ドメイン（例 `cdn.snapspeak.app`）。パスは `manifest/index.json` と `courses/<courseId>/<releaseId>/...`（§7.3 のマニフェスト構造に対応）。release 配下は immutable として上書きしない。
   - キャッシュヘッダ: release 配下（JSON・音声）は `Cache-Control: public, max-age=31536000, immutable`。マニフェストのみ短命（例 `max-age=300`）にして更新を伝播する。
-  - アップロードは S3 互換 API（aws cli / rclone）またはダッシュボード。払い出し・運用手順の確立は Phase 1 後半（phase1 計画 §6.2）。個人データ・認証情報は置かない（それらは Phase 3 でも Supabase 側）。
+  - アップロードは S3 互換 API（aws cli / rclone）またはダッシュボード。払い出し・運用手順（アカウント / バケット / 最小権限トークン / Cloud Agents Secrets 名）の正本は [infra-setup.md](./infra-setup.md)。個人データ・認証情報は置かない（それらは Phase 3 でも Supabase 側）。
 - DoD としてマニフェストから 1 コースを取得、チェックサム、オフライン再生、更新、削除。
 - 分析を送る場合もリセット可能なインストール ID に留める。
 

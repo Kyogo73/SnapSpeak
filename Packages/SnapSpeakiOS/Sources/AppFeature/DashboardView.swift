@@ -75,6 +75,11 @@ public struct DashboardView: View {
                 ),
                 accessibilityHint: summary.streak.isAtRisk ? "streak.at_risk" : nil
             )
+            if DashboardPresentation.showsAtRiskCaption(isAtRisk: summary.streak.isAtRisk) {
+                Text("streak.at_risk")
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.warning)
+            }
             Text(LocalizedFormat.string("dashboard.streak.longest", summary.streak.longestStreakDays))
                 .font(Typography.body)
             Text(LocalizedFormat.string("dashboard.streak.total", summary.streak.totalStudyDays))
@@ -88,7 +93,12 @@ public struct DashboardView: View {
                 .font(Typography.headline)
             weekChart(summary)
                 .frame(height: 180)
-                .accessibilityLabel("dashboard.week.title")
+                .accessibilityLabel(
+                    LocalizedFormat.string(
+                        DashboardPresentation.weekSummaryAccessibilityKey,
+                        summary.weekCompletedItems
+                    )
+                )
             Text(LocalizedFormat.string("dashboard.week.total", summary.weekCompletedItems))
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryFill)
@@ -99,14 +109,26 @@ public struct DashboardView: View {
         Chart(summary.dailyBars, id: \.dayStart) { bar in
             BarMark(
                 x: .value(LocalizedStringKey("dashboard.chart.axis_day"), bar.dayStart, unit: .day),
-                y: .value(LocalizedStringKey("dashboard.chart.axis_count"), bar.completedItems)
+                yStart: .value(LocalizedStringKey("dashboard.chart.axis_count"), 0),
+                yEnd: .value(
+                    LocalizedStringKey("dashboard.chart.axis_count"),
+                    DashboardPresentation.barYEnd(completedItems: bar.completedItems)
+                )
             )
-            .foregroundStyle(bar.goalMet ? Colors.accent : Colors.secondaryFill)
+            .foregroundStyle(zeroDayBarStyle(bar))
             .annotation(position: .top) {
-                Text(verbatim: "\(bar.completedItems)")
-                    .font(Typography.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(Colors.secondaryFill)
+                HStack(spacing: 2) {
+                    Text(verbatim: "\(bar.completedItems)")
+                        .font(Typography.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(Colors.secondaryFill)
+                    if DashboardPresentation.showsGoalMetMark(goalMet: bar.goalMet) {
+                        Image(systemName: "checkmark")
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.accent)
+                            .accessibilityHidden(true)
+                    }
+                }
             }
             .accessibilityLabel(Text(verbatim: shortDayLabel(bar.dayStart)))
             .accessibilityValue(Text(verbatim: barValueLabel(bar)))
@@ -123,6 +145,11 @@ public struct DashboardView: View {
         .chartYAxis {
             AxisMarks(position: .leading)
         }
+        .chartYScale(
+            domain: 0...DashboardPresentation.chartYScaleUpperBound(
+                completedItems: summary.dailyBars.map(\.completedItems)
+            )
+        )
     }
 
     private func modesCard(_ summary: ProgressSummary) -> some View {
@@ -131,24 +158,36 @@ public struct DashboardView: View {
                 .font(Typography.headline)
             modeRow(
                 titleKey: "dashboard.modes.shadowing",
+                metricKey: LocalizedStringKey(DashboardPresentation.shadowingMetricKey),
                 rate: summary.shadowingAverageMatchRate,
                 sampleCount: summary.shadowingSampleCount
             )
             modeRow(
                 titleKey: "dashboard.modes.composition",
+                metricKey: LocalizedStringKey(DashboardPresentation.compositionMetricKey),
                 rate: summary.compositionPassRate,
                 sampleCount: summary.compositionScoredCount
             )
         }
     }
 
-    private func modeRow(titleKey: LocalizedStringKey, rate: Double?, sampleCount: Int) -> some View {
+    private func modeRow(
+        titleKey: LocalizedStringKey,
+        metricKey: LocalizedStringKey,
+        rate: Double?,
+        sampleCount: Int
+    ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(titleKey)
                 .font(Typography.headline)
             if let rate {
                 Text(LocalizedFormat.string("dashboard.modes.rate_value", Int((rate * 100).rounded())))
                     .font(Typography.score)
+                if DashboardPresentation.showsMetricCaption(hasRate: true) {
+                    Text(metricKey)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
                 Text(LocalizedFormat.string("dashboard.modes.samples", sampleCount))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryFill)
@@ -162,12 +201,13 @@ public struct DashboardView: View {
 
     private var notesCard: some View {
         CardContainer {
-            Text("dashboard.metric_note")
-                .font(Typography.caption)
-                .foregroundStyle(Colors.secondaryFill)
-            Text("dashboard.local_note")
-                .font(Typography.caption)
-                .foregroundStyle(Colors.secondaryFill)
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(DashboardPresentation.noteKeys, id: \.self) { key in
+                    Text(LocalizedStringKey(key))
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryFill)
+                }
+            }
         }
     }
 
@@ -181,5 +221,13 @@ public struct DashboardView: View {
             return count + " " + LocalizedFormat.string("dashboard.bar.goal_met")
         }
         return count
+    }
+
+    /// 0 件日は薄いプレースホルダ。goalMet 日の色は従来どおりアクセント。
+    private func zeroDayBarStyle(_ bar: DailyProgressBar) -> Color {
+        if DashboardPresentation.usesZeroPlaceholder(completedItems: bar.completedItems) {
+            return Colors.secondaryFill.opacity(0.35)
+        }
+        return bar.goalMet ? Colors.accent : Colors.secondaryFill
     }
 }

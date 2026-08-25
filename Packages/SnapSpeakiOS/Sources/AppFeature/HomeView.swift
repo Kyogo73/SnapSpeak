@@ -120,6 +120,20 @@ public struct HomeView: View {
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryFill)
             }
+        } else if today.state == .loading {
+            CardContainer {
+                AdaptiveStack {
+                    ProgressView()
+                        .accessibilityLabel("home.habit.loading")
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Spacer()
+                    }
+                    Circle()
+                        .stroke(Colors.secondaryFill.opacity(0.25), lineWidth: 8)
+                        .frame(width: 56, height: 56)
+                        .accessibilityHidden(true)
+                }
+            }
         }
     }
 
@@ -190,38 +204,58 @@ public struct HomeView: View {
     private var driveCard: some View {
         CardContainer {
             Button(action: onOpenDrive) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("home.drive.title")
-                        .font(Typography.headline)
-                    Text("home.drive.subtitle")
-                        .font(Typography.body)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("home.drive.title")
+                            .font(Typography.headline)
+                        Text("home.drive.subtitle")
+                            .font(Typography.body)
+                            .foregroundStyle(Colors.secondaryFill)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
                         .foregroundStyle(Colors.secondaryFill)
+                        .accessibilityHidden(true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CardPressButtonStyle())
             PrimaryButton("home.drive.quick_start", action: onQuickStartDrive)
         }
     }
 
     private var progressLink: some View {
         CardContainer {
-            Button { path.append(.progress) } label: {
-                Label("home.progress_link", systemImage: "chart.bar.fill")
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            navigationRow(titleKey: "home.progress_link", systemImage: "chart.bar.fill") {
+                path.append(.progress)
             }
         }
     }
 
     private func continueCard(_ lesson: LessonCoordinate) -> some View {
         CardContainer {
-            Button {
+            navigationRow(titleKey: "home.continue", systemImage: "play.circle.fill") {
                 onOpenLesson(lesson)
-            } label: {
-                Label("home.continue", systemImage: "play.circle.fill")
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
         }
+    }
+
+    private func navigationRow(
+        titleKey: LocalizedStringKey,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack {
+                Label(titleKey, systemImage: systemImage)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(Colors.secondaryFill)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        }
+        .buttonStyle(CardPressButtonStyle())
     }
 
     private func planSummary(_ plan: SessionPlan) -> String {
@@ -237,5 +271,12 @@ public struct HomeView: View {
             return LocalizedFormat.string("home.today.plan_new_only")
         }
         return ""
+    }
+}
+
+private struct CardPressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }

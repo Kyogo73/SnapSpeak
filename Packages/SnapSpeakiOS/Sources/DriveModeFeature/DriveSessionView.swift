@@ -40,20 +40,32 @@ public struct DriveSessionView: View {
         Group {
             switch viewModel.phase {
             case .idle:
-                DriveStartView(
-                    dueCount: viewModel.dueCount,
-                    newCount: viewModel.newCount,
-                    isRepeatFill: viewModel.isRepeatFill,
-                    loadFailed: viewModel.loadFailed,
-                    canStart: viewModel.canStart,
-                    length: $length,
-                    onStart: {
-                        viewModel.applyLength(length)
-                        Task { await viewModel.start(courses: courses) }
-                    },
-                    onRetry: onRetry,
-                    onClose: onClose
-                )
+                NavigationStack {
+                    DriveStartView(
+                        dueCount: viewModel.dueCount,
+                        newCount: viewModel.newCount,
+                        isRepeatFill: viewModel.isRepeatFill,
+                        loadFailed: viewModel.loadFailed,
+                        canStart: viewModel.canStart,
+                        length: $length,
+                        onStart: {
+                            viewModel.applyLength(length)
+                            Task { await viewModel.start(courses: courses) }
+                        },
+                        onRetry: onRetry
+                    )
+                    .navigationTitle("drive.start.title")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(action: onClose) {
+                                Image(systemName: "xmark")
+                                    .frame(minWidth: 44, minHeight: 44)
+                            }
+                            .accessibilityLabel("common.close")
+                        }
+                    }
+                }
             case .starting:
                 DriveGlanceView(
                     phaseKind: .sessionIntro,

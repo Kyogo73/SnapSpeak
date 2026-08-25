@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PrivacyView — 外部リンク明示</title>
+  <style>
+    :root {
+      --title: 28px; --body: 17px; --caption: 12px; --bg: #fff; --label: #000;
+      --secondary: rgba(60,60,67,.60); --accent: #007aff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #000; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #0a84ff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #c7c7cc; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; color: var(--label); }
+    .stage { width: 375px; min-height: 100vh; margin: 0 auto; background: var(--bg); padding: 16px; }
+    h1 { font-size: var(--title); font-weight: 400; }
+    p { font-size: var(--body); }
+    .row { display: flex; align-items: center; min-height: 44px; gap: 8px; }
+    .caption { font-size: var(--caption); color: var(--secondary); }
+    a { color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 6px; min-height: 44px; }
+    .cta { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <section class="stage">
+    <h1>プライバシー</h1>
+    <p>録音と音声認識は学習機能のために使い、クラウドへ音声は送りません。</p>
+    <div class="row">マイクは発話の録音に使います</div>
+    <div class="row">音声認識は端末内のオンデバイス処理に限定します</div>
+    <div class="row">録音の保持期間は既定14日です</div>
+    <p class="caption">UserDefaults とディスク容量の申告は Required Reason API です。</p>
+    <a href="https://snapspeak.app/privacy" aria-describedby="ext">プライバシーポリシー <span aria-hidden="true">↗</span></a>
+    <p id="ext" class="caption">外部サイトを開きます</p>
+    <div class="cta">システム設定を開く</div>
+  </section>
+</body>
+</html>

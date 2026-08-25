@@ -125,12 +125,10 @@ public struct PaywallView: View {
     private var links: some View {
         AdaptiveStack {
             if let url = StoreLinks.terms {
-                Link("paywall.terms", destination: url)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                externalLink("paywall.terms", url: url)
             }
             if let url = StoreLinks.privacy {
-                Link("paywall.privacy", destination: url)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                externalLink("paywall.privacy", url: url)
             }
         }
     }
@@ -192,5 +190,17 @@ public struct PaywallView: View {
 
     private func localizedKey(_ key: String) -> String {
         String(localized: String.LocalizationValue(stringLiteral: key))
+    }
+
+    private func externalLink(_ titleKey: LocalizedStringKey, url: URL) -> some View {
+        Link(destination: url) {
+            HStack {
+                Text(titleKey)
+                Image(systemName: "arrow.up.right.square")
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        }
+        .accessibilityHint("privacy.policy_external_hint")
     }
 }

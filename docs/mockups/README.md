@@ -30,6 +30,15 @@ light / dark は `prefers-color-scheme` で切り替える。
 2. light / dark（OS または DevTools の `prefers-color-scheme`）と幅 375px（iPhone 最小相当）で確認する。
 3. 指摘は beads または PR コメントに画面名つきで記録する。
 
+## ホーム / 復習 / ドライブ / プライバシー（Task 12 / 17–21）
+
+| ファイル | 内容 |
+|----------|------|
+| [home.html](./home.html) | ドライブカードの chevron、loading プレースホルダ、回復カード |
+| [review_summary.html](./review_summary.html) | 目標達成リング（Reduce Motion 静止） |
+| [drive.html](./drive.html) | 開始のシステムナビ、グランス状態語、ノート聞き直し |
+| [privacy.html](./privacy.html) | 外部リンクアイコンと hint |
+
 ## ダッシュボード（Phase 1）
 
 | ファイル | 内容 |

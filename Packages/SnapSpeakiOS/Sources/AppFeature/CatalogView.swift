@@ -97,6 +97,7 @@ public struct CatalogView: View {
                 }
             }
         }
+        .snapspeakCanvas()
         .navigationTitle("catalog.title")
     }
 

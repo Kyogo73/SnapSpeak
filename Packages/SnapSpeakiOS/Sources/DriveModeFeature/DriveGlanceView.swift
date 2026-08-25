@@ -43,7 +43,7 @@ public struct DriveGlanceView: View {
             Spacer()
             // ux-design §10.5.2: 走行中は超大型の状態語 1 情報。Dynamic Type 非追従は意図的。
             Text(stateKey)
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64, weight: .bold, design: .rounded))
                 .minimumScaleFactor(0.4)
                 .lineLimit(1)
                 .accessibilityLabel(stateKey)
@@ -51,10 +51,12 @@ public struct DriveGlanceView: View {
             Button(action: onTogglePause) {
                 Text(paused ? "drive.glance.resume" : "drive.glance.pause")
                     .font(Typography.title)
+                    .foregroundStyle(Colors.onAccent)
                     .frame(maxWidth: .infinity, minHeight: 120)
             }
             .buttonStyle(.borderedProminent)
             .tint(Colors.accent)
+            .buttonBorderShape(.roundedRectangle(radius: 18))
             .accessibilityLabel(paused ? "drive.glance.resume" : "drive.glance.pause")
         }
         .padding()

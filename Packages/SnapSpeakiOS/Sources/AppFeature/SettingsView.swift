@@ -108,6 +108,7 @@ public struct SettingsView: View {
             }
             .frame(minHeight: 44)
         }
+        .snapspeakCanvas()
         .navigationTitle("settings.title")
         .confirmationDialog(
             "settings.reset_confirm_title",

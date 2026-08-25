@@ -44,10 +44,12 @@ public struct DriveStartView: View {
                 Button(action: onStart) {
                     Label("drive.start.start", systemImage: "play.fill")
                         .font(Typography.title)
+                        .foregroundStyle(Colors.onAccent)
                         .frame(maxWidth: .infinity, minHeight: 88)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Colors.accent)
+                .buttonBorderShape(.roundedRectangle(radius: 18))
                 .disabled(!canStart)
                 .accessibilityLabel("drive.start.start")
                 Text("drive.start.safety_note")

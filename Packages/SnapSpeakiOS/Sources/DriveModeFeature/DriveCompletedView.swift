@@ -22,7 +22,7 @@ public struct DriveCompletedView: View {
             }
             Spacer()
             Text("drive.glance.done")
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64, weight: .bold, design: .rounded))
                 .minimumScaleFactor(0.4)
                 .lineLimit(1)
                 .accessibilityLabel("drive.glance.done")
@@ -33,10 +33,12 @@ public struct DriveCompletedView: View {
             Button(action: onOpenNote) {
                 Text("drive.completed.open_note")
                     .font(Typography.title)
+                    .foregroundStyle(Colors.onAccent)
                     .frame(maxWidth: .infinity, minHeight: 120)
             }
             .buttonStyle(.borderedProminent)
             .tint(Colors.accent)
+            .buttonBorderShape(.roundedRectangle(radius: 18))
             .accessibilityLabel("drive.completed.open_note")
         }
         .padding()

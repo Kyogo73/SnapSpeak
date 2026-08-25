@@ -39,5 +39,6 @@ public struct OnboardingWelcomeView: View {
             .padding(24)
             .frame(maxWidth: .infinity)
         }
+        .snapspeakCanvas()
     }
 }

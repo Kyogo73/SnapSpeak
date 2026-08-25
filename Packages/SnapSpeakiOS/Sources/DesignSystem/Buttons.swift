@@ -24,10 +24,12 @@ public struct PrimaryButton: View {
                 Text(titleKey)
                     .font(Typography.headline)
             }
+            .foregroundStyle(Colors.onAccent)
             .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.borderedProminent)
         .tint(Colors.accent)
+        .buttonBorderShape(.roundedRectangle(radius: 14))
     }
 }
 
@@ -58,5 +60,7 @@ public struct SecondaryButton: View {
             .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.bordered)
+        .tint(Colors.accent)
+        .buttonBorderShape(.roundedRectangle(radius: 14))
     }
 }

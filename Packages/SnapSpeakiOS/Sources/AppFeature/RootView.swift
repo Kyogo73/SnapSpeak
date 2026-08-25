@@ -1,5 +1,6 @@
 import ContentCore
 import ContentKit
+import DesignSystem
 import HabitKit
 import OnboardingFeature
 import ReviewFeature
@@ -55,6 +56,7 @@ public struct RootView: View {
             .tabItem { Label("tab.settings", systemImage: "gearshape") }
             .tag(AppTab.settings)
         }
+        .tint(Colors.accent)
         .task { await bootstrap() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

@@ -21,7 +21,7 @@ public struct DegradedBanner: View {
         }
         .padding()
         .frame(minHeight: 44)
-        .background(Colors.warning.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+        .background(Colors.warning.opacity(0.15), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }

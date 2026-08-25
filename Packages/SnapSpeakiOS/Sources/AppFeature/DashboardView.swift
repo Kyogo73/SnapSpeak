@@ -24,6 +24,7 @@ public struct DashboardView: View {
                 readyContent(summary)
             }
         }
+        .snapspeakCanvas()
         .navigationTitle("dashboard.title")
         .task { await viewModel.load() }
     }

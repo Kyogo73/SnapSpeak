@@ -10,18 +10,18 @@
       --headline: 17px;
       --body: 17px;
       --caption: 12px;
-      --bg: #ffffff;
+      --bg: #f3f6f4;
       --label: #000000;
       --secondary: rgba(60, 60, 67, 0.60);
-      --accent: #007aff;
+      --accent: #0f766e; --on-accent: #fff;
       --track: rgba(60, 60, 67, 0.18);
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #000000;
+        --bg: #0c1211;
         --label: #ffffff;
         --secondary: rgba(235, 235, 245, 0.60);
-        --accent: #0a84ff;
+        --accent: #5eead4; --on-accent: #042f2e;
         --track: rgba(84, 84, 88, 0.65);
       }
     }
@@ -37,33 +37,34 @@
       width: 375px; min-height: 100vh; background: var(--bg);
       padding: 8px 16px 32px; position: relative;
     }
-    .nav {
+    .nav { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif;
       display: flex; align-items: center; justify-content: space-between;
       min-height: 44px; font-size: 17px; font-weight: 600;
     }
     .close { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
     .progress-text {
+      font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif;
       font-size: var(--headline); font-weight: 600; font-variant-numeric: tabular-nums;
       text-align: center; margin: 8px 0;
     }
     .bar { height: 4px; background: var(--track); border-radius: 2px; overflow: hidden; }
     .bar > span { display: block; height: 100%; width: 25%; background: var(--accent); }
     .item {
-      margin-top: 16px; padding: 16px; border-radius: 16px; background: #f2f2f7;
+      margin-top: 16px; padding: 16px; border-radius: 16px; background: #f3f6f4;
     }
     @media (prefers-color-scheme: dark) { .item { background: #1c1c1e; } }
     .item .body { font-size: var(--body); }
     .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); }
     .sheet {
       position: absolute; left: 8px; right: 8px; bottom: 16px;
-      background: #f2f2f7; border-radius: 14px; padding: 16px 12px 12px; text-align: center;
+      background: #f3f6f4; border-radius: 14px; padding: 16px 12px 12px; text-align: center;
     }
     @media (prefers-color-scheme: dark) { .sheet { background: #1c1c1e; } }
     .sheet h2 { font-size: var(--headline); margin: 0 0 8px; }
     .sheet p { font-size: 13px; color: var(--secondary); margin: 0 0 16px; }
     .sheet-btn {
       display: flex; align-items: center; justify-content: center;
-      min-height: 44px; border-radius: 10px; background: var(--bg);
+      min-height: 44px; border-radius: 14px; background: var(--bg);
       margin-top: 8px; font-size: var(--body);
     }
     .review-note {

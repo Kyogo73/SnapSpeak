@@ -12,22 +12,24 @@
       --callout: 16px;
       --caption: 12px;
       --score: 22px;
-      --bg: #ffffff;
-      --card: #f2f2f7;
+      --bg: #f3f6f4;
+      --card: #fffefb;
       --label: #000000;
       --secondary: rgba(60, 60, 67, 0.60);
-      --accent: #007aff;
+      --accent: #0f766e; --on-accent: #fff;
       --warning: #ff9500;
-      --radius: 16px;
+      --radius: 22px;
+      --stroke: #d5e3df;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #000000;
-        --card: #1c1c1e;
+        --bg: #0c1211;
+        --card: #16201e;
         --label: #ffffff;
         --secondary: rgba(235, 235, 245, 0.60);
-        --accent: #0a84ff;
+        --accent: #5eead4; --on-accent: #042f2e;
         --warning: #ff9f0a;
+        --stroke: #2a3c38;
       }
     }
     * { box-sizing: border-box; }
@@ -44,7 +46,7 @@
       background: var(--bg);
       padding: 16px;
     }
-    h1.nav {
+    h1.nav { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif;
       font-size: var(--title);
       font-weight: 400;
       margin: 8px 0 16px;
@@ -53,14 +55,16 @@
     .card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 18px;
       width: 100%;
+      border: 1px solid var(--stroke);
+      box-shadow: 0 4px 10px rgba(0,0,0,.06);
     }
     .card > * + * { margin-top: 8px; }
-    .headline { font-size: var(--headline); font-weight: 600; }
+    .headline { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--headline); font-weight: 600; }
     .body { font-size: var(--body); font-weight: 400; }
     .caption { font-size: var(--caption); font-weight: 400; color: var(--secondary); }
-    .score { font-size: var(--score); font-variant-numeric: tabular-nums; font-weight: 400; }
+    .score { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--score); font-variant-numeric: tabular-nums; font-weight: 400; }
     .secondary { color: var(--secondary); }
     .warning { color: var(--warning); }
     .badge {
@@ -70,7 +74,7 @@
       min-height: 44px;
     }
     .badge .flame { width: 22px; height: 22px; fill: none; stroke: var(--warning); stroke-width: 1.8; }
-    .badge .days { font-size: var(--headline); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .badge .days { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--headline); font-weight: 600; font-variant-numeric: tabular-nums; }
     .chart {
       height: 180px;
       display: flex;

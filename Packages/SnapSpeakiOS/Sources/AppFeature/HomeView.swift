@@ -59,6 +59,7 @@ public struct HomeView: View {
             }
             .padding()
         }
+        .snapspeakCanvas()
         .navigationTitle("home.title")
         .onAppear {
             Task { await today.refresh() }

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drive — 開始 / グランス / ノート</title>
+  <style>
+    :root {
+      --title: 28px; --headline: 17px; --body: 17px; --caption: 12px;
+      --bg: #fff; --card: #f2f2f7; --label: #000; --secondary: rgba(60,60,67,.60);
+      --accent: #007aff; --radius: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #000; --card: #1c1c1e; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #0a84ff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #c7c7cc; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; color: var(--label); }
+    .wrap { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; padding: 16px 0; }
+    .stage { width: 375px; min-height: 100vh; background: var(--bg); padding: 16px; }
+    .nav { display: flex; align-items: center; min-height: 44px; }
+    .nav h1 { flex: 1; text-align: center; font-size: var(--headline); font-weight: 600; margin: 0; }
+    .x { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .state { font-size: 64px; font-weight: 700; text-align: center; margin: 80px 0; }
+    .cta { display: flex; align-items: center; justify-content: center; min-height: 88px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 600; }
+    .pause { min-height: 120px; }
+    .caption { font-size: var(--caption); color: var(--secondary); }
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; margin: 12px 0; }
+    .chip { min-height: 44px; border: 1px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 8px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .label { font-size: 13px; color: var(--secondary); }
+    .ghost { min-height: 44px; border: 1px solid var(--accent); color: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-top: 8px; }
+    .headline { font-size: var(--headline); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="stage">
+      <p class="label">開始（NavigationStack + toolbar close）</p>
+      <div class="nav"><button class="x" aria-label="閉じる">✕</button><h1>ドライブ</h1><span class="x"></span></div>
+      <p>復習 3 件と新しい 1 件</p>
+      <p class="caption">セッションの長さ</p>
+      <div class="chips">
+        <div class="chip">✓ 5分</div>
+        <div class="chip">10分</div>
+        <div class="chip">20分</div>
+        <div class="chip">エンドレス</div>
+      </div>
+      <div class="cta" style="margin-top:16px">始める</div>
+      <p class="caption">運転中は画面を見ないでください</p>
+    </section>
+    <section class="stage">
+      <p class="label">グランス（64pt 状態語は仕様）</p>
+      <div class="nav"><button class="x">やめる</button><span class="caption">2 / 8</span></div>
+      <div class="state">聞いて</div>
+      <div class="cta pause">一時停止</div>
+    </section>
+    <section class="stage">
+      <p class="label">ノート（行固有 a11y）</p>
+      <h1 style="font-size:var(--title);font-weight:400">ドライブノート</h1>
+      <p class="headline">4 問練習しました</p>
+      <div class="card">
+        <p>こんにちは</p>
+        <p class="headline">Hello</p>
+        <div class="ghost" aria-label="この表現を聞き直す">聞き直す</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

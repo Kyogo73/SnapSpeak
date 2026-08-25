@@ -72,6 +72,8 @@ public struct DriveNoteView: View {
             SecondaryButton("drive.note.replay") {
                 onReplay(row)
             }
+            .accessibilityLabel("drive.note.replay_a11y")
+            .accessibilityHint(Text(row.l2Text))
         }
     }
 }

@@ -11,7 +11,6 @@ public struct DriveStartView: View {
     @Binding public var length: DriveScriptSettings.SessionLength
     public var onStart: () -> Void
     public var onRetry: () -> Void
-    public var onClose: () -> Void
 
     public init(
         dueCount: Int,
@@ -21,8 +20,7 @@ public struct DriveStartView: View {
         canStart: Bool,
         length: Binding<DriveScriptSettings.SessionLength>,
         onStart: @escaping () -> Void,
-        onRetry: @escaping () -> Void,
-        onClose: @escaping () -> Void
+        onRetry: @escaping () -> Void
     ) {
         self.dueCount = dueCount
         self.newCount = newCount
@@ -32,22 +30,10 @@ public struct DriveStartView: View {
         _length = length
         self.onStart = onStart
         self.onRetry = onRetry
-        self.onClose = onClose
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                Button(action: onClose) {
-                    Image(systemName: "xmark")
-                        .frame(minWidth: 44, minHeight: 44)
-                }
-                Spacer()
-                Text("drive.start.title")
-                    .font(Typography.headline)
-                Spacer()
-                Color.clear.frame(width: 44, height: 44)
-            }
             if loadFailed {
                 Text("home.today.load_failed")
                     .font(Typography.body)

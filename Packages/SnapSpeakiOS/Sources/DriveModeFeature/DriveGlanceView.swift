@@ -41,6 +41,7 @@ public struct DriveGlanceView: View {
                     .foregroundStyle(Colors.secondaryFill)
             }
             Spacer()
+            // ux-design §10.5.2: 走行中は超大型の状態語 1 情報。Dynamic Type 非追従は意図的。
             Text(stateKey)
                 .font(.system(size: 64, weight: .bold))
                 .minimumScaleFactor(0.4)

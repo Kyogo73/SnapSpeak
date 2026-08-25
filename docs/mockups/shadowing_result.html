@@ -14,7 +14,7 @@
       --bg: #f3f6f4;
       --label: #000000;
       --secondary: rgba(60, 60, 67, 0.60);
-      --accent: #0f766e;
+      --accent: #0f766e; --on-accent: #fff;
       --success: #34c759;
       --radius: 14px;
     }
@@ -23,7 +23,7 @@
         --bg: #0c1211;
         --label: #ffffff;
         --secondary: rgba(235, 235, 245, 0.60);
-        --accent: #5eead4;
+        --accent: #5eead4; --on-accent: #042f2e;
         --success: #30d158;
       }
     }
@@ -47,8 +47,8 @@
       align-items: flex-start;
       gap: 16px;
     }
-    .title { font-size: var(--title); font-weight: 400; margin: 0; }
-    .headline { font-size: var(--headline); font-weight: 600; }
+    .title { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--title); font-weight: 400; margin: 0; }
+    .headline { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--headline); font-weight: 600; }
     .body { font-size: var(--body); font-weight: 400; }
     .caption { font-size: var(--caption); font-weight: 400; color: var(--secondary); }
     .secondary { color: var(--secondary); }
@@ -61,7 +61,7 @@
       color: var(--success);
     }
     .badge .mark { font-size: 22px; line-height: 1; }
-    .score { font-size: var(--score); font-variant-numeric: tabular-nums; }
+    .score { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--score); font-variant-numeric: tabular-nums; }
     .breakdown {
       display: flex;
       flex-direction: column;
@@ -80,7 +80,7 @@
       font-size: var(--headline);
       font-weight: 600;
     }
-    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary { background: var(--accent); color: var(--on-accent); }
     .btn-secondary {
       background: transparent;
       color: var(--accent);

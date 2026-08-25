@@ -13,7 +13,7 @@
       --bg: #f3f6f4;
       --label: #000000;
       --secondary: rgba(60, 60, 67, 0.60);
-      --accent: #0f766e;
+      --accent: #0f766e; --on-accent: #fff;
       --track: rgba(60, 60, 67, 0.18);
     }
     @media (prefers-color-scheme: dark) {
@@ -21,7 +21,7 @@
         --bg: #0c1211;
         --label: #ffffff;
         --secondary: rgba(235, 235, 245, 0.60);
-        --accent: #5eead4;
+        --accent: #5eead4; --on-accent: #042f2e;
         --track: rgba(84, 84, 88, 0.65);
       }
     }
@@ -37,7 +37,7 @@
       width: 375px; min-height: 100vh; background: var(--bg);
       padding: 8px 16px 32px; position: relative;
     }
-    .nav {
+    .nav { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif;
       display: flex; align-items: center; justify-content: space-between;
       min-height: 44px; font-size: 17px; font-weight: 600;
     }

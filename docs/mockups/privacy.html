@@ -7,20 +7,20 @@
   <style>
     :root {
       --title: 28px; --body: 17px; --caption: 12px; --bg: #f3f6f4; --label: #000;
-      --secondary: rgba(60,60,67,.60); --accent: #0f766e;
+      --secondary: rgba(60,60,67,.60); --accent: #0f766e; --on-accent: #fff;
     }
     @media (prefers-color-scheme: dark) {
-      :root { --bg: #0c1211; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #5eead4; }
+      :root { --bg: #0c1211; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #5eead4; --on-accent: #042f2e; }
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: #c7c7cc; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; color: var(--label); }
     .stage { width: 375px; min-height: 100vh; margin: 0 auto; background: var(--bg); padding: 16px; }
-    h1 { font-size: var(--title); font-weight: 400; }
+    h1 { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--title); font-weight: 400; }
     p { font-size: var(--body); }
     .row { display: flex; align-items: center; min-height: 44px; gap: 8px; }
     .caption { font-size: var(--caption); color: var(--secondary); }
     a { color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 6px; min-height: 44px; }
-    .cta { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 14px; background: var(--accent); color: #fff; font-weight: 600; margin-top: 16px; }
+    .cta { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 14px; background: var(--accent); color: var(--on-accent); font-weight: 600; margin-top: 16px; }
   </style>
 </head>
 <body>

@@ -16,7 +16,7 @@
       --card: #fffefb;
       --label: #000000;
       --secondary: rgba(60, 60, 67, 0.60);
-      --accent: #0f766e;
+      --accent: #0f766e; --on-accent: #fff;
       --warning: #ff9500;
       --radius: 22px;
     }
@@ -26,7 +26,7 @@
         --card: #16201e;
         --label: #ffffff;
         --secondary: rgba(235, 235, 245, 0.60);
-        --accent: #5eead4;
+        --accent: #5eead4; --on-accent: #042f2e;
         --warning: #ff9f0a;
       }
     }
@@ -44,7 +44,7 @@
       background: var(--bg);
       padding: 16px;
     }
-    h1.nav {
+    h1.nav { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif;
       font-size: var(--title);
       font-weight: 400;
       margin: 8px 0 16px;
@@ -53,14 +53,16 @@
     .card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 18px;
       width: 100%;
+      border: 1px solid var(--stroke, #d5e3df);
+      box-shadow: 0 4px 10px rgba(0,0,0,.06);
     }
     .card > * + * { margin-top: 8px; }
-    .headline { font-size: var(--headline); font-weight: 600; }
+    .headline { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--headline); font-weight: 600; }
     .body { font-size: var(--body); font-weight: 400; }
     .caption { font-size: var(--caption); font-weight: 400; color: var(--secondary); }
-    .score { font-size: var(--score); font-variant-numeric: tabular-nums; font-weight: 400; }
+    .score { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--score); font-variant-numeric: tabular-nums; font-weight: 400; }
     .secondary { color: var(--secondary); }
     .warning { color: var(--warning); }
     .badge {

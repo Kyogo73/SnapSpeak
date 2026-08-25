@@ -19,6 +19,7 @@
       --accent: #0f766e; --on-accent: #fff;
       --warning: #ff9500;
       --radius: 22px;
+      --stroke: #d5e3df;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -28,6 +29,7 @@
         --secondary: rgba(235, 235, 245, 0.60);
         --accent: #5eead4; --on-accent: #042f2e;
         --warning: #ff9f0a;
+        --stroke: #2a3c38;
       }
     }
     * { box-sizing: border-box; }
@@ -55,7 +57,7 @@
       border-radius: var(--radius);
       padding: 18px;
       width: 100%;
-      border: 1px solid var(--stroke, #d5e3df);
+      border: 1px solid var(--stroke);
       box-shadow: 0 4px 10px rgba(0,0,0,.06);
     }
     .card > * + * { margin-top: 8px; }
@@ -72,7 +74,7 @@
       min-height: 44px;
     }
     .badge .flame { width: 22px; height: 22px; fill: none; stroke: var(--warning); stroke-width: 1.8; }
-    .badge .days { font-size: var(--headline); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .badge .days { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--headline); font-weight: 600; font-variant-numeric: tabular-nums; }
     .chart {
       height: 180px;
       display: flex;

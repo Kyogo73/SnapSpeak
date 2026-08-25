@@ -8,10 +8,10 @@
     :root {
       --title: 28px; --headline: 17px; --body: 17px; --caption: 12px;
       --bg: #f3f6f4; --card: #fffefb; --label: #000; --secondary: rgba(60,60,67,.60);
-      --accent: #0f766e; --on-accent: #fff; --radius: 22px;
+      --accent: #0f766e; --on-accent: #fff; --radius: 22px; --stroke: #d5e3df;
     }
     @media (prefers-color-scheme: dark) {
-      :root { --bg: #0c1211; --card: #16201e; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #5eead4; --on-accent: #042f2e; }
+      :root { --bg: #0c1211; --card: #16201e; --label: #fff; --secondary: rgba(235,235,245,.60); --accent: #5eead4; --on-accent: #042f2e; --stroke: #2a3c38; }
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: #c7c7cc; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; color: var(--label); }
@@ -21,14 +21,14 @@
     .nav h1 { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; flex: 1; text-align: center; font-size: var(--headline); font-weight: 600; margin: 0; }
     .x { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
     .state { font-size: 64px; font-weight: 700; text-align: center; margin: 80px 0; font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; }
-    .cta { display: flex; align-items: center; justify-content: center; min-height: 88px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
+    .cta { display: flex; align-items: center; justify-content: center; min-height: 88px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: var(--title); font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; }
     .pause { min-height: 120px; }
     .caption { font-size: var(--caption); color: var(--secondary); }
-    .card { background: var(--card); border-radius: var(--radius); padding: 18px; margin: 12px 0;  border: 1px solid var(--stroke, #d5e3df); box-shadow: 0 4px 10px rgba(0,0,0,.06);}
+    .card { background: var(--card); border-radius: var(--radius); padding: 18px; margin: 12px 0; border: 1px solid var(--stroke); box-shadow: 0 4px 10px rgba(0,0,0,.06);}
     .chip { min-height: 44px; border: 1px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 8px; }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .label { font-size: 13px; color: var(--secondary); }
-    .ghost { min-height: 44px; border: 1px solid var(--accent); color: var(--accent); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-top: 8px; }
+    .ghost { min-height: 44px; border: 1px solid var(--accent); color: var(--accent); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-top: 8px; font-size: var(--headline); font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; }
     .headline { font-family: ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif; font-size: var(--headline); font-weight: 600; }
   </style>
 </head>
@@ -56,7 +56,7 @@
     </section>
     <section class="stage">
       <p class="label">ノート（行固有 a11y）</p>
-      <h1 style="font-size:var(--title);font-weight:400">ドライブノート</h1>
+      <h1 style="font-size:var(--title);font-weight:400;font-family:ui-rounded,'Hiragino Maru Gothic ProN',system-ui,sans-serif">ドライブノート</h1>
       <p class="headline">4 問練習しました</p>
       <div class="card">
         <p>こんにちは</p>
